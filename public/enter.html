@@ -52,23 +52,18 @@
           <div class="field-hint">Used to break ties on the final leaderboard.</div>
         </div>
 
-        <details style="margin-bottom:1.1rem;">
-          <summary style="cursor:pointer;font-size:0.85rem;color:var(--text-muted);margin-bottom:0.5rem;">Optional: Tell us a bit more about yourself</summary>
-          <div style="padding-top:0.75rem;display:flex;flex-direction:column;gap:0.75rem;">
-            <div class="form-group" style="margin-bottom:0">
-              <label for="knownBy">Known as / nickname</label>
-              <input type="text" id="knownBy" name="knownBy" placeholder="What do colleagues call you?" maxlength="60">
-            </div>
-            <div class="form-group" style="margin-bottom:0">
-              <label for="clubTeam">Favourite club team</label>
-              <input type="text" id="clubTeam" name="clubTeam" placeholder="e.g. Arsenal" maxlength="60">
-            </div>
-            <div class="form-group" style="margin-bottom:0">
-              <label for="countryTeam">Favourite national team</label>
-              <input type="text" id="countryTeam" name="countryTeam" placeholder="e.g. England" maxlength="60">
-            </div>
-          </div>
-        </details>
+        <div class="form-group">
+          <label for="knownBy">Known as / nickname</label>
+          <input type="text" id="knownBy" name="knownBy" placeholder="What do colleagues call you?" maxlength="60">
+        </div>
+        <div class="form-group">
+          <label for="clubTeam">Favourite club team</label>
+          <input type="text" id="clubTeam" name="clubTeam" placeholder="e.g. Arsenal" maxlength="60">
+        </div>
+        <div class="form-group">
+          <label for="countryTeam">Favourite national team</label>
+          <input type="text" id="countryTeam" name="countryTeam" placeholder="e.g. England" maxlength="60">
+        </div>
 
         <button type="submit" class="btn btn-primary" id="submit-btn">Submit Entry — £5</button>
       </form>
