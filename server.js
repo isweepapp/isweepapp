@@ -320,12 +320,12 @@ app.get('/api/prizes', (_req, res) => {
   const knockoutPot = Math.min(equalShare, 50);
   const overallPot  = totalPot - groupPot - knockoutPot;
 
-  const split = pot => ({
-    pot,
-    prize1: Math.floor(pot * 0.60),
-    prize2: Math.floor(pot * 0.30),
-    prize3: pot - Math.floor(pot * 0.60) - Math.floor(pot * 0.30),
-  });
+  const split = pot => {
+    const p1 = Math.round(pot * 0.60);
+    const p2 = Math.round(pot * 0.30);
+    const p3 = Math.max(0, pot - p1 - p2);
+    return { pot, prize1: p1, prize2: p2, prize3: p3 };
+  };
 
   res.json({ totalPot, totalEntries, group: split(groupPot), knockout: split(knockoutPot), overall: split(overallPot) });
 });
