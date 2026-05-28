@@ -533,11 +533,135 @@ tbody tr:last-child { border-bottom: none; }
   .flags-strip { display: none; }
 }
 
-@media (max-width: 600px) {
-  header h1 { font-size: 1.5rem; }
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE / RESPONSIVE  (added for full mobile compatibility)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Base touch improvements ────────────────────────────────────────────────── */
+button, a, select, input {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+/* Minimum touch target */
+nav a, .btn, .tab-btn, .expand-btn {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Tablet (≤ 860px) ────────────────────────────────────────────────────── */
+@media (max-width: 860px) {
+  /* Nav: single scrollable row — no wrapping, no overflow clipping */
+  nav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    justify-content: flex-start;
+    gap: 0.4rem;
+    padding: 0.25rem 0.5rem 0.4rem;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    mask-image: linear-gradient(to right, transparent 0, #000 10px, #000 calc(100% - 10px), transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 10px, #000 calc(100% - 10px), transparent 100%);
+  }
+  nav::-webkit-scrollbar { display: none; }
+  nav a {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.7rem;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  .container { padding: 0 0.85rem 2.5rem; }
+
+  /* Leaderboard: remove the fixed min-width, let it scroll from the wrap */
+  .prem-table { min-width: 600px; font-size: 0.82rem; }
+
+  /* Hide the heavier stat columns — they're in the expand row */
+  /* Columns: 1=Pos 2=Mov 3=Entry 4=Name 5=Flag 6=Club 7=P 8=W 9=D 10=L 11=GF 12=GA 13=YC 14=RC 15=Bon 16=Pts 17=▾ */
+  .prem-table th:nth-child(n+7):nth-child(-n+15),
+  .prem-table td:nth-child(n+7):nth-child(-n+15) { display: none; }
+
+  /* Expand row spans fewer visible columns */
+  .expand-row td { padding: 0.6rem 0.75rem 0.85rem; }
+}
+
+/* ── Mobile (≤ 560px) ────────────────────────────────────────────────────── */
+@media (max-width: 560px) {
+  header { padding: 1.1rem 0.75rem 0.85rem; }
+  .sweepstake-logo { width: min(280px, 88vw); }
+
+  .container { padding: 0 0.65rem 2rem; }
+  .card { padding: 1rem; }
+
+  /* Stats cards: 2×2 grid */
+  .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 0.6rem; }
+  .stat-card  { padding: 0.85rem 0.65rem; }
+  .stat-card .value { font-size: 1.4rem; }
+
+  /* Rules: single column */
   .rules-grid { grid-template-columns: 1fr; }
-  .stats-grid { grid-template-columns: repeat(2, 1fr); }
-  .standing-total { font-size: 1.1rem; }
+
+  /* Leaderboard: also hide Known-As column (col 4) on very small screens */
+  .prem-table { min-width: 380px; }
+  .prem-table th:nth-child(4),
+  .prem-table td:nth-child(4) { display: none; }
+
+  /* Persona cells tighter */
+  .td-persona { padding: 0.5rem 0.25rem; font-size: 0.75rem; }
+  .club-badge { font-size: 0.58rem; padding: 0.1rem 0.22rem; }
+
+  /* Match rows: stack date under the teams */
+  .match-row {
+    grid-template-columns: 1fr 56px 1fr;
+    grid-template-rows: auto auto;
+    padding: 0.5rem 0.6rem;
+  }
+  .match-date {
+    grid-column: 1 / -1;
+    text-align: center;
+    border-top: 1px solid rgba(255,255,255,0.04);
+    padding-top: 0.3rem;
+    margin-top: 0.25rem;
+  }
+  .match-team { font-size: 0.78rem; }
+
+  /* Group standings: hide GF/GA on mobile, keep GD */
+  .gs-table th:nth-child(7),
+  .gs-table td:nth-child(7),
+  .gs-table th:nth-child(8),
+  .gs-table td:nth-child(8) { display: none; }
+  .gs-table { font-size: 0.75rem; }
+  .gs-team  { min-width: 100px; }
+
+  /* Expanded team pts items wrap nicely */
+  .exp-teams { gap: 0.4rem 0.5rem; }
+  .team-pts-item { flex-direction: column; align-items: flex-start; gap: 0.1rem; }
+  .team-pts-val  { font-size: 0.72rem; }
+
+  /* Prize grid single column */
+  .prize-grid { grid-template-columns: 1fr !important; }
+
+  /* Pots page flags grid */
+  .flags-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+
+  /* Tab buttons wrap */
+  .tab-bar { gap: 0.35rem; }
+  .tab-btn { font-size: 0.78rem; padding: 0.3rem 0.8rem; }
+
+  /* Admin page */
+  .match-edit-grid { grid-template-columns: 1fr; }
+  .admin-match-date { display: none; }
+}
+
+/* ── Very small phones (≤ 380px) ─────────────────────────────────────────── */
+@media (max-width: 380px) {
+  nav a { font-size: 0.72rem; padding: 0.22rem 0.55rem; }
+  .sweepstake-logo { width: 88vw; }
+  .prem-table { min-width: 320px; font-size: 0.75rem; }
+  /* Also hide movement column on tiny screens */
+  .prem-table th:nth-child(2),
+  .prem-table td:nth-child(2) { display: none; }
 }
 
 /* ── Premier League Table ──────────────────────────────────────────────────── */
