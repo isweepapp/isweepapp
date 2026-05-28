@@ -107,6 +107,13 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
+// ── Health check (Railway uses this to confirm the app is ready) ──────────────
+app.get('/health', (_req, res) => res.json({ ok: true }));
+
+// Graceful shutdown — let Railway's SIGTERM close cleanly without npm error noise
+process.on('SIGTERM', () => { console.log('[Server] SIGTERM received — shutting down.'); process.exit(0); });
+process.on('SIGINT',  () => { console.log('[Server] SIGINT received — shutting down.');  process.exit(0); });
+
 // ── Admin auth ────────────────────────────────────────────────────────────────
 function requireAdmin(req, res, next) {
   if (!ADMIN_PASSWORD_HASH) return res.status(403).json({ error: 'Admin disabled. Set ADMIN_PASSWORD environment variable.' });
