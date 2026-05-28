@@ -53,16 +53,223 @@
         </div>
 
         <div class="form-group">
-          <label for="knownBy">Known as / nickname</label>
-          <input type="text" id="knownBy" name="knownBy" placeholder="What do colleagues call you?" maxlength="60">
+          <label for="knownBy">Known as</label>
+          <input type="text" id="knownBy" name="knownBy" placeholder="e.g. Pants" maxlength="60">
         </div>
         <div class="form-group">
           <label for="clubTeam">Favourite club team</label>
-          <input type="text" id="clubTeam" name="clubTeam" placeholder="e.g. Arsenal" maxlength="60">
+          <select id="clubTeam" name="clubTeam">
+            <option value="">— Select a club —</option>
+            <optgroup label="Premier League">
+              <option>Arsenal</option>
+              <option>Aston Villa</option>
+              <option>Bournemouth</option>
+              <option>Brentford</option>
+              <option>Brighton &amp; Hove Albion</option>
+              <option>Chelsea</option>
+              <option>Crystal Palace</option>
+              <option>Everton</option>
+              <option>Fulham</option>
+              <option>Ipswich Town</option>
+              <option>Leicester City</option>
+              <option>Liverpool</option>
+              <option>Manchester City</option>
+              <option>Manchester United</option>
+              <option>Newcastle United</option>
+              <option>Nottingham Forest</option>
+              <option>Southampton</option>
+              <option>Tottenham Hotspur</option>
+              <option>West Ham United</option>
+              <option>Wolverhampton Wanderers</option>
+            </optgroup>
+            <optgroup label="Championship">
+              <option>Birmingham City</option>
+              <option>Blackburn Rovers</option>
+              <option>Bristol City</option>
+              <option>Burnley</option>
+              <option>Cardiff City</option>
+              <option>Coventry City</option>
+              <option>Derby County</option>
+              <option>Hull City</option>
+              <option>Leeds United</option>
+              <option>Luton Town</option>
+              <option>Middlesbrough</option>
+              <option>Millwall</option>
+              <option>Norwich City</option>
+              <option>Preston North End</option>
+              <option>Queens Park Rangers</option>
+              <option>Sheffield United</option>
+              <option>Sheffield Wednesday</option>
+              <option>Stoke City</option>
+              <option>Sunderland</option>
+              <option>Swansea City</option>
+              <option>Watford</option>
+              <option>West Bromwich Albion</option>
+            </optgroup>
+            <optgroup label="Scottish">
+              <option>Aberdeen</option>
+              <option>Celtic</option>
+              <option>Hearts</option>
+              <option>Hibernian</option>
+              <option>Rangers</option>
+            </optgroup>
+            <optgroup label="Spain">
+              <option>Athletic Club</option>
+              <option>Atletico Madrid</option>
+              <option>Barcelona</option>
+              <option>Real Betis</option>
+              <option>Real Madrid</option>
+              <option>Real Sociedad</option>
+              <option>Sevilla</option>
+              <option>Valencia</option>
+              <option>Villarreal</option>
+            </optgroup>
+            <optgroup label="Germany">
+              <option>Bayer Leverkusen</option>
+              <option>Bayern Munich</option>
+              <option>Borussia Dortmund</option>
+              <option>Borussia Mönchengladbach</option>
+              <option>Eintracht Frankfurt</option>
+              <option>RB Leipzig</option>
+              <option>Schalke 04</option>
+              <option>Werder Bremen</option>
+            </optgroup>
+            <optgroup label="Italy">
+              <option>AC Milan</option>
+              <option>AS Roma</option>
+              <option>Atalanta</option>
+              <option>Fiorentina</option>
+              <option>Inter Milan</option>
+              <option>Juventus</option>
+              <option>Lazio</option>
+              <option>Napoli</option>
+            </optgroup>
+            <optgroup label="France">
+              <option>Lens</option>
+              <option>Lille</option>
+              <option>Lyon</option>
+              <option>Marseille</option>
+              <option>Monaco</option>
+              <option>Paris Saint-Germain</option>
+            </optgroup>
+            <optgroup label="Netherlands">
+              <option>Ajax</option>
+              <option>Feyenoord</option>
+              <option>PSV Eindhoven</option>
+            </optgroup>
+            <optgroup label="Portugal">
+              <option>Benfica</option>
+              <option>Porto</option>
+              <option>Sporting CP</option>
+            </optgroup>
+            <optgroup label="Rest of Europe">
+              <option>Anderlecht</option>
+              <option>Club Brugge</option>
+              <option>Fenerbahçe</option>
+              <option>Galatasaray</option>
+              <option>Shakhtar Donetsk</option>
+              <option>Dynamo Kyiv</option>
+            </optgroup>
+            <optgroup label="South America">
+              <option>Boca Juniors</option>
+              <option>Flamengo</option>
+              <option>River Plate</option>
+              <option>Santos</option>
+              <option>São Paulo</option>
+            </optgroup>
+            <optgroup label="Other">
+              <option>Al-Hilal</option>
+              <option>Al-Nassr</option>
+              <option>Club América</option>
+              <option>Inter Miami</option>
+              <option>Monterrey</option>
+              <option>Tigres UANL</option>
+            </optgroup>
+          </select>
         </div>
         <div class="form-group">
           <label for="countryTeam">Favourite national team</label>
-          <input type="text" id="countryTeam" name="countryTeam" placeholder="e.g. England" maxlength="60">
+          <select id="countryTeam" name="countryTeam">
+            <option value="">— Select a country —</option>
+            <option>Afghanistan</option>
+            <option>Albania</option>
+            <option>Algeria</option>
+            <option>Angola</option>
+            <option>Argentina</option>
+            <option>Australia</option>
+            <option>Austria</option>
+            <option>Bahrain</option>
+            <option>Belgium</option>
+            <option>Bolivia</option>
+            <option>Bosnia &amp; Herzegovina</option>
+            <option>Brazil</option>
+            <option>Bulgaria</option>
+            <option>Cameroon</option>
+            <option>Canada</option>
+            <option>Chile</option>
+            <option>China</option>
+            <option>Colombia</option>
+            <option>Costa Rica</option>
+            <option>Croatia</option>
+            <option>Czech Republic</option>
+            <option>Denmark</option>
+            <option>DR Congo</option>
+            <option>Ecuador</option>
+            <option>Egypt</option>
+            <option>England</option>
+            <option>France</option>
+            <option>Germany</option>
+            <option>Ghana</option>
+            <option>Greece</option>
+            <option>Honduras</option>
+            <option>Hungary</option>
+            <option>India</option>
+            <option>Indonesia</option>
+            <option>Iran</option>
+            <option>Iraq</option>
+            <option>Ireland</option>
+            <option>Israel</option>
+            <option>Italy</option>
+            <option>Ivory Coast</option>
+            <option>Jamaica</option>
+            <option>Japan</option>
+            <option>Jordan</option>
+            <option>Kenya</option>
+            <option>Mexico</option>
+            <option>Morocco</option>
+            <option>Netherlands</option>
+            <option>New Zealand</option>
+            <option>Nigeria</option>
+            <option>Northern Ireland</option>
+            <option>Norway</option>
+            <option>Panama</option>
+            <option>Paraguay</option>
+            <option>Peru</option>
+            <option>Poland</option>
+            <option>Portugal</option>
+            <option>Qatar</option>
+            <option>Romania</option>
+            <option>Russia</option>
+            <option>Saudi Arabia</option>
+            <option>Scotland</option>
+            <option>Senegal</option>
+            <option>Serbia</option>
+            <option>Slovakia</option>
+            <option>Slovenia</option>
+            <option>South Africa</option>
+            <option>South Korea</option>
+            <option>Spain</option>
+            <option>Sweden</option>
+            <option>Switzerland</option>
+            <option>Trinidad &amp; Tobago</option>
+            <option>Tunisia</option>
+            <option>Turkey</option>
+            <option>Ukraine</option>
+            <option>United States</option>
+            <option>Uruguay</option>
+            <option>Venezuela</option>
+            <option>Wales</option>
+          </select>
         </div>
 
         <button type="submit" class="btn btn-primary" id="submit-btn">Submit Entry — £5</button>
