@@ -6,6 +6,53 @@
   <title>iSweep — Group Stage Fixtures</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
+  <style>
+    /* ── Group standings table ──────────────────────────────────────────── */
+    .gs-wrap {
+      overflow-x: auto;
+      padding: 0.75rem 1rem 0;
+    }
+    .gs-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+    .gs-table thead th {
+      text-align: center;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      padding: 0.25rem 0.4rem 0.4rem;
+      border-bottom: 1px solid var(--card-border);
+    }
+    .gs-table thead th.gs-team-th { text-align: left; }
+    .gs-table tbody tr td {
+      padding: 0.4rem 0.4rem;
+      text-align: center;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      white-space: nowrap;
+    }
+    .gs-table tbody tr:last-child td { border-bottom: none; }
+    .gs-pos  { color: var(--text-muted); font-size: 0.75rem; width: 22px; }
+    .gs-team { text-align: left !important; min-width: 140px; }
+    .gs-pts  { font-weight: 800; color: var(--gold); }
+
+    /* Top 2 qualify (teal left border), 3rd playoff (dim) */
+    .gs-qualify td:first-child { border-left: 3px solid var(--teal); }
+    .gs-playoff td:first-child { border-left: 3px solid var(--gold-dim, #7a5c0a); }
+
+    /* ── Fixtures section divider ───────────────────────────────────────── */
+    .fixtures-divider {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-muted);
+      padding: 0.6rem 1rem 0.25rem;
+      border-top: 1px solid var(--card-border);
+      margin-top: 0.5rem;
+    }
+  </style>
 </head>
 <body>
   <header>
