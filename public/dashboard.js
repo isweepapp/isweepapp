@@ -91,13 +91,13 @@ async function loadLeaderboard() {
     if (!r.ok) throw new Error();
     renderLeaderboard(await r.json(), tbody);
   } catch {
-    tbody.innerHTML = '<tr><td colspan="8" class="prem-loading">Failed to load — retrying…</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="17" class="prem-loading">Failed to load — retrying…</td></tr>';
   }
 }
 
 function renderLeaderboard(rows, tbody) {
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="8" class="prem-loading text-muted">No entries yet.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="17" class="prem-loading text-muted">No entries yet.</td></tr>';
     return;
   }
 
@@ -142,8 +142,17 @@ function renderLeaderboard(rows, tbody) {
         <td class="td-mov">${movHtml}</td>
         <td class="td-name">${r.name}${entryLabel}</td>
         ${nameCell}${flagCell}${crestCell}
+        <td class="td-stat">—</td>
+        <td class="td-stat">—</td>
+        <td class="td-stat">—</td>
+        <td class="td-stat">—</td>
+        <td class="td-stat">—</td>
+        <td class="td-stat">—</td>
+        <td class="td-stat">—</td>
+        <td class="td-stat">—</td>
+        <td class="td-stat">—</td>
         <td class="td-pts">—</td>
-        <td></td>
+        <td class="td-expand-btn"></td>
       </tr>`);
       return;
     }
@@ -151,7 +160,7 @@ function renderLeaderboard(rows, tbody) {
     const pts = r.stats ? r.stats.points : 0;
     const s   = r.stats;
 
-    // Build the 6 teams with individual points
+    // Build the 6 teams with individual points (for expanded row only)
     const allTeams = [
       r.pot1Team ? { team: r.pot1Team, pot: 1 } : null,
       ...(r.pot2Teams || []).filter(Boolean).map(t => ({ team: t, pot: 2 })),
@@ -166,33 +175,29 @@ function renderLeaderboard(rows, tbody) {
       </div>`;
     }).join('');
 
-    const statsRow = s ? `<div class="exp-stats">
-      <span title="Played"><em>P</em> ${s.played}</span>
-      <span title="Wins" class="pos"><em>W</em> ${s.wins}</span>
-      <span title="Draws"><em>D</em> ${s.draws}</span>
-      <span title="Losses"><em>L</em> ${s.losses}</span>
-      <span title="Goals For" class="pos"><em>GF</em> ${s.goalsFor}</span>
-      <span title="Goals Against" class="neg"><em>GA</em> ${s.goalsAgainst}</span>
-      <span title="Yellow Cards" class="neg"><em>YC</em> ${s.yellowCards}</span>
-      <span title="Red Cards" class="neg"><em>RC</em> ${s.redCards}</span>
-      <span title="Group Finish Bonus"><em>Bon</em> ${s.groupBonus}</span>
-    </div>` : '';
-
-    // Main row
+    // Main row — all stats always visible
     trs.push(`<tr class="${posClass} main-row" data-expand="${expandId}">
       <td class="td-pos">${pos}</td>
       <td class="td-mov">${movHtml}</td>
       <td class="td-name">${r.name}${entryLabel}</td>
       ${nameCell}${flagCell}${crestCell}
+      <td class="td-stat">${s ? s.played        : '—'}</td>
+      <td class="td-stat pos">${s ? s.wins       : '—'}</td>
+      <td class="td-stat">${s ? s.draws          : '—'}</td>
+      <td class="td-stat">${s ? s.losses         : '—'}</td>
+      <td class="td-stat pos">${s ? s.goalsFor   : '—'}</td>
+      <td class="td-stat neg">${s ? s.goalsAgainst : '—'}</td>
+      <td class="td-stat neg">${s ? s.yellowCards : '—'}</td>
+      <td class="td-stat neg">${s ? s.redCards    : '—'}</td>
+      <td class="td-stat">${s ? s.groupBonus      : '—'}</td>
       <td class="td-pts ${pos === 1 ? 'text-gold' : ''}">${pts}</td>
-      <td class="td-expand-btn"><button class="expand-btn" aria-expanded="false" title="Show teams">▾</button></td>
+      <td class="td-expand-btn"><button class="expand-btn" aria-expanded="false" title="Show drawn teams">▾</button></td>
     </tr>`);
 
-    // Expandable detail row (hidden by default)
+    // Expandable row — drawn teams + points only
     trs.push(`<tr class="expand-row" id="${expandId}" hidden>
-      <td colspan="8">
+      <td colspan="15">
         <div class="exp-teams">${teamItems}</div>
-        ${statsRow}
       </td>
     </tr>`);
   });
