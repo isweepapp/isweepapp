@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>iSweep — Team Pots</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
+  <style>
+    .pots-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1rem;
+    }
+    .pot-card { }
+    .pot-card h2 { margin-bottom: 0.25rem; }
+    .pot-subtitle { font-size:0.8rem; color:var(--text-muted); margin-bottom:1rem; }
+    .pot-teams { display:flex; flex-direction:column; gap:0.35rem; }
+    .pot-team {
+      display:flex; align-items:center; gap:0.55rem;
+      font-size:0.9rem; padding:0.3rem 0;
+      border-bottom:1px solid rgba(255,255,255,0.04);
+    }
+    .pot-team:last-child { border-bottom:none; }
+    .pot-team .fi { flex-shrink:0; width:24px; height:18px; background-size:cover; border-radius:2px; }
+    .draw-note {
+      font-size:0.82rem; color:var(--text-muted); margin-bottom:1.5rem;
+      background:rgba(212,167,44,0.06); border:1px solid rgba(212,167,44,0.2);
+      border-radius:var(--radius-sm); padding:0.8rem 1rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <img src="/assets/logo.png" alt="iSweep World Cup Sweepstake" class="sweepstake-logo">
+      <nav>
+        <a href="/">Home</a>
+        <a href="/enter.html">Enter</a>
+        <a href="/prizes.html">Prizes</a>
+        <a href="/dashboard.html">Leaderboard</a>
+        <a href="/matches.html">Group Stage</a>
+        <a href="/knockout.html">Knockout</a>
+        <a href="/pots.html" class="active">Pots</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="container" style="max-width:900px">
+
+    <div class="draw-note">
+      ⚽ Teams are split into 3 pots by FIFA ranking. Each entry is drawn
+      <strong>1 team from Pot 1, 2 teams from Pot 2 and 3 teams from Pot 3</strong> —
+      giving everyone a balanced mix of top-ranked and lower-ranked nations.
+    </div>
+
+    <div class="pots-grid" id="pots-grid">
+      <p class="text-muted">Loading…</p>
+    </div>
+
+  </div>
+  <script src="flags.js"></script>
+  <script src="pots.js"></script>
+</body>
+</html>

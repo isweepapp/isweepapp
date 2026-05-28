@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>iSweep — Prizes</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
+  <style>
+    .prize-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .prize-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      text-align: center;
+    }
+    .prize-card h3 {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+    .prize-total {
+      font-size: 2.5rem;
+      font-weight: 900;
+      color: var(--gold);
+      line-height: 1;
+      margin-bottom: 0.5rem;
+    }
+    .prize-breakdown { font-size: 0.82rem; color: var(--text-muted); line-height: 1.7; }
+    .prize-breakdown strong { color: var(--teal); }
+    .prize-pot-total {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--teal);
+      margin-bottom: 0.3rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <img src="/assets/logo.png" alt="iSweep World Cup Sweepstake" class="sweepstake-logo">
+      <nav>
+        <a href="/">Home</a>
+        <a href="/enter.html">Enter</a>
+        <a href="/prizes.html" class="active">Prizes</a>
+        <a href="/dashboard.html">Leaderboard</a>
+        <a href="/matches.html">Group Stage</a>
+        <a href="/knockout.html">Knockout</a>
+        <a href="/pots.html">Pots</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="container" style="max-width:860px">
+
+    <div class="card" style="text-align:center;margin-bottom:1.5rem;">
+      <h2 style="justify-content:center;">💰 Prize Fund</h2>
+      <p class="text-muted" style="font-size:0.88rem;margin-bottom:1.25rem;">
+        Based on <span id="total-entries">—</span> paid entries at £5 each.
+        The pot is split three ways: Group Stage, Knockout Stage and Overall leaderboard.
+        Group and Knockout pots are each capped at £50 — any overflow goes into the Overall pot.
+      </p>
+      <div style="font-size:0.82rem;color:var(--text-muted);">Total prize fund:</div>
+      <div class="prize-total" id="total-pot">£—</div>
+    </div>
+
+    <div class="prize-grid" id="prize-grid">
+      <div class="prize-card"><p class="text-muted">Loading…</p></div>
+    </div>
+
+    <div class="card">
+      <h2>📋 Scoring Reminder</h2>
+      <div class="rules-grid">
+        <div class="rule-row"><span>Win</span><span class="rule-pts pos">+3 pts</span></div>
+        <div class="rule-row"><span>Draw</span><span class="rule-pts pos">+1 pt</span></div>
+        <div class="rule-row"><span>Goal Scored</span><span class="rule-pts pos">+2 pts</span></div>
+        <div class="rule-row"><span>Goal Conceded</span><span class="rule-pts neg">−1 pt</span></div>
+        <div class="rule-row"><span>Yellow Card</span><span class="rule-pts neg">−1 pt</span></div>
+        <div class="rule-row"><span>Red Card</span><span class="rule-pts neg">−3 pts</span></div>
+        <div class="rule-row"><span>Group 1st place</span><span class="rule-pts pos">+4 bonus</span></div>
+        <div class="rule-row"><span>Group 2nd place</span><span class="rule-pts pos">+3 bonus</span></div>
+        <div class="rule-row"><span>Group 3rd place</span><span class="rule-pts pos">+2 bonus</span></div>
+        <div class="rule-row"><span>Group 4th place</span><span class="rule-pts pos">+1 bonus</span></div>
+      </div>
+    </div>
+
+  </div>
+  <script src="flags.js"></script>
+  <script src="prizes.js"></script>
+</body>
+</html>

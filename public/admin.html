@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>iSweep — Admin</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
+  <style>
+    .paid-badge { display:inline-block; padding:0.15rem 0.55rem; border-radius:20px; font-size:0.72rem; font-weight:700; }
+    .paid-yes  { background:rgba(6,214,160,0.15); color:var(--teal); border:1px solid rgba(6,214,160,0.3); }
+    .paid-no   { background:rgba(224,82,82,0.1);  color:var(--red-dim); border:1px solid rgba(224,82,82,0.25); }
+    .sync-log  { font-size:0.78rem; color:var(--text-muted); max-height:160px; overflow-y:auto;
+                 background:rgba(0,0,0,0.25); border-radius:var(--radius-sm); padding:0.6rem 0.8rem;
+                 margin-top:0.75rem; font-family:monospace; white-space:pre-wrap; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <img src="/assets/logo.png" alt="iSweep World Cup Sweepstake" class="sweepstake-logo">
+      <nav>
+        <a href="/">Home</a>
+        <a href="/enter.html">Enter</a>
+        <a href="/prizes.html">Prizes</a>
+        <a href="/dashboard.html">Leaderboard</a>
+        <a href="/matches.html">Group Stage</a>
+        <a href="/knockout.html">Knockout</a>
+        <a href="/pots.html">Pots</a>
+        <a href="/admin.html" class="active">Admin 🔐</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- Login -->
+    <div id="login-section" class="card hidden">
+      <h2>🔑 Admin Login</h2>
+      <div id="login-alert" class="alert hidden"></div>
+      <form id="login-form" novalidate>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" placeholder="Enter admin password" required>
+        </div>
+        <button type="submit" class="btn btn-primary" id="login-btn">Log In</button>
+      </form>
+    </div>
+
+    <!-- Admin panel -->
+    <div id="admin-panel" class="hidden">
+
+      <div style="display:flex;justify-content:flex-end;margin-bottom:1rem;">
+        <button class="btn btn-outline btn-sm" id="logout-btn">Log Out</button>
+      </div>
+
+      <!-- Entries by team name -->
+      <div class="card admin-section">
+        <h2>👥 Entries by Team Name</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th><th>Team Name</th><th>Email</th><th>Known As</th>
+                <th>Draws</th><th>Amount Due</th><th>Tiebreak</th>
+              </tr>
+            </thead>
+            <tbody id="admin-ptbody">
+              <tr><td colspan="7" class="text-muted" style="padding:0.75rem">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Money owed -->
+      <div class="card admin-section">
+        <h2>💰 Money Owed by Email</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th><th>Email</th><th>Team Names</th><th>Total</th><th>Amount Due</th><th>Paid</th>
+              </tr>
+            </thead>
+            <tbody id="money-tbody">
+              <tr><td colspan="6" class="text-muted" style="padding:0.75rem">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Match Results -->
+      <div class="card admin-section">
+        <h2>⚽ Match Results</h2>
+        <p class="text-muted" style="font-size:0.88rem;margin-bottom:1rem;">
+          Click any match to enter or update its score and card data.
+        </p>
+        <div id="matches-admin-alert" class="alert hidden"></div>
+        <div id="admin-matches-list"><p class="text-muted">Loading…</p></div>
+      </div>
+
+      <!-- Sync from football-data.org -->
+      <div class="card admin-section">
+        <h2>🔄 Sync from football-data.org</h2>
+        <p class="text-muted" style="font-size:0.88rem;margin-bottom:1rem;">
+          Fetches all fixtures and scores automatically. Requires a free API key set in
+          <code>isweepapp.env</code> as <code>FOOTBALL_DATA_API_KEY</code>.
+        </p>
+        <div id="sync-alert" class="alert hidden"></div>
+        <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+          <button class="btn btn-teal" id="sync-btn">Sync Fixtures &amp; Scores</button>
+          <button class="btn btn-outline" id="sync-cards-btn">Sync Card Data (slow)</button>
+        </div>
+        <div id="sync-log" class="sync-log hidden"></div>
+      </div>
+
+      <!-- Draw -->
+      <div class="card admin-section">
+        <h2>🎲 Run Team Draw</h2>
+        <p class="text-muted" style="font-size:0.88rem;margin-bottom:1rem;">
+          Assigns 6 teams per entry: 1 from Pot 1, 2 from Pot 2 and 3 from Pot 3.
+          Already-assigned entries are skipped.
+        </p>
+        <div id="draw-alert" class="alert hidden"></div>
+        <button class="btn btn-teal" id="draw-btn">Run Draw Now</button>
+        <div id="draw-results" class="draw-results hidden"></div>
+      </div>
+
+      <!-- CSV Import -->
+      <div class="card admin-section">
+        <h2>📂 Import Matches CSV</h2>
+        <p class="text-muted" style="font-size:0.88rem;margin-bottom:1rem;">
+          Required columns: <code>id, team_a, team_b</code><br>
+          Optional: <code>date, score_a, score_b, goals_a, goals_b, yellows_a, yellows_b, reds_a, reds_b, stage</code>
+        </p>
+        <div id="csv-alert" class="alert hidden"></div>
+        <form id="csv-form" enctype="multipart/form-data">
+          <div class="form-group">
+            <label for="csvFile">CSV File</label>
+            <input type="file" id="csvFile" name="file" accept=".csv,text/csv" required
+              style="background:rgba(255,255,255,0.05);padding:0.5rem;">
+          </div>
+          <button type="submit" class="btn btn-teal" id="csv-btn">Upload &amp; Import</button>
+        </form>
+      </div>
+
+      <!-- Group Finishes -->
+      <div class="card admin-section">
+        <h2>🏅 Set Group Finish</h2>
+        <p class="text-muted" style="font-size:0.88rem;margin-bottom:1rem;">
+          Record where each team finished in their group (1st–4th).
+        </p>
+        <div id="gf-alert" class="alert hidden"></div>
+        <form id="gf-form" novalidate>
+          <div class="flex gap-1 items-center" style="flex-wrap:wrap;">
+            <div class="form-group" style="flex:1;min-width:160px;margin-bottom:0;">
+              <label for="gf-team">Team Name</label>
+              <input type="text" id="gf-team" name="team" placeholder="e.g. England" required>
+            </div>
+            <div class="form-group" style="width:120px;margin-bottom:0;">
+              <label for="gf-pos">Position</label>
+              <select id="gf-pos" name="position">
+                <option value="1">1st</option>
+                <option value="2">2nd</option>
+                <option value="3">3rd</option>
+                <option value="4">4th</option>
+              </select>
+            </div>
+            <div style="padding-top:1.4rem;">
+              <button type="submit" class="btn btn-teal btn-sm" id="gf-btn">Save</button>
+            </div>
+          </div>
+        </form>
+        <div id="gf-list" style="margin-top:1.25rem;">
+          <h3>Saved Group Finishes</h3>
+          <div class="table-wrap">
+            <table id="gf-table">
+              <thead><tr><th>Team</th><th>Position</th><th></th></tr></thead>
+              <tbody id="gf-tbody"><tr><td colspan="3" class="text-muted" style="padding:0.75rem">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Danger Zone -->
+      <div class="card admin-section" style="border:1px solid rgba(220,53,69,0.4);">
+        <h2>⚠️ Danger Zone</h2>
+        <p class="text-muted" style="font-size:0.88rem;margin-bottom:1rem;">
+          Permanently deletes all participants and entries. Cannot be undone.
+        </p>
+        <div id="clear-alert" class="alert hidden"></div>
+        <button class="btn btn-danger" id="clear-btn">Delete All Entries</button>
+      </div>
+
+    </div><!-- /admin-panel -->
+  </div>
+
+  <script src="flags.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>iSweep — Leaderboard</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
+  <style>
+    .tab-bar { display:flex; gap:0.5rem; margin-bottom:1.25rem; flex-wrap:wrap; }
+    .tab-btn {
+      padding:0.4rem 1.1rem; border-radius:20px; border:1px solid var(--card-border);
+      background:transparent; color:var(--text-muted); font-size:0.87rem; font-weight:600;
+      cursor:pointer; transition:all 0.2s;
+    }
+    .tab-btn.active { color:var(--gold); border-color:var(--gold); background:rgba(212,167,44,0.08); }
+    .tab-btn:hover:not(.active) { border-color:var(--text-muted); color:var(--text); }
+    .known-by { font-size:0.72rem; color:var(--text-muted); font-weight:400; margin-left:0.3rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <img src="/assets/logo.png" alt="iSweep World Cup Sweepstake" class="sweepstake-logo">
+      <nav>
+        <a href="/">Home</a>
+        <a href="/enter.html">Enter</a>
+        <a href="/prizes.html">Prizes</a>
+        <a href="/dashboard.html" class="active">Leaderboard</a>
+        <a href="/matches.html">Group Stage</a>
+        <a href="/knockout.html">Knockout</a>
+        <a href="/pots.html">Pots</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="container" style="max-width:1160px">
+
+    <div id="refresh-countdown">Refreshing in <span id="countdown">60</span>s</div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="label">Matches Played</div>
+        <div class="value gold" id="stat-matches">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Total Goals</div>
+        <div class="value" id="stat-goals">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Top Team</div>
+        <div class="value gold" id="stat-top" style="font-size:1rem;padding-top:0.4rem;">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Entries</div>
+        <div class="value" id="stat-participants">—</div>
+      </div>
+    </div>
+
+    <!-- Tab bar -->
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="overall">Overall</button>
+      <button class="tab-btn" data-tab="group">Group Stage</button>
+      <button class="tab-btn" data-tab="knockout">Knockout</button>
+    </div>
+
+    <!-- Leaderboard table -->
+    <div class="prem-table-wrap">
+      <table class="prem-table">
+        <thead>
+          <tr>
+            <th class="th-pos" title="Position">Pos</th>
+            <th class="th-mov"></th>
+            <th class="th-name">Entry</th>
+            <th class="th-teams">Squads (6 teams)</th>
+            <th title="Matches Played">P</th>
+            <th title="Wins — +3 pts each">W</th>
+            <th title="Draws — +1 pt each">D</th>
+            <th title="Losses">L</th>
+            <th title="Goals Scored — +2 pts each">GF</th>
+            <th title="Goals Conceded — −1 pt each">GA</th>
+            <th title="Yellow Cards — −1 pt each">YC</th>
+            <th title="Red Cards — −3 pts each">RC</th>
+            <th title="Group Finish Bonus">Bon</th>
+            <th title="Total Points">Pts</th>
+          </tr>
+        </thead>
+        <tbody id="standings-tbody">
+          <tr><td colspan="14" class="prem-loading">Loading…</td></tr>
+        </tbody>
+      </table>
+      <div class="col-key">
+        <span><strong>P</strong> Played</span>
+        <span><strong>W</strong> Wins <em>(+3)</em></span>
+        <span><strong>D</strong> Draws <em>(+1)</em></span>
+        <span><strong>L</strong> Losses</span>
+        <span><strong>GF</strong> Goals For <em>(+2)</em></span>
+        <span><strong>GA</strong> Goals Against <em>(−1)</em></span>
+        <span><strong>YC</strong> Yellows <em>(−1)</em></span>
+        <span><strong>RC</strong> Reds <em>(−3)</em></span>
+        <span><strong>Bon</strong> Group Finish Bonus</span>
+        <span><strong>Pts</strong> Total Points</span>
+      </div>
+    </div>
+
+  </div>
+  <script src="flags.js"></script>
+  <script src="dashboard.js"></script>
+</body>
+</html>

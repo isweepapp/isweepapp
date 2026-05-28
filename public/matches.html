@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>iSweep — Group Stage Fixtures</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <img src="/assets/logo.png" alt="iSweep World Cup Sweepstake" class="sweepstake-logo">
+      <nav>
+        <a href="/">Home</a>
+        <a href="/enter.html">Enter</a>
+        <a href="/prizes.html">Prizes</a>
+        <a href="/dashboard.html">Leaderboard</a>
+        <a href="/matches.html" class="active">Group Stage</a>
+        <a href="/knockout.html">Knockout</a>
+        <a href="/pots.html">Pots</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="container" style="max-width:860px">
+    <div id="refresh-countdown">Refreshing in <span id="countdown">60</span>s</div>
+    <div id="matches-container">
+      <p class="text-muted">Loading fixtures…</p>
+    </div>
+  </div>
+
+  <script src="flags.js"></script>
+  <script src="matches.js"></script>
+</body>
+</html>

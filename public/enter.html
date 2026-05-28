@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>iSweep — Enter the Sweepstake</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <img src="/assets/logo.png" alt="iSweep World Cup Sweepstake" class="sweepstake-logo">
+      <nav>
+        <a href="/">Home</a>
+        <a href="/enter.html" class="active">Enter</a>
+        <a href="/prizes.html">Prizes</a>
+        <a href="/dashboard.html">Leaderboard</a>
+        <a href="/matches.html">Group Stage</a>
+        <a href="/knockout.html">Knockout</a>
+        <a href="/pots.html">Pots</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="container" style="max-width:680px">
+
+    <!-- Main entry form -->
+    <div class="card">
+      <h2>📝 Enter the Sweepstake</h2>
+      <p class="text-muted" style="font-size:0.88rem;margin-bottom:1.25rem;">
+        Every entry is <strong style="color:var(--gold)">£5</strong>. You'll be drawn
+        <strong>1 team from Pot 1, 2 from Pot 2 and 3 from Pot 3</strong> — 6 teams in total.
+        Enter a different team name with the same email for additional entries.
+      </p>
+
+      <div id="form-alert" class="alert hidden"></div>
+
+      <form id="entry-form" novalidate>
+        <div class="form-group">
+          <label for="name">Team Name <span style="color:var(--gold)">*</span></label>
+          <input type="text" id="name" name="name" placeholder="e.g. The Dolphin Kickers" required maxlength="80">
+          <div class="field-hint">This is your sweepstake name — be creative!</div>
+        </div>
+        <div class="form-group">
+          <label for="email">Email Address <span style="color:var(--gold)">*</span></label>
+          <input type="email" id="email" name="email" placeholder="your.email@dolphin.co.uk" required>
+        </div>
+        <div class="form-group">
+          <label for="tiebreak">Tiebreak — Total Goals in World Cup 2026 <span style="color:var(--gold)">*</span></label>
+          <input type="number" id="tiebreak" name="tiebreak" min="0" max="999" placeholder="e.g. 142" required>
+          <div class="field-hint">Used to break ties on the final leaderboard.</div>
+        </div>
+
+        <details style="margin-bottom:1.1rem;">
+          <summary style="cursor:pointer;font-size:0.85rem;color:var(--text-muted);margin-bottom:0.5rem;">Optional: Tell us a bit more about yourself</summary>
+          <div style="padding-top:0.75rem;display:flex;flex-direction:column;gap:0.75rem;">
+            <div class="form-group" style="margin-bottom:0">
+              <label for="knownBy">Known as / nickname</label>
+              <input type="text" id="knownBy" name="knownBy" placeholder="What do colleagues call you?" maxlength="60">
+            </div>
+            <div class="form-group" style="margin-bottom:0">
+              <label for="clubTeam">Favourite club team</label>
+              <input type="text" id="clubTeam" name="clubTeam" placeholder="e.g. Arsenal" maxlength="60">
+            </div>
+            <div class="form-group" style="margin-bottom:0">
+              <label for="countryTeam">Favourite national team</label>
+              <input type="text" id="countryTeam" name="countryTeam" placeholder="e.g. England" maxlength="60">
+            </div>
+          </div>
+        </details>
+
+        <button type="submit" class="btn btn-primary" id="submit-btn">Submit Entry — £5</button>
+      </form>
+    </div>
+
+    <!-- Already entered — enter again with different name -->
+    <div class="card">
+      <h2>➕ Extra Entry</h2>
+      <p class="text-muted" style="font-size:0.88rem;margin-bottom:1.25rem;">
+        Want more chances? Submit a <strong>different team name</strong> with the same email — each extra entry is
+        <strong style="color:var(--gold)">£5</strong>.
+      </p>
+
+      <div id="extra-alert" class="alert hidden"></div>
+
+      <p style="font-size:0.88rem;color:var(--text-muted)">
+        Simply use the form above again with a different team name and the same email address.
+        Each submission creates a separate entry in the draw.
+      </p>
+    </div>
+
+    <!-- Pots info -->
+    <div class="card">
+      <h2>⚽ How the Draw Works</h2>
+      <p class="text-muted" style="font-size:0.88rem;margin-bottom:1rem;">
+        Teams are split into 3 pots by FIFA ranking. Each entry receives
+        <strong>1 team from Pot 1, 2 teams from Pot 2 and 3 teams from Pot 3</strong> —
+        giving everyone a balanced mix of nations.
+      </p>
+      <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+        <div class="badge badge-pot1">Pot 1 — 1 team (Top seeds)</div>
+        <div class="badge badge-pot2">Pot 2 — 2 teams (Second tier)</div>
+        <div class="badge badge-pot3">Pot 3 — 3 teams (Third tier)</div>
+      </div>
+      <p style="margin-top:1rem;font-size:0.82rem;color:var(--text-muted)">
+        <a href="/pots.html" style="color:var(--gold)">View all teams by pot →</a>
+      </p>
+    </div>
+
+  </div>
+  <script src="flags.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

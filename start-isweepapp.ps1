@@ -1,9 +1,10 @@
 # ── isweepapp.uk Production Launcher ─────────────────────────────────────────
 # Run from CMD:  powershell -ExecutionPolicy Bypass -File start-isweepapp.ps1
 
-$ProjectDir   = "C:\Users\Admin\Downloads\isweepapp"
-$EnvFile      = "$ProjectDir\isweepapp.env"
-$TunnelConfig = "C:\Users\Admin\.cloudflared\isweepapp-config.yml"
+$ProjectDir     = "C:\Users\JohnSwaine\isweepapp"
+$EnvFile        = "$ProjectDir\isweepapp.env"
+$TunnelConfig   = "C:\Users\JohnSwaine\.cloudflared\isweepapp-config.yml"
+$CloudflaredExe = "C:\Program Files (x86)\cloudflared\cloudflared.exe"
 
 # ── Read env file line by line (handles special chars in values) ──────────────
 foreach ($line in Get-Content $EnvFile) {
@@ -14,9 +15,9 @@ foreach ($line in Get-Content $EnvFile) {
 }
 
 Write-Host ""
-Write-Host "  isweepapp.uk  |  Production Launch" -ForegroundColor Cyan
+Write-Host "  iSweep  |  Production Launch" -ForegroundColor Cyan
 Write-Host "  Node.js  ->  http://localhost:$($env:PORT)" -ForegroundColor Yellow
-Write-Host "  Public   ->  https://isweepapp.uk" -ForegroundColor Green
+Write-Host "  Public   ->  https://sweepstake.dolphinworldcupsweepstake.com" -ForegroundColor Green
 Write-Host ""
 
 # ── Open Cloudflare Tunnel in a separate window ───────────────────────────────
@@ -24,7 +25,7 @@ Write-Host "  Starting Cloudflare Tunnel in new window..." -ForegroundColor Cyan
 Start-Process powershell -ArgumentList @(
     "-NoExit",
     "-Command",
-    "Write-Host 'isweepapp Tunnel' -ForegroundColor Cyan; cloudflared tunnel --config '$TunnelConfig' run isweepapp"
+    "Write-Host 'iSweep Tunnel' -ForegroundColor Cyan; & '$CloudflaredExe' tunnel --config '$TunnelConfig' run"
 )
 
 Start-Sleep -Seconds 2
