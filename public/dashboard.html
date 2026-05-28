@@ -15,7 +15,56 @@
     }
     .tab-btn.active { color:var(--gold); border-color:var(--gold); background:rgba(212,167,44,0.08); }
     .tab-btn:hover:not(.active) { border-color:var(--text-muted); color:var(--text); }
-    .known-by { font-size:0.72rem; color:var(--text-muted); font-weight:400; margin-left:0.3rem; }
+
+    /* ── Persona cells (Known As / Flag / Crest) ─ */
+    .td-persona { text-align:center; white-space:nowrap; font-size:0.82rem; color:var(--text-muted); }
+
+    /* ── Club badge ──────────────────────────────── */
+    .club-badge {
+      display:inline-block;
+      font-size:0.65rem; font-weight:800; letter-spacing:0.04em;
+      background:rgba(255,255,255,0.1);
+      border:1px solid rgba(255,255,255,0.18);
+      border-radius:4px;
+      padding:0.15rem 0.35rem;
+      color:var(--text);
+    }
+
+    /* ── Expand button ───────────────────────────── */
+    .td-expand-btn { text-align:center; width:32px; }
+    .expand-btn {
+      background:none; border:1px solid var(--card-border); border-radius:4px;
+      color:var(--text-muted); font-size:0.8rem; padding:0.1rem 0.4rem;
+      cursor:pointer; transition:all 0.15s; line-height:1;
+    }
+    .expand-btn:hover { border-color:var(--gold); color:var(--gold); }
+
+    /* ── Expanded detail row ─────────────────────── */
+    .expand-row td {
+      padding:0.75rem 1rem 1rem;
+      background:rgba(255,255,255,0.02);
+      border-top:none;
+    }
+    .exp-teams {
+      display:flex; flex-wrap:wrap; gap:0.5rem 0.75rem;
+      margin-bottom:0.75rem;
+    }
+    .team-pts-item {
+      display:flex; align-items:center; gap:0.4rem;
+    }
+    .team-pts-val {
+      font-size:0.78rem; font-weight:700; color:var(--teal);
+      white-space:nowrap;
+    }
+    .exp-stats {
+      display:flex; flex-wrap:wrap; gap:0.4rem 1rem;
+      font-size:0.78rem; color:var(--text-muted);
+      border-top:1px solid var(--card-border);
+      padding-top:0.6rem; margin-top:0.1rem;
+    }
+    .exp-stats em { font-style:normal; font-weight:700; color:var(--text); margin-right:0.2rem; }
+    .exp-stats .pos { color:var(--teal); }
+    .exp-stats .neg { color:#f87171; }
   </style>
 </head>
 <body>
@@ -73,24 +122,19 @@
             <th class="th-pos" title="Position">Pos</th>
             <th class="th-mov"></th>
             <th class="th-name">Entry</th>
-            <th class="th-teams">Squads (6 teams)</th>
-            <th title="Matches Played">P</th>
-            <th title="Wins — +3 pts each">W</th>
-            <th title="Draws — +1 pt each">D</th>
-            <th title="Losses">L</th>
-            <th title="Goals Scored — +2 pts each">GF</th>
-            <th title="Goals Conceded — −1 pt each">GA</th>
-            <th title="Yellow Cards — −1 pt each">YC</th>
-            <th title="Red Cards — −3 pts each">RC</th>
-            <th title="Group Finish Bonus">Bon</th>
+            <th title="Known as"></th>
+            <th title="Favourite country"></th>
+            <th title="Favourite club"></th>
             <th title="Total Points">Pts</th>
+            <th></th>
           </tr>
         </thead>
         <tbody id="standings-tbody">
-          <tr><td colspan="14" class="prem-loading">Loading…</td></tr>
+          <tr><td colspan="8" class="prem-loading">Loading…</td></tr>
         </tbody>
       </table>
       <div class="col-key">
+        <span>Click <strong>▾</strong> to expand teams &amp; stats</span>
         <span><strong>P</strong> Played</span>
         <span><strong>W</strong> Wins <em>(+3)</em></span>
         <span><strong>D</strong> Draws <em>(+1)</em></span>
@@ -100,7 +144,6 @@
         <span><strong>YC</strong> Yellows <em>(−1)</em></span>
         <span><strong>RC</strong> Reds <em>(−3)</em></span>
         <span><strong>Bon</strong> Group Finish Bonus</span>
-        <span><strong>Pts</strong> Total Points</span>
       </div>
     </div>
 
