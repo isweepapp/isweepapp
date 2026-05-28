@@ -166,6 +166,15 @@ nav a:hover, nav a.active {
   outline: none;
   transition: border-color 0.2s;
 }
+.form-group select {
+  background: #1a2240;
+  color: #f0f0f0;
+}
+.form-group select option,
+.form-group select optgroup {
+  background: #1a2240;
+  color: #f0f0f0;
+}
 .form-group input:focus,
 .form-group select:focus {
   border-color: var(--teal);
