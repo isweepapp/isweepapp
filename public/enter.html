@@ -10,6 +10,33 @@
   <title>iSweep — Enter the Sweepstake</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
+  <style>
+    .spurs-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 10000; padding: 1rem;
+      animation: fade-in 0.15s ease;
+    }
+    @keyframes fade-in { from { opacity:0 } to { opacity:1 } }
+    .spurs-modal {
+      background: var(--card-bg); border: 1px solid var(--card-border);
+      border-radius: 16px; padding: 2rem 1.75rem 1.5rem;
+      max-width: 380px; width: 100%; text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      animation: pop-in 0.2s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes pop-in { from { transform:scale(0.85); opacity:0 } to { transform:scale(1); opacity:1 } }
+    .spurs-emoji { font-size: 2.8rem; margin-bottom: 0.75rem; }
+    .spurs-msg { font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 1.5rem; line-height: 1.5; }
+    .spurs-btns { display: flex; gap: 0.75rem; justify-content: center; }
+    .spurs-btn {
+      padding: 0.55rem 1.6rem; border-radius: 8px; font-size: 0.95rem;
+      font-weight: 700; cursor: pointer; border: none; transition: opacity 0.15s;
+    }
+    .spurs-btn:hover { opacity: 0.85; }
+    .spurs-btn-yes { background: var(--gold); color: #1a1208; }
+    .spurs-btn-no  { background: rgba(255,255,255,0.1); color: var(--text); border: 1px solid var(--card-border); }
+  </style>
 </head>
 <body>
   <header>
@@ -435,8 +462,49 @@
       }
     }
 
-    document.getElementById('clubTeam').addEventListener('change', function () {
-      const colours = TEAM_COLOURS[this.value];
+    // -- Tottenham double-confirm modal ------------------------------------------
+    function showModal(emoji, msg, onYes, onNo) {
+      const overlay = document.createElement('div');
+      overlay.className = 'spurs-overlay';
+      overlay.innerHTML = `
+        <div class="spurs-modal">
+          <div class="spurs-emoji">${emoji}</div>
+          <div class="spurs-msg">${msg}</div>
+          <div class="spurs-btns">
+            <button class="spurs-btn spurs-btn-no">No</button>
+            <button class="spurs-btn spurs-btn-yes">Yes</button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+      overlay.querySelector('.spurs-btn-yes').addEventListener('click', () => { overlay.remove(); onYes(); });
+      overlay.querySelector('.spurs-btn-no' ).addEventListener('click', () => { overlay.remove(); onNo();  });
+    }
+
+    const clubSelect = document.getElementById('clubTeam');
+    let prevClub = '';
+
+    clubSelect.addEventListener('change', function () {
+      const val = this.value;
+
+      if (val === 'Tottenham Hotspur') {
+        const resetSelect = () => { clubSelect.value = prevClub; };
+
+        showModal('🤔', 'Are you sure you want to pick Tottenham?',
+          // Yes → second modal
+          () => showModal('😬', 'Are you <em>really</em> sure?<br>You do know they almost got relegated…',
+            // Yes → keep Tottenham
+            () => { prevClub = 'Tottenham Hotspur'; },
+            // No → reset
+            resetSelect
+          ),
+          // No → reset
+          resetSelect
+        );
+        return; // don't update prevClub yet
+      }
+
+      prevClub = val;
+      const colours = TEAM_COLOURS[val];
       if (colours) burst(colours);
     });
   }());
