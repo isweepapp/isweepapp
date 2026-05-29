@@ -65,7 +65,16 @@ const CLUB_ABBR = {
 };
 
 let currentTab    = 'overall';
-let previousRanks = {};
+
+// Persist ranks across page refreshes via localStorage
+function storageKey() { return `isweep_ranks_${currentTab}`; }
+function loadPrevRanks() {
+  try { return JSON.parse(localStorage.getItem(storageKey()) || '{}'); } catch { return {}; }
+}
+function savePrevRanks(ranks) {
+  try { localStorage.setItem(storageKey(), JSON.stringify(ranks)); } catch {}
+}
+let previousRanks = loadPrevRanks();
 
 // ── Stats cards ───────────────────────────────────────────────────────────────
 async function loadStats() {
@@ -203,6 +212,7 @@ function renderLeaderboard(rows, tbody) {
   });
 
   tbody.innerHTML = trs.join('');
+  savePrevRanks(newRanks);
   previousRanks  = newRanks;
 
   // Wire expand buttons
@@ -225,7 +235,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     currentTab    = btn.dataset.tab;
-    previousRanks = {};
+    previousRanks = loadPrevRanks();
     loadLeaderboard();
   });
 });
