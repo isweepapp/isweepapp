@@ -1,6 +1,6 @@
 'use strict';
 
-// ââ Flag lookup for World Cup teams (from flags.js GROUPS) ââââââââââââââââââââ
+// -â Flag lookup for World Cup teams (from flags.js GROUPS) ââââââââââââââââââââ
 const FLAG_CODES = {};
 if (typeof GROUPS !== 'undefined') {
   GROUPS.forEach(g => g.teams.forEach(t => { FLAG_CODES[t.name] = t.code; }));
@@ -10,7 +10,7 @@ function flag(team) {
   return code ? `<span class="fi fi-${code}" title="${team}"></span> ` : '';
 }
 
-// ââ Country â ISO code (for favourite national team flags) âââââââââââââââââââ
+// ââ Country → ISO code (for favourite national team flags) âââââââââââââââââââ
 const COUNTRY_FLAG = {
   'Afghanistan':'af','Albania':'al','Algeria':'dz','Angola':'ao',
   'Argentina':'ar','Australia':'au','Austria':'at','Bahrain':'bh',
@@ -50,17 +50,17 @@ const CLUB_ABBR = {
   'Hibernian':'HIB','Rangers':'RAN','Athletic Club':'ATH','Atletico Madrid':'ATM',
   'Barcelona':'BAR','Real Betis':'BET','Real Madrid':'RMA','Real Sociedad':'RSO',
   'Sevilla':'SEV','Valencia':'VAL','Villarreal':'VIL','Bayer Leverkusen':'B04',
-  'Bayern Munich':'BAY','Borussia Dortmund':'BVB','Borussia MÃ¶nchengladbach':'BMG',
+  'Bayern Munich':'BAY','Borussia Dortmund':'BVB','Borussia Mönchengladbach':'BMG',
   'Eintracht Frankfurt':'SGE','RB Leipzig':'RBL','Schalke 04':'S04',
   'Werder Bremen':'WER','AC Milan':'ACM','AS Roma':'ROM','Atalanta':'ATA',
   'Fiorentina':'FIO','Inter Milan':'INT','Juventus':'JUV','Lazio':'LAZ',
   'Napoli':'NAP','Lens':'LEN','Lille':'LIL','Lyon':'OL','Marseille':'OM',
   'Monaco':'MON','Paris Saint-Germain':'PSG','Ajax':'AJX','Feyenoord':'FEY',
   'PSV Eindhoven':'PSV','Anderlecht':'AND','Club Brugge':'BRU',
-  'FenerbahÃ§e':'FEN','Galatasaray':'GAL','Shakhtar Donetsk':'SHA',
+  'Fenerbahçe':'FEN','Galatasaray':'GAL','Shakhtar Donetsk':'SHA',
   'Dynamo Kyiv':'DYN','Benfica':'BEN','Porto':'POR','Sporting CP':'SCP',
   'Boca Juniors':'BOC','Flamengo':'FLA','River Plate':'RIV','Santos':'SAN',
-  'SÃ£o Paulo':'SAO','Al-Hilal':'HIL','Al-Nassr':'NAS','Club AmÃ©rica':'AME',
+  'São Paulo':'SAO','Al-Hilal':'HIL','Al-Nassr':'NAS','Club América':'AME',
   'Inter Miami':'MIA','Monterrey':'MTY','Tigres UANL':'TIG',
 };
 
@@ -100,7 +100,7 @@ async function loadLeaderboard() {
     if (!r.ok) throw new Error();
     renderLeaderboard(await r.json(), tbody);
   } catch {
-    tbody.innerHTML = '<tr><td colspan="17" class="prem-loading">Failed to load  retryingâ¦</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="17" class="prem-loading">Failed to load  retrying…</td></tr>';
   }
 }
 

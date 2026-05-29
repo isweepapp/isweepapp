@@ -1,10 +1,10 @@
 'use strict';
 
-// ââ Kick-off timestamp ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// -â Kick-off timestamp ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const WC_START = new Date('2026-06-11T19:00:00Z'); // Mexico vs South Africa
 
 function pad(n) { return String(n).padStart(2, '0'); }
-function trunc(s, max) { s = s || ''; return s.length > max ? s.slice(0, max - 1) + 'â¦' : s; }
+function trunc(s, max) { s = s || ''; return s.length > max ? s.slice(0, max - 1) + '…' : s; }
 
 // Build flag-code lookup from flags.js GROUPS global
 const HOME_FLAG = {};
@@ -94,10 +94,10 @@ function buildInsightsPanel() {
     <div class="ins-header">
       <span class="pulse-dot"></span>
       <span class="ins-title" id="ins-title">Sweepstake Highlights</span>
-      <span class="ins-refresh-in" id="ins-refresh">Loadingâ¦</span>
+      <span class="ins-refresh-in" id="ins-refresh">Loading…</span>
     </div>
     <div class="insights-grid" id="insights-grid">
-      <div class="ins-loading">Loading insightsâ¦</div>
+      <div class="ins-loading">Loading insights…</div>
     </div>
     <div id="ins-recent-wrap"></div>
   `;
@@ -183,7 +183,7 @@ function renderInsights(lb, matches) {
   const drawnTeams = new Set();
   for (const r of lb) {
     if (!r.assigned) continue;
-    [r.pot1Team, ...(r.pot2Teams || []), ...(r.pot3Teams || [])].filter(Boolean).forEach(t => drawnTeams.add(t));
+    [r.pot1Team, …(r.pot2Teams || []), …(r.pot3Teams || [])].filter(Boolean).forEach(t => drawnTeams.add(t));
   }
 
   let hottestTeam = null, hottestPts = -Infinity;
@@ -255,7 +255,7 @@ function renderInsights(lb, matches) {
 
   // Entries + prize pot
   if (lb.length > 0) {
-    cards.push(mkCard('ð¥', 'Entries', String(lb.length), `Prize pot: ï¿½${lb.length * 5}`, 'gold'));
+    cards.push(mkCard('ð¥', 'Entries', String(lb.length), `Prize pot: £${lb.length * 5}`, 'gold'));
   }
 
   const grid = document.getElementById('insights-grid');

@@ -30,9 +30,9 @@ const POTS = [
     pot: 3, icon: 'ð¥', color: 'var(--pot3-col)',
     label: 'Pot 3  Third Tier',
     sub:   'FIFA Ranks 3148 · 3 teams drawn per entry',
-    teams: ['Czechia','TÃ¼rkiye','Norway','Scotland','DR Congo','Bosnia & Herzegovina',
+    teams: ['Czechia','Türkiye','Norway','Scotland','DR Congo','Bosnia & Herzegovina',
             'Panama','Saudi Arabia','South Africa','Iraq','Uzbekistan','Paraguay',
-            'Ghana','Jordan','Cape Verde','CuraÃ§ao','Haiti','New Zealand']
+            'Ghana','Jordan','Cape Verde','Curaçao','Haiti','New Zealand']
   }
 ];
 

@@ -25,11 +25,11 @@ const GROUPS = [
     { code: 'us',     name: 'United States' },
     { code: 'py',     name: 'Paraguay' },
     { code: 'au',     name: 'Australia' },
-    { code: 'tr',     name: 'TÃ¼rkiye' },
+    { code: 'tr',     name: 'Türkiye' },
   ]},
   { letter: 'E', teams: [
     { code: 'de',     name: 'Germany' },
-    { code: 'cw',     name: 'CuraÃ§ao' },
+    { code: 'cw',     name: 'Curaçao' },
     { code: 'ci',     name: 'Ivory Coast' },
     { code: 'ec',     name: 'Ecuador' },
   ]},

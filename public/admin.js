@@ -1,6 +1,6 @@
 'use strict';
 
-// ââ Helpers âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// -â Helpers âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function showAlert(el, type, msg) {
   el.className = `alert alert-${type}`;
   el.textContent = msg;
@@ -9,7 +9,7 @@ function showAlert(el, type, msg) {
 function hideAlert(el) { el.classList.add('hidden'); }
 
 async function adminFetch(url, opts = {}) {
-  const r = await fetch(url, { credentials: 'same-origin', ...opts });
+  const r = await fetch(url, { credentials: 'same-origin', …opts });
   return r;
 }
 
@@ -43,7 +43,7 @@ document.getElementById('login-form').addEventListener('submit', async e => {
   hideAlert(loginAlert);
   const password = document.getElementById('password').value;
   const btn = document.getElementById('login-btn');
-  btn.disabled = true; btn.textContent = 'Logging inâ¦';
+  btn.disabled = true; btn.textContent = 'Logging in…';
   try {
     const r = await adminFetch('/api/admin/login', {
       method: 'POST',
@@ -232,7 +232,7 @@ const syncLog    = document.getElementById('sync-log');
 document.getElementById('sync-btn').addEventListener('click', async () => {
   hideAlert(syncAlert);
   const btn = document.getElementById('sync-btn');
-  btn.disabled = true; btn.textContent = 'Syncingâ¦';
+  btn.disabled = true; btn.textContent = 'Syncing…';
   try {
     const r = await adminFetch('/api/admin/sync', { method: 'POST' });
     const d = await r.json();
@@ -246,9 +246,9 @@ document.getElementById('sync-btn').addEventListener('click', async () => {
 document.getElementById('sync-cards-btn').addEventListener('click', async () => {
   hideAlert(syncAlert);
   syncLog.classList.remove('hidden');
-  syncLog.textContent = 'Starting card syncâ¦\n';
+  syncLog.textContent = 'Starting card sync…\n';
   const btn = document.getElementById('sync-cards-btn');
-  btn.disabled = true; btn.textContent = 'Syncing cardsâ¦';
+  btn.disabled = true; btn.textContent = 'Syncing cards…';
 
   try {
     const r = await adminFetch('/api/admin/sync-cards');
@@ -272,7 +272,7 @@ document.getElementById('sync-cards-btn').addEventListener('click', async () => 
         if (!line) continue;
         try {
           const ev = JSON.parse(line);
-          if (ev.type === 'start')    syncLog.textContent += `Syncing ${ev.total} matchesâ¦\n`;
+          if (ev.type === 'start')    syncLog.textContent += `Syncing ${ev.total} matches…\n`;
           if (ev.type === 'progress') syncLog.textContent += `  ${ev.processed}/${ev.total} done\n`;
           if (ev.type === 'error')    syncLog.textContent += `  â  Match ${ev.matchId}: ${ev.message}\n`;
           if (ev.type === 'done')     syncLog.textContent += `â ${ev.message}\n`;
@@ -296,7 +296,7 @@ document.getElementById('draw-btn').addEventListener('click', async () => {
   hideAlert(alertEl);
   resultsEl.classList.add('hidden');
   const btn = document.getElementById('draw-btn');
-  btn.disabled = true; btn.textContent = 'Drawingâ¦';
+  btn.disabled = true; btn.textContent = 'Drawing…';
 
   try {
     const r = await adminFetch('/api/admin/draw', { method: 'POST' });
@@ -324,7 +324,7 @@ document.getElementById('csv-form').addEventListener('submit', async e => {
   const file = document.getElementById('csvFile').files[0];
   if (!file) { showAlert(alertEl, 'error', 'Please select a CSV file.'); return; }
   const btn = document.getElementById('csv-btn');
-  btn.disabled = true; btn.textContent = 'Uploadingâ¦';
+  btn.disabled = true; btn.textContent = 'Uploading…';
   const fd = new FormData();
   fd.append('file', file);
   try {

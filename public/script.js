@@ -7,7 +7,7 @@ function showAlert(el, type, msg) {
 }
 function hideAlert(el) { el.classList.add('hidden'); }
 
-// ââ Main entry form âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// -â Main entry form âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const form      = document.getElementById('entry-form');
 const formAlert = document.getElementById('form-alert');
 const submitBtn = document.getElementById('submit-btn');
@@ -33,7 +33,7 @@ form.addEventListener('submit', async e => {
   }
 
   submitBtn.disabled = true;
-  submitBtn.textContent = 'Submittingâ¦';
+  submitBtn.textContent = 'Submitting…';
 
   try {
     const r = await fetch('/api/entries', {

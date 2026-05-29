@@ -1,8 +1,8 @@
 'use strict';
 
-// ââ Build flag + group lookups from flags.js ââââââââââââââââââââââââââââââââââ
+// -â Build flag + group lookups from flags.js ââââââââââââââââââââââââââââââââââ
 const FLAG_CODES = {};
-const GROUP_MAP  = {};   // 'Group A' â { letter, teams:[{name,code}] }
+const GROUP_MAP  = {};   // 'Group A' → { letter, teams:[{name,code}] }
 if (typeof GROUPS !== 'undefined') {
   GROUPS.forEach(g => {
     g.teams.forEach(t => { FLAG_CODES[t.name] = t.code; });
