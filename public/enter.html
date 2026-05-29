@@ -364,5 +364,82 @@
   </div>
   <script src="flags.js"></script>
   <script src="script.js"></script>
+  <canvas id="confetti-canvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999"></canvas>
+  <script>
+  (function () {
+    const TEAM_COLOURS = {
+      'Arsenal':  ['#EF0107','#EF0107','#FFFFFF','#FFFFFF','#9C824A'],
+      'Brighton & Hove Albion': ['#0057B8','#0057B8','#FFFFFF','#FFFFFF','#FFCD00'],
+    };
+
+    const canvas = document.getElementById('confetti-canvas');
+    const ctx    = canvas.getContext('2d');
+    let particles = [], animId = null;
+
+    function resize() {
+      canvas.width  = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    function rand(a, b) { return a + Math.random() * (b - a); }
+
+    function burst(colours) {
+      // Cancel any existing animation
+      if (animId) { cancelAnimationFrame(animId); ctx.clearRect(0, 0, canvas.width, canvas.height); }
+
+      particles = [];
+      const count = 140;
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          x:     rand(canvas.width * 0.1, canvas.width * 0.9),
+          y:     rand(-60, -10),
+          w:     rand(7, 14),
+          h:     rand(4, 8),
+          color: colours[Math.floor(Math.random() * colours.length)],
+          vx:    rand(-2.5, 2.5),
+          vy:    rand(2, 5),
+          rot:   rand(0, 360),
+          spin:  rand(-4, 4),
+          life:  1,
+          decay: rand(0.008, 0.018),
+        });
+      }
+      draw();
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles = particles.filter(p => p.life > 0);
+      for (const p of particles) {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, p.life);
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot * Math.PI / 180);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        ctx.restore();
+        p.x   += p.vx;
+        p.y   += p.vy;
+        p.vy  += 0.12;           // gravity
+        p.vx  *= 0.99;           // slight air resistance
+        p.rot += p.spin;
+        p.life -= p.decay;
+      }
+      if (particles.length > 0) {
+        animId = requestAnimationFrame(draw);
+      } else {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        animId = null;
+      }
+    }
+
+    document.getElementById('clubTeam').addEventListener('change', function () {
+      const colours = TEAM_COLOURS[this.value];
+      if (colours) burst(colours);
+    });
+  }());
+  </script>
 </body>
 </html>
