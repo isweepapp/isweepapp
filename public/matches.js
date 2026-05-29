@@ -1,8 +1,8 @@
 'use strict';
 
-// ── Build flag + group lookups from flags.js ──────────────────────────────────
+// ââ Build flag + group lookups from flags.js ââââââââââââââââââââââââââââââââââ
 const FLAG_CODES = {};
-const GROUP_MAP  = {};   // 'Group A' → { letter, teams:[{name,code}] }
+const GROUP_MAP  = {};   // 'Group A' â { letter, teams:[{name,code}] }
 if (typeof GROUPS !== 'undefined') {
   GROUPS.forEach(g => {
     g.teams.forEach(t => { FLAG_CODES[t.name] = t.code; });
@@ -15,7 +15,7 @@ function flag(team) {
   return code ? `<span class="fi fi-${code}"></span>` : '';
 }
 
-// Date-only seeds (length ≤ 10) show as "Thu 11 Jun  time TBC"
+// Date-only seeds (length â¤ 10) show as "Thu 11 Jun  time TBC"
 // Full ISO strings show date + time in UK locale
 function fmtDate(d) {
   if (!d) return '';
@@ -30,7 +30,7 @@ function fmtDate(d) {
   });
 }
 
-// ── Group standings table ─────────────────────────────────────────────────────
+// ââ Group standings table âââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function buildStandings(groupKey, groupMatches) {
   const group = GROUP_MAP[groupKey];
   if (!group) return '';
@@ -94,13 +94,13 @@ function buildStandings(groupKey, groupMatches) {
   </div>`;
 }
 
-// ── Stage order ───────────────────────────────────────────────────────────────
+// ââ Stage order âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const STAGE_ORDER = [
   'Group A','Group B','Group C','Group D','Group E','Group F',
   'Group G','Group H','Group I','Group J','Group K','Group L',
 ];
 
-// ── Main load ─────────────────────────────────────────────────────────────────
+// ââ Main load âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 async function loadMatches() {
   const container = document.getElementById('matches-container');
   try {
@@ -159,7 +159,7 @@ async function loadMatches() {
   }
 }
 
-// ── Refresh countdown ─────────────────────────────────────────────────────────
+// ââ Refresh countdown âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 let secs = 60;
 function tick() {
   document.getElementById('countdown').textContent = secs;

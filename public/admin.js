@@ -1,6 +1,6 @@
 'use strict';
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ââ Helpers âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function showAlert(el, type, msg) {
   el.className = `alert alert-${type}`;
   el.textContent = msg;
@@ -13,7 +13,7 @@ async function adminFetch(url, opts = {}) {
   return r;
 }
 
-// ── Auth ──────────────────────────────────────────────────────────────────────
+// ââ Auth ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const loginSection = document.getElementById('login-section');
 const adminPanel   = document.getElementById('admin-panel');
 const loginAlert   = document.getElementById('login-alert');
@@ -43,7 +43,7 @@ document.getElementById('login-form').addEventListener('submit', async e => {
   hideAlert(loginAlert);
   const password = document.getElementById('password').value;
   const btn = document.getElementById('login-btn');
-  btn.disabled = true; btn.textContent = 'Logging in…';
+  btn.disabled = true; btn.textContent = 'Logging inâ¦';
   try {
     const r = await adminFetch('/api/admin/login', {
       method: 'POST',
@@ -62,7 +62,7 @@ document.getElementById('logout-btn').addEventListener('click', async () => {
   showLogin();
 });
 
-// ── Participants ──────────────────────────────────────────────────────────────
+// ââ Participants ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 async function loadParticipants() {
   const tbody = document.getElementById('admin-ptbody');
   try {
@@ -75,13 +75,13 @@ async function loadParticipants() {
       <td>${esc(p.email)}</td>
       <td>${esc(p.known_by || '')}</td>
       <td>${p.total_entries}</td>
-      <td>�${p.amount_due}</td>
+      <td>£${p.amount_due}</td>
       <td>${p.tiebreak_guess ?? ''}</td>
     </tr>`).join('');
   } catch { tbody.innerHTML = '<tr><td colspan="7" class="text-muted" style="padding:0.75rem">Failed to load.</td></tr>'; }
 }
 
-// ── Money Table ───────────────────────────────────────────────────────────────
+// ââ Money Table âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 async function loadMoneyTable() {
   const tbody = document.getElementById('money-tbody');
   try {
@@ -93,9 +93,9 @@ async function loadMoneyTable() {
       <td>${esc(row.email)}</td>
       <td>${row.teams.map(esc).join(', ')}</td>
       <td>${row.total_draws}</td>
-      <td>�${row.total_due}</td>
+      <td>£${row.total_due}</td>
       <td>
-        <span class="paid-badge ${row.paid ? 'paid-yes' : 'paid-no'}">${row.paid ? '✓ Paid' : '✗ Owed'}</span>
+        <span class="paid-badge ${row.paid ? 'paid-yes' : 'paid-no'}">${row.paid ? 'â Paid' : 'â Owed'}</span>
         <button class="btn btn-outline btn-sm" style="margin-left:0.5rem"
           onclick="togglePaid('${esc(row.email)}', ${!row.paid}, this)">
           ${row.paid ? 'Mark Unpaid' : 'Mark Paid'}
@@ -117,7 +117,7 @@ async function togglePaid(email, paid, btn) {
   } finally { btn.disabled = false; }
 }
 
-// ── Admin match editor ────────────────────────────────────────────────────────
+// ââ Admin match editor ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const STAGE_ORDER = [
   'Group A','Group B','Group C','Group D','Group E','Group F',
   'Group G','Group H','Group I','Group J','Group K','Group L',
@@ -163,7 +163,7 @@ function renderAdminMatch(m) {
     <div class="admin-match-teams">${m.team_a} vs ${m.team_b}</div>
     <div class="admin-match-date">${fmtDate(m.date)}</div>
     <div class="admin-match-result${played ? ' played' : ''}">${result}</div>
-    <div class="admin-match-chevron">▼</div>
+    <div class="admin-match-chevron">â¼</div>
   </div>
   <div class="admin-match-form hidden" id="mf-${m.id}">
     <div id="mf-alert-${m.id}" class="alert hidden"></div>
@@ -225,14 +225,14 @@ async function saveMatchResult(id) {
   } catch { showAlert(alertEl, 'error', 'Network error.'); }
 }
 
-// ── Sync from football-data.org ───────────────────────────────────────────────
+// ââ Sync from football-data.org âââââââââââââââââââââââââââââââââââââââââââââââ
 const syncAlert  = document.getElementById('sync-alert');
 const syncLog    = document.getElementById('sync-log');
 
 document.getElementById('sync-btn').addEventListener('click', async () => {
   hideAlert(syncAlert);
   const btn = document.getElementById('sync-btn');
-  btn.disabled = true; btn.textContent = 'Syncing…';
+  btn.disabled = true; btn.textContent = 'Syncingâ¦';
   try {
     const r = await adminFetch('/api/admin/sync', { method: 'POST' });
     const d = await r.json();
@@ -246,9 +246,9 @@ document.getElementById('sync-btn').addEventListener('click', async () => {
 document.getElementById('sync-cards-btn').addEventListener('click', async () => {
   hideAlert(syncAlert);
   syncLog.classList.remove('hidden');
-  syncLog.textContent = 'Starting card sync…\n';
+  syncLog.textContent = 'Starting card syncâ¦\n';
   const btn = document.getElementById('sync-cards-btn');
-  btn.disabled = true; btn.textContent = 'Syncing cards…';
+  btn.disabled = true; btn.textContent = 'Syncing cardsâ¦';
 
   try {
     const r = await adminFetch('/api/admin/sync-cards');
@@ -272,10 +272,10 @@ document.getElementById('sync-cards-btn').addEventListener('click', async () => 
         if (!line) continue;
         try {
           const ev = JSON.parse(line);
-          if (ev.type === 'start')    syncLog.textContent += `Syncing ${ev.total} matches…\n`;
+          if (ev.type === 'start')    syncLog.textContent += `Syncing ${ev.total} matchesâ¦\n`;
           if (ev.type === 'progress') syncLog.textContent += `  ${ev.processed}/${ev.total} done\n`;
-          if (ev.type === 'error')    syncLog.textContent += `  ⚠ Match ${ev.matchId}: ${ev.message}\n`;
-          if (ev.type === 'done')     syncLog.textContent += `✓ ${ev.message}\n`;
+          if (ev.type === 'error')    syncLog.textContent += `  â  Match ${ev.matchId}: ${ev.message}\n`;
+          if (ev.type === 'done')     syncLog.textContent += `â ${ev.message}\n`;
           syncLog.scrollTop = syncLog.scrollHeight;
         } catch (_) {}
       }
@@ -289,14 +289,14 @@ document.getElementById('sync-cards-btn').addEventListener('click', async () => 
   }
 });
 
-// ── Draw ──────────────────────────────────────────────────────────────────────
+// ââ Draw ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 document.getElementById('draw-btn').addEventListener('click', async () => {
   const alertEl  = document.getElementById('draw-alert');
   const resultsEl = document.getElementById('draw-results');
   hideAlert(alertEl);
   resultsEl.classList.add('hidden');
   const btn = document.getElementById('draw-btn');
-  btn.disabled = true; btn.textContent = 'Drawing…';
+  btn.disabled = true; btn.textContent = 'Drawingâ¦';
 
   try {
     const r = await adminFetch('/api/admin/draw', { method: 'POST' });
@@ -306,9 +306,9 @@ document.getElementById('draw-btn').addEventListener('click', async () => {
       resultsEl.classList.remove('hidden');
       resultsEl.innerHTML = d.details.map(e => {
         if (e.status === 'assigned') {
-          return `<div class="draw-result-entry"><span class="ok">✓</span> Entry ${e.entryIndex + 1}: ${e.teams.join(' � ')}</div>`;
+          return `<div class="draw-result-entry"><span class="ok">â</span> Entry ${e.entryIndex + 1}: ${e.teams.join(' · ')}</div>`;
         }
-        return `<div class="draw-result-entry"><span class="fail">✗</span> Entry ${e.entryIndex + 1}: ${e.status}</div>`;
+        return `<div class="draw-result-entry"><span class="fail">â</span> Entry ${e.entryIndex + 1}: ${e.status}</div>`;
       }).join('');
     }
     loadParticipants();
@@ -316,7 +316,7 @@ document.getElementById('draw-btn').addEventListener('click', async () => {
   finally  { btn.disabled = false; btn.textContent = 'Run Draw Now'; }
 });
 
-// ── CSV Import ────────────────────────────────────────────────────────────────
+// ââ CSV Import ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 document.getElementById('csv-form').addEventListener('submit', async e => {
   e.preventDefault();
   const alertEl = document.getElementById('csv-alert');
@@ -324,7 +324,7 @@ document.getElementById('csv-form').addEventListener('submit', async e => {
   const file = document.getElementById('csvFile').files[0];
   if (!file) { showAlert(alertEl, 'error', 'Please select a CSV file.'); return; }
   const btn = document.getElementById('csv-btn');
-  btn.disabled = true; btn.textContent = 'Uploading…';
+  btn.disabled = true; btn.textContent = 'Uploadingâ¦';
   const fd = new FormData();
   fd.append('file', file);
   try {
@@ -336,7 +336,7 @@ document.getElementById('csv-form').addEventListener('submit', async e => {
   finally  { btn.disabled = false; btn.textContent = 'Upload & Import'; }
 });
 
-// ── Group Finishes ────────────────────────────────────────────────────────────
+// ââ Group Finishes ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 async function loadGroupFinishes() {
   const tbody = document.getElementById('gf-tbody');
   try {
@@ -373,7 +373,7 @@ document.getElementById('gf-form').addEventListener('submit', async e => {
   finally  { btn.disabled = false; }
 });
 
-// ── Clear entries ─────────────────────────────────────────────────────────────
+// ââ Clear entries âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 document.getElementById('clear-btn').addEventListener('click', async () => {
   if (!confirm('Delete ALL entries and participants? This cannot be undone.')) return;
   const alertEl = document.getElementById('clear-alert');
@@ -386,10 +386,10 @@ document.getElementById('clear-btn').addEventListener('click', async () => {
   } catch { showAlert(alertEl, 'error', 'Network error.'); }
 });
 
-// ── Utility ───────────────────────────────────────────────────────────────────
+// ââ Utility âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function esc(s) {
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-// ── Init ──────────────────────────────────────────────────────────────────────
+// ââ Init ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 checkAuth();

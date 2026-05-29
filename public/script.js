@@ -7,7 +7,7 @@ function showAlert(el, type, msg) {
 }
 function hideAlert(el) { el.classList.add('hidden'); }
 
-// ── Main entry form ───────────────────────────────────────────────────────────
+// ââ Main entry form âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const form      = document.getElementById('entry-form');
 const formAlert = document.getElementById('form-alert');
 const submitBtn = document.getElementById('submit-btn');
@@ -33,7 +33,7 @@ form.addEventListener('submit', async e => {
   }
 
   submitBtn.disabled = true;
-  submitBtn.textContent = 'Submitting…';
+  submitBtn.textContent = 'Submittingâ¦';
 
   try {
     const r = await fetch('/api/entries', {
@@ -49,6 +49,6 @@ form.addEventListener('submit', async e => {
     showAlert(formAlert, 'error', 'Network error  please check your connection and try again.');
   } finally {
     submitBtn.disabled = false;
-    submitBtn.textContent = 'Submit Entry  �5';
+    submitBtn.textContent = 'Submit Entry  £5';
   }
 });
