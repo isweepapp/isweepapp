@@ -15,14 +15,14 @@ function flag(team) {
   return code ? `<span class="fi fi-${code}"></span>` : '';
 }
 
-// Date-only seeds (length ≤ 10) show as "Thu 11 Jun — time TBC"
+// Date-only seeds (length ≤ 10) show as "Thu 11 Jun  time TBC"
 // Full ISO strings show date + time in UK locale
 function fmtDate(d) {
-  if (!d) return '—';
+  if (!d) return '';
   if (d.length <= 10) {
     const dt = new Date(d + 'T12:00:00Z');
     return dt.toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' })
-           + ' — time TBC';
+           + '  time TBC';
   }
   return new Date(d).toLocaleString('en-GB', {
     weekday:'short', day:'numeric', month:'short',
@@ -136,13 +136,13 @@ async function loadMatches() {
       const fixtureRows = ms.map(m => {
         const played = m.score_a !== null && m.score_b !== null;
         const scoreHtml = played
-          ? `<span class="ms-a">${m.score_a}</span><span class="ms-sep">–</span><span class="ms-b">${m.score_b}</span>`
+          ? `<span class="ms-a">${m.score_a}</span><span class="ms-sep"></span><span class="ms-b">${m.score_b}</span>`
           : `<span class="ms-vs">vs</span>`;
         return `<div class="match-row${played ? ' played' : ''}">
           <div class="match-team team-a">${flag(m.team_a)} ${m.team_a}</div>
           <div class="match-score-box">${scoreHtml}</div>
           <div class="match-team">${flag(m.team_b)} ${m.team_b}</div>
-          <div class="match-date">${m.date ? fmtDate(m.date) : '—'}</div>
+          <div class="match-date">${m.date ? fmtDate(m.date) : ''}</div>
         </div>`;
       }).join('');
 

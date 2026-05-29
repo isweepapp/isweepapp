@@ -12,7 +12,7 @@ function flag(team) {
 }
 
 function fmtDate(d) {
-  if (!d) return '—';
+  if (!d) return '';
   return new Date(d).toLocaleString('en-GB', {
     weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'
   });
@@ -54,7 +54,7 @@ async function loadKnockout() {
         const played = m.score_a !== null && m.score_b !== null;
         const tba    = !m.team_a || !m.team_b || m.team_a === 'TBD' || m.team_b === 'TBD';
         const scoreHtml = played
-          ? `<span class="ms-a">${m.score_a}</span><span class="ms-sep">–</span><span class="ms-b">${m.score_b}</span>`
+          ? `<span class="ms-a">${m.score_a}</span><span class="ms-sep"></span><span class="ms-b">${m.score_b}</span>`
           : `<span class="ms-vs">${tba ? 'TBD' : 'vs'}</span>`;
         const teamA = m.team_a || 'TBD';
         const teamB = m.team_b || 'TBD';
