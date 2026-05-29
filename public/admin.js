@@ -9,7 +9,7 @@ function showAlert(el, type, msg) {
 function hideAlert(el) { el.classList.add('hidden'); }
 
 async function adminFetch(url, opts = {}) {
-  const r = await fetch(url, { credentials: 'same-origin', …opts });
+  const r = await fetch(url, { credentials: 'same-origin', ...opts });
   return r;
 }
 
@@ -76,7 +76,7 @@ async function loadParticipants() {
       <td>${esc(p.known_by || '')}</td>
       <td>${p.total_entries}</td>
       <td>£${p.amount_due}</td>
-      <td>${p.tiebreak_guess  ''}</td>
+      <td>${p.tiebreak_guess ?? ''}</td>
     </tr>`).join('');
   } catch { tbody.innerHTML = '<tr><td colspan="7" class="text-muted" style="padding:0.75rem">Failed to load.</td></tr>'; }
 }
@@ -95,10 +95,10 @@ async function loadMoneyTable() {
       <td>${row.total_draws}</td>
       <td>£${row.total_due}</td>
       <td>
-        <span class="paid-badge ${row.paid  'paid-yes' : 'paid-no'}">${row.paid  '✓ Paid' : '✗ Owed'}</span>
+        <span class="paid-badge ${row.paid ? 'paid-yes' : 'paid-no'}">${row.paid ? '✓ Paid' : '✗ Owed'}</span>
         <button class="btn btn-outline btn-sm" style="margin-left:0.5rem"
           onclick="togglePaid('${esc(row.email)}', ${!row.paid}, this)">
-          ${row.paid  'Mark Unpaid' : 'Mark Paid'}
+          ${row.paid ? 'Mark Unpaid' : 'Mark Paid'}
         </button>
       </td>
     </tr>`).join('');
@@ -140,7 +140,7 @@ async function loadAdminMatches() {
 
     const stages = Object.keys(byStage).sort((a, b) => {
       const ia = STAGE_ORDER.indexOf(a), ib = STAGE_ORDER.indexOf(b);
-      return (ia === -1  99 : ia) - (ib === -1  99 : ib);
+      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
     });
 
     container.innerHTML = stages.map(stage => {
@@ -158,11 +158,11 @@ function fmtDate(d) {
 
 function renderAdminMatch(m) {
   const played = m.score_a !== null && m.score_b !== null;
-  const result = played  `${m.score_a}${m.score_b}` : '';
+  const result = played ? `${m.score_a}${m.score_b}` : '';
   return `<div class="admin-match-row" onclick="toggleMatchEdit('${m.id}')">
     <div class="admin-match-teams">${m.team_a} vs ${m.team_b}</div>
     <div class="admin-match-date">${fmtDate(m.date)}</div>
-    <div class="admin-match-result${played  ' played' : ''}">${result}</div>
+    <div class="admin-match-result${played ? ' played' : ''}">${result}</div>
     <div class="admin-match-chevron">▼</div>
   </div>
   <div class="admin-match-form hidden" id="mf-${m.id}">
@@ -171,19 +171,19 @@ function renderAdminMatch(m) {
       <div class="match-edit-team">
         <div class="match-edit-label">${m.team_a}</div>
         <div class="match-edit-fields">
-          <label>Score<input type="number" min="0" id="sa-${m.id}" value="${m.score_a  ''}" placeholder=""></label>
-          <label>Goals<input type="number" min="0" id="ga-${m.id}" value="${m.goals_a  ''}" placeholder=""></label>
-          <label>Yellows<input type="number" min="0" id="ya-${m.id}" value="${m.yellows_a  ''}" placeholder=""></label>
-          <label>Reds<input type="number" min="0" id="ra-${m.id}" value="${m.reds_a  ''}" placeholder=""></label>
+          <label>Score<input type="number" min="0" id="sa-${m.id}" value="${m.score_a ?? ''}" placeholder=""></label>
+          <label>Goals<input type="number" min="0" id="ga-${m.id}" value="${m.goals_a ?? ''}" placeholder=""></label>
+          <label>Yellows<input type="number" min="0" id="ya-${m.id}" value="${m.yellows_a ?? ''}" placeholder=""></label>
+          <label>Reds<input type="number" min="0" id="ra-${m.id}" value="${m.reds_a ?? ''}" placeholder=""></label>
         </div>
       </div>
       <div class="match-edit-team">
         <div class="match-edit-label">${m.team_b}</div>
         <div class="match-edit-fields">
-          <label>Score<input type="number" min="0" id="sb-${m.id}" value="${m.score_b  ''}" placeholder=""></label>
-          <label>Goals<input type="number" min="0" id="gb-${m.id}" value="${m.goals_b  ''}" placeholder=""></label>
-          <label>Yellows<input type="number" min="0" id="yb-${m.id}" value="${m.yellows_b  ''}" placeholder=""></label>
-          <label>Reds<input type="number" min="0" id="rb-${m.id}" value="${m.reds_b  ''}" placeholder=""></label>
+          <label>Score<input type="number" min="0" id="sb-${m.id}" value="${m.score_b ?? ''}" placeholder=""></label>
+          <label>Goals<input type="number" min="0" id="gb-${m.id}" value="${m.goals_b ?? ''}" placeholder=""></label>
+          <label>Yellows<input type="number" min="0" id="yb-${m.id}" value="${m.yellows_b ?? ''}" placeholder=""></label>
+          <label>Reds<input type="number" min="0" id="rb-${m.id}" value="${m.reds_b ?? ''}" placeholder=""></label>
         </div>
       </div>
     </div>
@@ -301,7 +301,7 @@ document.getElementById('draw-btn').addEventListener('click', async () => {
   try {
     const r = await adminFetch('/api/admin/draw', { method: 'POST' });
     const d = await r.json();
-    showAlert(alertEl, r.ok  'success' : 'error', d.message || (r.ok  'Draw complete.' : 'Draw failed.'));
+    showAlert(alertEl, r.ok ? 'success' : 'error', d.message || (r.ok ? 'Draw complete.' : 'Draw failed.'));
     if (d.details.length) {
       resultsEl.classList.remove('hidden');
       resultsEl.innerHTML = d.details.map(e => {
@@ -330,7 +330,7 @@ document.getElementById('csv-form').addEventListener('submit', async e => {
   try {
     const r = await adminFetch('/api/admin/matches/import', { method: 'POST', body: fd });
     const d = await r.json();
-    showAlert(alertEl, r.ok  'success' : 'error', d.message || d.error || (r.ok  'Imported.' : 'Failed.'));
+    showAlert(alertEl, r.ok ? 'success' : 'error', d.message || d.error || (r.ok ? 'Imported.' : 'Failed.'));
     if (r.ok) loadAdminMatches();
   } catch { showAlert(alertEl, 'error', 'Network error.'); }
   finally  { btn.disabled = false; btn.textContent = 'Upload & Import'; }
@@ -367,7 +367,7 @@ document.getElementById('gf-form').addEventListener('submit', async e => {
       body: JSON.stringify({ team, position }),
     });
     const d = await r.json();
-    showAlert(alertEl, r.ok  'success' : 'error', d.message || d.error);
+    showAlert(alertEl, r.ok ? 'success' : 'error', d.message || d.error);
     if (r.ok) { document.getElementById('gf-team').value = ''; loadGroupFinishes(); }
   } catch { showAlert(alertEl, 'error', 'Network error.'); }
   finally  { btn.disabled = false; }
@@ -381,14 +381,14 @@ document.getElementById('clear-btn').addEventListener('click', async () => {
   try {
     const r = await adminFetch('/api/admin/clear-entries', { method: 'POST' });
     const d = await r.json();
-    showAlert(alertEl, r.ok  'success' : 'error', d.message || d.error);
+    showAlert(alertEl, r.ok ? 'success' : 'error', d.message || d.error);
     if (r.ok) { loadParticipants(); loadMoneyTable(); }
   } catch { showAlert(alertEl, 'error', 'Network error.'); }
 });
 
 // -- Utility -------------------------------------------------------------------
 function esc(s) {
-  return String(s  '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 // -- Init ----------------------------------------------------------------------

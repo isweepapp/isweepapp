@@ -198,7 +198,7 @@ function renderInsights(lb, matches) {
   const drawnTeams = new Set();
   for (const r of lb) {
     if (!r.assigned) continue;
-    [r.pot1Team, …(r.pot2Teams || []), …(r.pot3Teams || [])].filter(Boolean).forEach(t => drawnTeams.add(t));
+    [r.pot1Team, ...(r.pot2Teams || []), ...(r.pot3Teams || [])].filter(Boolean).forEach(t => drawnTeams.add(t));
   }
 
   let hottestTeam = null, hottestPts = -Infinity;

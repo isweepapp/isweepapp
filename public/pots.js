@@ -7,7 +7,7 @@ if (typeof GROUPS !== 'undefined') {
 
 function flag(team) {
   const code = FLAG_CODES[team];
-  return code  `<span class="fi fi-${code}"></span>` : '<span style="width:24px;display:inline-block"></span>';
+  return code ? `<span class="fi fi-${code}"></span>` : '<span style="width:24px;display:inline-block"></span>';
 }
 
 const POTS = [
