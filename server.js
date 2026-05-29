@@ -250,12 +250,12 @@ app.get('/api/stats', (_req, res) => {
   const participantCount = db.prepare('SELECT COUNT(*) AS cnt FROM participants').get().cnt;
 
   const teamScores = computeTeamScores();
-  let topTeam = null, topScore = -Infinity;
+  let topTeam = null, topScore = 0; // only show a top team if someone has actually scored
   for (const [team, score] of Object.entries(teamScores)) {
     if (score > topScore) { topScore = score; topTeam = team; }
   }
 
-  res.json({ matchesPlayed, totalGoals, topTeam: topTeam ? `${topTeam} (${topScore} pts)` : '-', participantCount });
+  res.json({ matchesPlayed, totalGoals, topTeam: topTeam ? `${topTeam} (${topScore} pts)` : '—', participantCount });
 });
 
 // ── Leaderboard builder (shared by all three stage views) ─────────────────────
