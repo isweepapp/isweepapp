@@ -417,20 +417,20 @@
       if (animId) { cancelAnimationFrame(animId); ctx.clearRect(0, 0, canvas.width, canvas.height); }
 
       particles = [];
-      const count = 140;
+      const count = 300;
       for (let i = 0; i < count; i++) {
         particles.push({
-          x:     rand(canvas.width * 0.1, canvas.width * 0.9),
-          y:     rand(-60, -10),
-          w:     rand(7, 14),
-          h:     rand(4, 8),
+          x:     rand(canvas.width * 0.05, canvas.width * 0.95),
+          y:     rand(-120, -5),
+          w:     rand(7, 15),
+          h:     rand(4, 9),
           color: colours[Math.floor(Math.random() * colours.length)],
-          vx:    rand(-2.5, 2.5),
-          vy:    rand(2, 5),
+          vx:    rand(-1.5, 1.5),
+          vy:    rand(0.8, 2.2),
           rot:   rand(0, 360),
-          spin:  rand(-4, 4),
+          spin:  rand(-3, 3),
           life:  1,
-          decay: rand(0.008, 0.018),
+          decay: rand(0.003, 0.007),
         });
       }
       draw();
@@ -449,7 +449,7 @@
         ctx.restore();
         p.x   += p.vx;
         p.y   += p.vy;
-        p.vy  += 0.12;           // gravity
+        p.vy  += 0.04;           // gravity
         p.vx  *= 0.99;           // slight air resistance
         p.rot += p.spin;
         p.life -= p.decay;
