@@ -69,6 +69,10 @@
     .exp-stats em { font-style:normal; font-weight:700; color:var(--text); margin-right:0.2rem; }
     .exp-stats .pos { color:var(--teal); }
     .exp-stats .neg { color:#f87171; }
+
+    /* Stats breakdown only visible when columns are hidden on mobile */
+    .exp-stats-mobile { display:none; }
+    @media (max-width: 860px) { .exp-stats-mobile { display:flex; } }
   </style>
 </head>
 <body>

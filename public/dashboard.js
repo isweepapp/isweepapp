@@ -203,10 +203,26 @@ function renderLeaderboard(rows, tbody) {
       <td class="td-expand-btn"><button class="expand-btn" aria-expanded="false" title="Show drawn teams">▾</button></td>
     </tr>`);
 
-    // Expandable row — drawn teams + points only
+    // Stats breakdown for mobile (hidden on desktop via CSS)
+    const statsHtml = s ? `
+      <div class="exp-stats exp-stats-mobile">
+        <span><em>${s.played}</em> P</span>
+        <span class="pos"><em>${s.wins}</em> W</span>
+        <span><em>${s.draws}</em> D</span>
+        <span><em>${s.losses}</em> L</span>
+        <span class="pos"><em>${s.goalsFor}</em> GF</span>
+        <span class="neg"><em>${s.goalsAgainst}</em> GA</span>
+        <span class="neg"><em>${s.yellowCards}</em> YC</span>
+        <span class="neg"><em>${s.redCards}</em> RC</span>
+        <span><em>${s.groupBonus}</em> Bon</span>
+        <span style="color:var(--gold);font-weight:800"><em>${pts}</em> Pts</span>
+      </div>` : '';
+
+    // Expandable row — drawn teams + points breakdown
     trs.push(`<tr class="expand-row" id="${expandId}" hidden>
       <td colspan="15">
         <div class="exp-teams">${teamItems}</div>
+        ${statsHtml}
       </td>
     </tr>`);
   });
