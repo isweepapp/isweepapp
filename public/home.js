@@ -1,6 +1,6 @@
 'use strict';
 
-// -â Kick-off timestamp ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// -- Kick-off timestamp --------------------------------------------------------
 const WC_START = new Date('2026-06-11T19:00:00Z'); // Mexico vs South Africa
 
 function pad(n) { return String(n).padStart(2, '0'); }
@@ -16,7 +16,7 @@ function teamFlag(name) {
   return code ? `<span class="fi fi-${code}" title="${name}" style="font-size:1.1em;vertical-align:middle;margin-right:2px"></span>` : '';
 }
 
-// ââ Countdown rendering âââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// -- Countdown rendering -------------------------------------------------------
 function renderCountdown(target) {
   const now  = new Date();
   const diff = target - now;
@@ -33,7 +33,7 @@ function renderCountdown(target) {
   return true;
 }
 
-// ââ Main init âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// -- Main init -----------------------------------------------------------------
 async function initHome() {
   let matches = [];
   try {
@@ -52,7 +52,7 @@ async function initHome() {
   }
 }
 
-// ââ Pre-tournament countdown ââââââââââââââââââââââââââââââââââââââââââââââââââ
+// -- Pre-tournament countdown --------------------------------------------------
 function showCountdown(matches) {
   const now      = new Date();
   const upcoming = matches
@@ -74,7 +74,7 @@ function showCountdown(matches) {
   const id = setInterval(() => { if (!renderCountdown(target)) clearInterval(id); }, 1000);
 }
 
-// ââ Insights panel ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// -- Insights panel ------------------------------------------------------------
 let insightTimerId = null;
 let insightSecs    = 60;
 
@@ -131,7 +131,7 @@ function renderInsights(lb, matches) {
   const now    = new Date();
   const played = matches.filter(m => m.score_a !== null && m.score_b !== null);
 
-  // ââ Position tracking (localStorage)
+  // -- Position tracking (localStorage)
   const prevRanks = loadHomeRanks();
   const newRanks  = {};
   lb.forEach((r, i) => { newRanks[`${r.name}:${r.entryIndex}`] = i + 1; });
@@ -139,26 +139,26 @@ function renderInsights(lb, matches) {
 
   const assigned = lb.filter(r => r.assigned && r.stats);
 
-  // ââ Live match detection (kicked off, no score yet, within 120 min)
+  // -- Live match detection (kicked off, no score yet, within 120 min)
   const liveMatch = matches.find(m => {
     if (m.score_a !== null) return false;
     const kick = new Date(m.date);
     return !isNaN(kick) && kick <= now && (now - kick) < 120 * 60 * 1000;
   });
 
-  // ââ Header
+  // -- Header
   const titleEl = document.getElementById('ins-title');
   if (titleEl) {
     titleEl.innerHTML = liveMatch
-      ? `Sweepstake Highlights &nbsp;<span class="ins-live-badge">ð´ Live: ${trunc(liveMatch.team_a, 10)} vs ${trunc(liveMatch.team_b, 10)}</span>`
+      ? `Sweepstake Highlights &nbsp;<span class="ins-live-badge">🔴 Live: ${trunc(liveMatch.team_a, 10)} vs ${trunc(liveMatch.team_b, 10)}</span>`
       : 'Sweepstake Highlights';
   }
 
-  // ââ Leader & wooden spoon
+  // -- Leader & wooden spoon
   const leader    = assigned[0]  || null;
   const lastPlace = assigned.length > 1 ? assigned[assigned.length - 1] : null;
 
-  // ââ Biggest climber & faller
+  // -- Biggest climber & faller
   let biggestClimb = null, biggestFall = null;
   for (const [key, newPos] of Object.entries(newRanks)) {
     const oldPos = prevRanks[key];
@@ -170,7 +170,7 @@ function renderInsights(lb, matches) {
     if (diff < 0 && (!biggestFall  || Math.abs(diff) > biggestFall.diff))  biggestFall  = { diff: Math.abs(diff), entry };
   }
 
-  // ââ Team points (same team has same pts across all entries)
+  // -- Team points (same team has same pts across all entries)
   const teamPtsMap = {};
   for (const r of lb) {
     if (!r.teamPts) continue;
@@ -179,7 +179,7 @@ function renderInsights(lb, matches) {
     }
   }
 
-  // ââ Drawn teams
+  // -- Drawn teams
   const drawnTeams = new Set();
   for (const r of lb) {
     if (!r.assigned) continue;
@@ -194,7 +194,7 @@ function renderInsights(lb, matches) {
     if (pts < coldestPts) { coldestPts = pts; coldestTeam = team; }
   }
 
-  // ââ Highest-scoring single match
+  // -- Highest-scoring single match
   let topMatch = null, topGoals = 0;
   for (const m of played) {
     // goals_a/goals_b if returned by API, else fall back to score_a/score_b
@@ -204,58 +204,58 @@ function renderInsights(lb, matches) {
     if (g > topGoals) { topGoals = g; topMatch = m; }
   }
 
-  // ââ Most recent result
+  // -- Most recent result
   const recentMatch = played.length ? played[played.length - 1] : null;
 
-  // ââ Points gap between 1st and 2nd
+  // -- Points gap between 1st and 2nd
   const gapPts = (assigned.length >= 2)
     ? assigned[0].stats.points - assigned[1].stats.points
     : null;
 
-  // ââ Build insight cards
+  // -- Build insight cards
   const label = r => trunc(r.knownBy || r.name, 16);
   const cards = [];
 
   if (leader) {
-    cards.push(mkCard('ð', 'Leading', label(leader), `${leader.stats.points} pts`, 'gold'));
+    cards.push(mkCard('🏆', 'Leading', label(leader), `${leader.stats.points} pts`, 'gold'));
   }
 
   if (lastPlace && lastPlace !== leader) {
-    cards.push(mkCard('ð¥', 'Wooden Spoon', label(lastPlace), `${lastPlace.stats.points} pts`, 'red'));
+    cards.push(mkCard('🥄', 'Wooden Spoon', label(lastPlace), `${lastPlace.stats.points} pts`, 'red'));
   }
 
   if (gapPts !== null) {
     const gapTxt = gapPts === 0 ? 'Level on points!' : `${gapPts} pt${gapPts === 1 ? '' : 's'} clear`;
-    cards.push(mkCard('ð', 'Leaders Gap', label(leader), gapTxt, gapPts === 0 ? 'teal' : 'gold'));
+    cards.push(mkCard('📊', 'Leaders Gap', label(leader), gapTxt, gapPts === 0 ? 'teal' : 'gold'));
   }
 
   if (biggestClimb) {
-    cards.push(mkCard('ð', 'Biggest Climber', label(biggestClimb.entry), `â² ${biggestClimb.diff} place${biggestClimb.diff === 1 ? '' : 's'}`, 'teal'));
+    cards.push(mkCard('📈', 'Biggest Climber', label(biggestClimb.entry), `▲ ${biggestClimb.diff} place${biggestClimb.diff === 1 ? '' : 's'}`, 'teal'));
   }
 
   if (biggestFall) {
-    cards.push(mkCard('ð', 'Biggest Faller', label(biggestFall.entry), `â¼ ${biggestFall.diff} place${biggestFall.diff === 1 ? '' : 's'}`, 'red'));
+    cards.push(mkCard('📉', 'Biggest Faller', label(biggestFall.entry), `▼ ${biggestFall.diff} place${biggestFall.diff === 1 ? '' : 's'}`, 'red'));
   }
 
   if (hottestTeam && hottestPts > 0) {
-    cards.push(mkCard('ð¥', 'Hottest Nation', `${teamFlag(hottestTeam)}${trunc(hottestTeam, 18)}`, `${hottestPts} pts`, 'teal'));
+    cards.push(mkCard('🔥', 'Hottest Nation', `${teamFlag(hottestTeam)}${trunc(hottestTeam, 18)}`, `${hottestPts} pts`, 'teal'));
   }
 
   // Only show struggling nation if they have negative or zero pts and at least one other team has scored
   if (coldestTeam && coldestTeam !== hottestTeam && coldestPts <= 0 && hottestPts > 0) {
     const coldLabel = coldestPts < 0 ? `${coldestPts} pts` : 'Yet to score';
-    cards.push(mkCard('âï¸', 'Struggling Nation', `${teamFlag(coldestTeam)}${trunc(coldestTeam, 18)}`, coldLabel, 'red'));
+    cards.push(mkCard('❄️', 'Struggling Nation', `${teamFlag(coldestTeam)}${trunc(coldestTeam, 18)}`, coldLabel, 'red'));
   }
 
   if (topMatch && topGoals >= 3) {
     const ta = trunc(topMatch.team_a, 12), tb = trunc(topMatch.team_b, 12);
     const sa = topMatch.goals_a ?? topMatch.score_a, sb = topMatch.goals_b ?? topMatch.score_b;
-    cards.push(mkCard('â½', 'Goal Fest', `${ta} ${sa}${sb} ${tb}`, `${topGoals} goals`, 'gold'));
+    cards.push(mkCard('⚽', 'Goal Fest', `${ta} ${sa}${sb} ${tb}`, `${topGoals} goals`, 'gold'));
   }
 
   // Entries + prize pot
   if (lb.length > 0) {
-    cards.push(mkCard('ð¥', 'Entries', String(lb.length), `Prize pot: £${lb.length * 5}`, 'gold'));
+    cards.push(mkCard('👥', 'Entries', String(lb.length), `Prize pot: £${lb.length * 5}`, 'gold'));
   }
 
   const grid = document.getElementById('insights-grid');
@@ -265,7 +265,7 @@ function renderInsights(lb, matches) {
       : '<div class="ins-loading">No data yet  check back soon!</div>';
   }
 
-  // ââ Latest result strip
+  // -- Latest result strip
   const wrap = document.getElementById('ins-recent-wrap');
   if (wrap) {
     if (recentMatch) {

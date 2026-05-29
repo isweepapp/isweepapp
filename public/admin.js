@@ -1,6 +1,6 @@
 'use strict';
 
-// -â Helpers âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// -- Helpers -------------------------------------------------------------------
 function showAlert(el, type, msg) {
   el.className = `alert alert-${type}`;
   el.textContent = msg;
@@ -13,7 +13,7 @@ async function adminFetch(url, opts = {}) {
   return r;
 }
 
-// ââ Auth ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// -- Auth ----------------------------------------------------------------------
 const loginSection = document.getElementById('login-section');
 const adminPanel   = document.getElementById('admin-panel');
 const loginAlert   = document.getElementById('login-alert');
@@ -62,7 +62,7 @@ document.getElementById('logout-btn').addEventListener('click', async () => {
   showLogin();
 });
 
-// ââ Participants ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// -- Participants --------------------------------------------------------------
 async function loadParticipants() {
   const tbody = document.getElementById('admin-ptbody');
   try {
@@ -76,12 +76,12 @@ async function loadParticipants() {
       <td>${esc(p.known_by || '')}</td>
       <td>${p.total_entries}</td>
       <td>£${p.amount_due}</td>
-      <td>${p.tiebreak_guess ?? ''}</td>
+      <td>${p.tiebreak_guess  ''}</td>
     </tr>`).join('');
   } catch { tbody.innerHTML = '<tr><td colspan="7" class="text-muted" style="padding:0.75rem">Failed to load.</td></tr>'; }
 }
 
-// ââ Money Table âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// -- Money Table ---------------------------------------------------------------
 async function loadMoneyTable() {
   const tbody = document.getElementById('money-tbody');
   try {
@@ -95,10 +95,10 @@ async function loadMoneyTable() {
       <td>${row.total_draws}</td>
       <td>£${row.total_due}</td>
       <td>
-        <span class="paid-badge ${row.paid ? 'paid-yes' : 'paid-no'}">${row.paid ? 'â Paid' : 'â Owed'}</span>
+        <span class="paid-badge ${row.paid  'paid-yes' : 'paid-no'}">${row.paid  '✓ Paid' : '✗ Owed'}</span>
         <button class="btn btn-outline btn-sm" style="margin-left:0.5rem"
           onclick="togglePaid('${esc(row.email)}', ${!row.paid}, this)">
-          ${row.paid ? 'Mark Unpaid' : 'Mark Paid'}
+          ${row.paid  'Mark Unpaid' : 'Mark Paid'}
         </button>
       </td>
     </tr>`).join('');
@@ -117,7 +117,7 @@ async function togglePaid(email, paid, btn) {
   } finally { btn.disabled = false; }
 }
 
-// ââ Admin match editor ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// -- Admin match editor --------------------------------------------------------
 const STAGE_ORDER = [
   'Group A','Group B','Group C','Group D','Group E','Group F',
   'Group G','Group H','Group I','Group J','Group K','Group L',
@@ -140,7 +140,7 @@ async function loadAdminMatches() {
 
     const stages = Object.keys(byStage).sort((a, b) => {
       const ia = STAGE_ORDER.indexOf(a), ib = STAGE_ORDER.indexOf(b);
-      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+      return (ia === -1  99 : ia) - (ib === -1  99 : ib);
     });
 
     container.innerHTML = stages.map(stage => {
@@ -158,12 +158,12 @@ function fmtDate(d) {
 
 function renderAdminMatch(m) {
   const played = m.score_a !== null && m.score_b !== null;
-  const result = played ? `${m.score_a}${m.score_b}` : '';
+  const result = played  `${m.score_a}${m.score_b}` : '';
   return `<div class="admin-match-row" onclick="toggleMatchEdit('${m.id}')">
     <div class="admin-match-teams">${m.team_a} vs ${m.team_b}</div>
     <div class="admin-match-date">${fmtDate(m.date)}</div>
-    <div class="admin-match-result${played ? ' played' : ''}">${result}</div>
-    <div class="admin-match-chevron">â¼</div>
+    <div class="admin-match-result${played  ' played' : ''}">${result}</div>
+    <div class="admin-match-chevron">▼</div>
   </div>
   <div class="admin-match-form hidden" id="mf-${m.id}">
     <div id="mf-alert-${m.id}" class="alert hidden"></div>
@@ -171,19 +171,19 @@ function renderAdminMatch(m) {
       <div class="match-edit-team">
         <div class="match-edit-label">${m.team_a}</div>
         <div class="match-edit-fields">
-          <label>Score<input type="number" min="0" id="sa-${m.id}" value="${m.score_a ?? ''}" placeholder=""></label>
-          <label>Goals<input type="number" min="0" id="ga-${m.id}" value="${m.goals_a ?? ''}" placeholder=""></label>
-          <label>Yellows<input type="number" min="0" id="ya-${m.id}" value="${m.yellows_a ?? ''}" placeholder=""></label>
-          <label>Reds<input type="number" min="0" id="ra-${m.id}" value="${m.reds_a ?? ''}" placeholder=""></label>
+          <label>Score<input type="number" min="0" id="sa-${m.id}" value="${m.score_a  ''}" placeholder=""></label>
+          <label>Goals<input type="number" min="0" id="ga-${m.id}" value="${m.goals_a  ''}" placeholder=""></label>
+          <label>Yellows<input type="number" min="0" id="ya-${m.id}" value="${m.yellows_a  ''}" placeholder=""></label>
+          <label>Reds<input type="number" min="0" id="ra-${m.id}" value="${m.reds_a  ''}" placeholder=""></label>
         </div>
       </div>
       <div class="match-edit-team">
         <div class="match-edit-label">${m.team_b}</div>
         <div class="match-edit-fields">
-          <label>Score<input type="number" min="0" id="sb-${m.id}" value="${m.score_b ?? ''}" placeholder=""></label>
-          <label>Goals<input type="number" min="0" id="gb-${m.id}" value="${m.goals_b ?? ''}" placeholder=""></label>
-          <label>Yellows<input type="number" min="0" id="yb-${m.id}" value="${m.yellows_b ?? ''}" placeholder=""></label>
-          <label>Reds<input type="number" min="0" id="rb-${m.id}" value="${m.reds_b ?? ''}" placeholder=""></label>
+          <label>Score<input type="number" min="0" id="sb-${m.id}" value="${m.score_b  ''}" placeholder=""></label>
+          <label>Goals<input type="number" min="0" id="gb-${m.id}" value="${m.goals_b  ''}" placeholder=""></label>
+          <label>Yellows<input type="number" min="0" id="yb-${m.id}" value="${m.yellows_b  ''}" placeholder=""></label>
+          <label>Reds<input type="number" min="0" id="rb-${m.id}" value="${m.reds_b  ''}" placeholder=""></label>
         </div>
       </div>
     </div>
@@ -225,7 +225,7 @@ async function saveMatchResult(id) {
   } catch { showAlert(alertEl, 'error', 'Network error.'); }
 }
 
-// ââ Sync from football-data.org âââââââââââââââââââââââââââââââââââââââââââââââ
+// -- Sync from football-data.org -----------------------------------------------
 const syncAlert  = document.getElementById('sync-alert');
 const syncLog    = document.getElementById('sync-log');
 
@@ -274,8 +274,8 @@ document.getElementById('sync-cards-btn').addEventListener('click', async () => 
           const ev = JSON.parse(line);
           if (ev.type === 'start')    syncLog.textContent += `Syncing ${ev.total} matches…\n`;
           if (ev.type === 'progress') syncLog.textContent += `  ${ev.processed}/${ev.total} done\n`;
-          if (ev.type === 'error')    syncLog.textContent += `  â  Match ${ev.matchId}: ${ev.message}\n`;
-          if (ev.type === 'done')     syncLog.textContent += `â ${ev.message}\n`;
+          if (ev.type === 'error')    syncLog.textContent += `  ⚠ Match ${ev.matchId}: ${ev.message}\n`;
+          if (ev.type === 'done')     syncLog.textContent += `✓ ${ev.message}\n`;
           syncLog.scrollTop = syncLog.scrollHeight;
         } catch (_) {}
       }
@@ -289,7 +289,7 @@ document.getElementById('sync-cards-btn').addEventListener('click', async () => 
   }
 });
 
-// ââ Draw ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// -- Draw ----------------------------------------------------------------------
 document.getElementById('draw-btn').addEventListener('click', async () => {
   const alertEl  = document.getElementById('draw-alert');
   const resultsEl = document.getElementById('draw-results');
@@ -301,14 +301,14 @@ document.getElementById('draw-btn').addEventListener('click', async () => {
   try {
     const r = await adminFetch('/api/admin/draw', { method: 'POST' });
     const d = await r.json();
-    showAlert(alertEl, r.ok ? 'success' : 'error', d.message || (r.ok ? 'Draw complete.' : 'Draw failed.'));
-    if (d.details?.length) {
+    showAlert(alertEl, r.ok  'success' : 'error', d.message || (r.ok  'Draw complete.' : 'Draw failed.'));
+    if (d.details.length) {
       resultsEl.classList.remove('hidden');
       resultsEl.innerHTML = d.details.map(e => {
         if (e.status === 'assigned') {
-          return `<div class="draw-result-entry"><span class="ok">â</span> Entry ${e.entryIndex + 1}: ${e.teams.join(' · ')}</div>`;
+          return `<div class="draw-result-entry"><span class="ok">✓</span> Entry ${e.entryIndex + 1}: ${e.teams.join(' · ')}</div>`;
         }
-        return `<div class="draw-result-entry"><span class="fail">â</span> Entry ${e.entryIndex + 1}: ${e.status}</div>`;
+        return `<div class="draw-result-entry"><span class="fail">✗</span> Entry ${e.entryIndex + 1}: ${e.status}</div>`;
       }).join('');
     }
     loadParticipants();
@@ -316,7 +316,7 @@ document.getElementById('draw-btn').addEventListener('click', async () => {
   finally  { btn.disabled = false; btn.textContent = 'Run Draw Now'; }
 });
 
-// ââ CSV Import ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// -- CSV Import ----------------------------------------------------------------
 document.getElementById('csv-form').addEventListener('submit', async e => {
   e.preventDefault();
   const alertEl = document.getElementById('csv-alert');
@@ -330,13 +330,13 @@ document.getElementById('csv-form').addEventListener('submit', async e => {
   try {
     const r = await adminFetch('/api/admin/matches/import', { method: 'POST', body: fd });
     const d = await r.json();
-    showAlert(alertEl, r.ok ? 'success' : 'error', d.message || d.error || (r.ok ? 'Imported.' : 'Failed.'));
+    showAlert(alertEl, r.ok  'success' : 'error', d.message || d.error || (r.ok  'Imported.' : 'Failed.'));
     if (r.ok) loadAdminMatches();
   } catch { showAlert(alertEl, 'error', 'Network error.'); }
   finally  { btn.disabled = false; btn.textContent = 'Upload & Import'; }
 });
 
-// ââ Group Finishes ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// -- Group Finishes ------------------------------------------------------------
 async function loadGroupFinishes() {
   const tbody = document.getElementById('gf-tbody');
   try {
@@ -367,29 +367,29 @@ document.getElementById('gf-form').addEventListener('submit', async e => {
       body: JSON.stringify({ team, position }),
     });
     const d = await r.json();
-    showAlert(alertEl, r.ok ? 'success' : 'error', d.message || d.error);
+    showAlert(alertEl, r.ok  'success' : 'error', d.message || d.error);
     if (r.ok) { document.getElementById('gf-team').value = ''; loadGroupFinishes(); }
   } catch { showAlert(alertEl, 'error', 'Network error.'); }
   finally  { btn.disabled = false; }
 });
 
-// ââ Clear entries âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// -- Clear entries -------------------------------------------------------------
 document.getElementById('clear-btn').addEventListener('click', async () => {
-  if (!confirm('Delete ALL entries and participants? This cannot be undone.')) return;
+  if (!confirm('Delete ALL entries and participants This cannot be undone.')) return;
   const alertEl = document.getElementById('clear-alert');
   hideAlert(alertEl);
   try {
     const r = await adminFetch('/api/admin/clear-entries', { method: 'POST' });
     const d = await r.json();
-    showAlert(alertEl, r.ok ? 'success' : 'error', d.message || d.error);
+    showAlert(alertEl, r.ok  'success' : 'error', d.message || d.error);
     if (r.ok) { loadParticipants(); loadMoneyTable(); }
   } catch { showAlert(alertEl, 'error', 'Network error.'); }
 });
 
-// ââ Utility âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// -- Utility -------------------------------------------------------------------
 function esc(s) {
-  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(s  '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-// ââ Init ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// -- Init ----------------------------------------------------------------------
 checkAuth();

@@ -1,6 +1,6 @@
 'use strict';
 
-// -â Flag lookup for World Cup teams (from flags.js GROUPS) ââââââââââââââââââââ
+// -- Flag lookup for World Cup teams (from flags.js GROUPS) --------------------
 const FLAG_CODES = {};
 if (typeof GROUPS !== 'undefined') {
   GROUPS.forEach(g => g.teams.forEach(t => { FLAG_CODES[t.name] = t.code; }));
@@ -10,7 +10,7 @@ function flag(team) {
   return code ? `<span class="fi fi-${code}" title="${team}"></span> ` : '';
 }
 
-// ââ Country → ISO code (for favourite national team flags) âââââââââââââââââââ
+// -- Country → ISO code (for favourite national team flags) -------------------
 const COUNTRY_FLAG = {
   'Afghanistan':'af','Albania':'al','Algeria':'dz','Angola':'ao',
   'Argentina':'ar','Australia':'au','Austria':'at','Bahrain':'bh',
@@ -32,7 +32,7 @@ const COUNTRY_FLAG = {
   'United States':'us','Uruguay':'uy','Venezuela':'ve','Wales':'gb-wls',
 };
 
-// ââ Club â 3-letter abbreviation âââââââââââââââââââââââââââââââââââââââââââââ
+// -- Club → 3-letter abbreviation ---------------------------------------------
 const CLUB_ABBR = {
   'Arsenal':'ARS','Aston Villa':'AVL','Bournemouth':'BOU','Brentford':'BRE',
   'Brighton & Hove Albion':'BHA','Chelsea':'CHE','Crystal Palace':'CRY',
@@ -76,7 +76,7 @@ function savePrevRanks(ranks) {
 }
 let previousRanks = loadPrevRanks();
 
-// ââ Stats cards âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// -- Stats cards ---------------------------------------------------------------
 async function loadStats() {
   try {
     const r = await fetch('/api/stats');
@@ -89,7 +89,7 @@ async function loadStats() {
   } catch (_) {}
 }
 
-// ââ Leaderboard âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// -- Leaderboard ---------------------------------------------------------------
 async function loadLeaderboard() {
   const endpoint = currentTab === 'overall'  ? '/api/leaderboard'
                  : currentTab === 'group'    ? '/api/leaderboard/group'
@@ -126,8 +126,8 @@ function renderLeaderboard(rows, tbody) {
       ? ` <span class="entry-num">#${r.entryIndex + 1}</span>` : '';
 
     const movHtml = prev == null ? '<span class="mov-new">NEW</span>'
-                  : prev > pos  ? `<span class="mov-up">â²${prev - pos}</span>`
-                  : prev < pos  ? `<span class="mov-dn">â¼${pos - prev}</span>`
+                  : prev > pos  ? `<span class="mov-up">▲${prev - pos}</span>`
+                  : prev < pos  ? `<span class="mov-dn">▼${pos - prev}</span>`
                   : '<span class="mov-eq"></span>';
 
     // Known-as cell
@@ -200,7 +200,7 @@ function renderLeaderboard(rows, tbody) {
       <td class="td-stat neg">${s ? s.redCards    : ''}</td>
       <td class="td-stat">${s ? s.groupBonus      : ''}</td>
       <td class="td-pts ${pos === 1 ? 'text-gold' : ''}">${pts}</td>
-      <td class="td-expand-btn"><button class="expand-btn" aria-expanded="false" title="Show drawn teams">â¾</button></td>
+      <td class="td-expand-btn"><button class="expand-btn" aria-expanded="false" title="Show drawn teams">▾</button></td>
     </tr>`);
 
     // Expandable row  drawn teams + points only
@@ -223,13 +223,13 @@ function renderLeaderboard(rows, tbody) {
       const expRow   = document.getElementById(expandId);
       const nowOpen  = expRow.hasAttribute('hidden');
       expRow.toggleAttribute('hidden', !nowOpen);
-      btn.textContent = nowOpen ? 'â´' : 'â¾';
+      btn.textContent = nowOpen ? '▴' : '▾';
       btn.setAttribute('aria-expanded', String(nowOpen));
     });
   });
 }
 
-// ââ Tabs ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// -- Tabs ----------------------------------------------------------------------
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -240,7 +240,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   });
 });
 
-// ââ Refresh countdown âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// -- Refresh countdown ---------------------------------------------------------
 let secs = 60;
 function tick() {
   document.getElementById('countdown').textContent = secs;

@@ -7,19 +7,19 @@ if (typeof GROUPS !== 'undefined') {
 
 function flag(team) {
   const code = FLAG_CODES[team];
-  return code ? `<span class="fi fi-${code}"></span>` : '<span style="width:24px;display:inline-block"></span>';
+  return code  `<span class="fi fi-${code}"></span>` : '<span style="width:24px;display:inline-block"></span>';
 }
 
 const POTS = [
   {
-    pot: 1, icon: 'ð¥', color: 'var(--pot1-col)',
+    pot: 1, icon: '🥇', color: 'var(--pot1-col)',
     label: 'Pot 1  Top Seeds',
     sub:   'FIFA Ranks 112 · 1 team drawn per entry',
     teams: ['France','Spain','Argentina','England','Portugal','Brazil',
             'Netherlands','Morocco','Belgium','Germany','Croatia','Uruguay']
   },
   {
-    pot: 2, icon: 'ð¥', color: 'var(--pot2-col)',
+    pot: 2, icon: '🥈', color: 'var(--pot2-col)',
     label: 'Pot 2  Second Tier',
     sub:   'FIFA Ranks 1330 · 2 teams drawn per entry',
     teams: ['Switzerland','Colombia','Mexico','United States','Japan','Iran',
@@ -27,7 +27,7 @@ const POTS = [
             'Canada','Ivory Coast','Qatar','Algeria','Sweden','Tunisia']
   },
   {
-    pot: 3, icon: 'ð¥', color: 'var(--pot3-col)',
+    pot: 3, icon: '🥉', color: 'var(--pot3-col)',
     label: 'Pot 3  Third Tier',
     sub:   'FIFA Ranks 3148 · 3 teams drawn per entry',
     teams: ['Czechia','Türkiye','Norway','Scotland','DR Congo','Bosnia & Herzegovina',

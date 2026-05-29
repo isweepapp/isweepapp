@@ -7,7 +7,7 @@ function showAlert(el, type, msg) {
 }
 function hideAlert(el) { el.classList.add('hidden'); }
 
-// -â Main entry form âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// -- Main entry form -----------------------------------------------------------
 const form      = document.getElementById('entry-form');
 const formAlert = document.getElementById('form-alert');
 const submitBtn = document.getElementById('submit-btn');

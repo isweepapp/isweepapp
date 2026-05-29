@@ -31,7 +31,7 @@ async function loadKnockout() {
 
     if (!knockoutMatches.length) {
       container.innerHTML = `<div class="card">
-        <h2>ð Knockout Stage</h2>
+        <h2>🏆 Knockout Stage</h2>
         <p class="text-muted">Knockout fixtures will appear here once the group stage is complete.</p>
       </div>`;
       return;

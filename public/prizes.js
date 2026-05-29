@@ -11,9 +11,9 @@ async function loadPrizes() {
 
     const grid = document.getElementById('prize-grid');
     const sections = [
-      { key: 'group',    icon: 'â½', label: 'Group Stage',    note: '(capped at £50)' },
-      { key: 'knockout', icon: 'ð', label: 'Knockout Stage', note: '(capped at £50)' },
-      { key: 'overall',  icon: 'ð¥', label: 'Overall',        note: '(remainder)' },
+      { key: 'group',    icon: '⚽', label: 'Group Stage',    note: '(capped at £50)' },
+      { key: 'knockout', icon: '🏆', label: 'Knockout Stage', note: '(capped at £50)' },
+      { key: 'overall',  icon: '🥇', label: 'Overall',        note: '(remainder)' },
     ];
 
     grid.innerHTML = sections.map(s => {
@@ -23,9 +23,9 @@ async function loadPrizes() {
         <div class="prize-pot-total">£${p.pot}</div>
         <div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:0.75rem;">${s.note}</div>
         <div class="prize-breakdown">
-          <div>ð¥ 1st (60%)  <strong>£${p.prize1}</strong></div>
-          <div>ð¥ 2nd (30%)  <strong>£${p.prize2}</strong></div>
-          <div>ð¥ 3rd (10%)  <strong>£${p.prize3}</strong></div>
+          <div>🥇 1st (60%)  <strong>£${p.prize1}</strong></div>
+          <div>🥈 2nd (30%)  <strong>£${p.prize2}</strong></div>
+          <div>🥉 3rd (10%)  <strong>£${p.prize3}</strong></div>
         </div>
       </div>`;
     }).join('');
