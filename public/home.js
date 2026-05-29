@@ -295,6 +295,13 @@ function mkCard(icon, label, value, sub, colorClass) {
 }
 
 function formatDate(d) {
+  if (!d) return '';
+  if (d.length <= 10) {
+    const [y, mo, dy] = d.split('-').map(Number);
+    return new Date(y, mo - 1, dy).toLocaleDateString('en-GB', {
+      weekday: 'short', day: 'numeric', month: 'short',
+    }) + ' — time TBC';
+  }
   return new Date(d).toLocaleString('en-GB', {
     weekday: 'short', day: 'numeric', month: 'short',
     hour: '2-digit', minute: '2-digit', timeZoneName: 'short',
