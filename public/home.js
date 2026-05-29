@@ -265,7 +265,7 @@ function renderInsights(lb, matches) {
   if (topMatch && topGoals >= 3) {
     const ta = trunc(topMatch.team_a, 12), tb = trunc(topMatch.team_b, 12);
     const sa = topMatch.goals_a ?? topMatch.score_a, sb = topMatch.goals_b ?? topMatch.score_b;
-    cards.push(mkCard('⚽', 'Goal Fest', `${ta} ${sa}${sb} ${tb}`, `${topGoals} goals`, 'gold'));
+    cards.push(mkCard('⚽', 'Goal Fest', `${ta} ${sa}–${sb} ${tb}`, `${topGoals} goals`, 'gold'));
   }
 
   // Entries + prize pot
@@ -277,7 +277,7 @@ function renderInsights(lb, matches) {
   if (grid) {
     grid.innerHTML = cards.length
       ? cards.join('')
-      : '<div class="ins-loading">No data yet  check back soon!</div>';
+      : '<div class="ins-loading">No data yet — check back soon!</div>';
   }
 
   // -- Latest result strip
@@ -290,7 +290,7 @@ function renderInsights(lb, matches) {
         <span class="ins-recent-label">Latest Result</span>
         <span class="ins-recent-score">
           ${teamFlag(recentMatch.team_a)}${trunc(recentMatch.team_a, 14)}
-          &nbsp;<strong>${ra}${rb}</strong>&nbsp;
+          &nbsp;<strong>${ra}–${rb}</strong>&nbsp;
           ${teamFlag(recentMatch.team_b)}${trunc(recentMatch.team_b, 14)}
         </span>
       </div>`;
@@ -315,7 +315,7 @@ function formatDate(d) {
     const [y, mo, dy] = d.split('-').map(Number);
     return new Date(y, mo - 1, dy).toLocaleDateString('en-GB', {
       weekday: 'short', day: 'numeric', month: 'short',
-    }) + '  time TBC';
+    }) + ' — time TBC';
   }
   return new Date(d).toLocaleString('en-GB', {
     weekday: 'short', day: 'numeric', month: 'short',

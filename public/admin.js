@@ -73,7 +73,7 @@ async function loadParticipants() {
       <td>${i + 1}</td>
       <td>${esc(p.name)}</td>
       <td>${esc(p.email)}</td>
-      <td>${esc(p.known_by || '')}</td>
+      <td>${esc(p.known_by || '—')}</td>
       <td>${p.total_entries}</td>
       <td>£${p.amount_due}</td>
       <td>${p.tiebreak_guess ?? ''}</td>
@@ -158,7 +158,7 @@ function fmtDate(d) {
 
 function renderAdminMatch(m) {
   const played = m.score_a !== null && m.score_b !== null;
-  const result = played ? `${m.score_a}${m.score_b}` : '';
+  const result = played ? `${m.score_a}–${m.score_b}` : '—';
   return `<div class="admin-match-row" onclick="toggleMatchEdit('${m.id}')">
     <div class="admin-match-teams">${m.team_a} vs ${m.team_b}</div>
     <div class="admin-match-date">${fmtDate(m.date)}</div>
@@ -171,19 +171,19 @@ function renderAdminMatch(m) {
       <div class="match-edit-team">
         <div class="match-edit-label">${m.team_a}</div>
         <div class="match-edit-fields">
-          <label>Score<input type="number" min="0" id="sa-${m.id}" value="${m.score_a ?? ''}" placeholder=""></label>
-          <label>Goals<input type="number" min="0" id="ga-${m.id}" value="${m.goals_a ?? ''}" placeholder=""></label>
-          <label>Yellows<input type="number" min="0" id="ya-${m.id}" value="${m.yellows_a ?? ''}" placeholder=""></label>
-          <label>Reds<input type="number" min="0" id="ra-${m.id}" value="${m.reds_a ?? ''}" placeholder=""></label>
+          <label>Score<input type="number" min="0" id="sa-${m.id}" value="${m.score_a ?? ''}" placeholder="—"></label>
+          <label>Goals<input type="number" min="0" id="ga-${m.id}" value="${m.goals_a ?? ''}" placeholder="—"></label>
+          <label>Yellows<input type="number" min="0" id="ya-${m.id}" value="${m.yellows_a ?? ''}" placeholder="—"></label>
+          <label>Reds<input type="number" min="0" id="ra-${m.id}" value="${m.reds_a ?? ''}" placeholder="—"></label>
         </div>
       </div>
       <div class="match-edit-team">
         <div class="match-edit-label">${m.team_b}</div>
         <div class="match-edit-fields">
-          <label>Score<input type="number" min="0" id="sb-${m.id}" value="${m.score_b ?? ''}" placeholder=""></label>
-          <label>Goals<input type="number" min="0" id="gb-${m.id}" value="${m.goals_b ?? ''}" placeholder=""></label>
-          <label>Yellows<input type="number" min="0" id="yb-${m.id}" value="${m.yellows_b ?? ''}" placeholder=""></label>
-          <label>Reds<input type="number" min="0" id="rb-${m.id}" value="${m.reds_b ?? ''}" placeholder=""></label>
+          <label>Score<input type="number" min="0" id="sb-${m.id}" value="${m.score_b ?? ''}" placeholder="—"></label>
+          <label>Goals<input type="number" min="0" id="gb-${m.id}" value="${m.goals_b ?? ''}" placeholder="—"></label>
+          <label>Yellows<input type="number" min="0" id="yb-${m.id}" value="${m.yellows_b ?? ''}" placeholder="—"></label>
+          <label>Reds<input type="number" min="0" id="rb-${m.id}" value="${m.reds_b ?? ''}" placeholder="—"></label>
         </div>
       </div>
     </div>
@@ -345,7 +345,7 @@ async function loadGroupFinishes() {
     if (!rows.length) { tbody.innerHTML = '<tr><td colspan="3" class="text-muted" style="padding:0.75rem">None saved yet.</td></tr>'; return; }
     tbody.innerHTML = rows.map(row => `<tr>
       <td>${esc(row.team)}</td>
-      <td>${['','1st','2nd','3rd','4th'][row.position] || row.position}</td>
+      <td>${['—','1st','2nd','3rd','4th'][row.position] || row.position}</td>
       <td></td>
     </tr>`).join('');
   } catch { tbody.innerHTML = '<tr><td colspan="3" class="text-muted">Failed to load.</td></tr>'; }

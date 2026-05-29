@@ -1,6 +1,6 @@
 'use strict';
 
-// World Cup 2026  Groups AL
+// World Cup 2026 — Groups A–L
 // Team names match seedTeams.sql exactly so group-finish lookups align.
 const GROUPS = [
   { letter: 'A', teams: [

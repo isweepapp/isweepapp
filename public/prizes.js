@@ -23,15 +23,15 @@ async function loadPrizes() {
         <div class="prize-pot-total">£${p.pot}</div>
         <div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:0.75rem;">${s.note}</div>
         <div class="prize-breakdown">
-          <div>🥇 1st (60%)  <strong>£${p.prize1}</strong></div>
-          <div>🥈 2nd (30%)  <strong>£${p.prize2}</strong></div>
-          <div>🥉 3rd (10%)  <strong>£${p.prize3}</strong></div>
+          <div>🥇 1st (60%) — <strong>£${p.prize1}</strong></div>
+          <div>🥈 2nd (30%) — <strong>£${p.prize2}</strong></div>
+          <div>🥉 3rd (10%) — <strong>£${p.prize3}</strong></div>
         </div>
       </div>`;
     }).join('');
   } catch {
     document.getElementById('prize-grid').innerHTML =
-      '<p class="text-muted">Prize data unavailable  prizes are calculated from paid entries.</p>';
+      '<p class="text-muted">Prize data unavailable — prizes are calculated from paid entries.</p>';
   }
 }
 

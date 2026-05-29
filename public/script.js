@@ -46,9 +46,9 @@ form.addEventListener('submit', async e => {
     showAlert(formAlert, 'success', data.message || 'Entry received!');
     form.reset();
   } catch {
-    showAlert(formAlert, 'error', 'Network error  please check your connection and try again.');
+    showAlert(formAlert, 'error', 'Network error — please check your connection and try again.');
   } finally {
     submitBtn.disabled = false;
-    submitBtn.textContent = 'Submit Entry  £5';
+    submitBtn.textContent = 'Submit Entry — £5';
   }
 });
