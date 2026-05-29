@@ -532,7 +532,7 @@ let _lastAutoSync = 0;
 
 app.get('/api/matches', (_req, res) => {
   // Always respond immediately with cached DB data
-  res.json(db.prepare('SELECT id, date, team_a, team_b, score_a, score_b, stage FROM matches ORDER BY date, id').all());
+  res.json(db.prepare('SELECT id, date, team_a, team_b, score_a, score_b, goals_a, goals_b, stage FROM matches ORDER BY date, id').all());
 
   // Background sync — silently skipped if no API key or last sync was <3 min ago
   if (!process.env.FOOTBALL_DATA_API_KEY) return;
