@@ -480,6 +480,20 @@
       overlay.querySelector('.spurs-btn-no' ).addEventListener('click', () => { overlay.remove(); onNo();  });
     }
 
+    // -- Welsh national anthem ----------------------------------------------------
+    const anthem = new Audio('https://upload.wikimedia.org/wikipedia/commons/3/3e/Hen_Wlad_Fy_Nhadau.ogg');
+    anthem.volume = 0.75;
+
+    document.getElementById('countryTeam').addEventListener('change', function () {
+      if (this.value === 'Wales') {
+        anthem.currentTime = 0;
+        anthem.play().catch(() => {});
+      } else {
+        anthem.pause();
+        anthem.currentTime = 0;
+      }
+    });
+
     const clubSelect = document.getElementById('clubTeam');
     let prevClub = '';
 
