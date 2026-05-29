@@ -799,9 +799,31 @@ function computeTeamStats(stageFilter) {
     if (m.team_a) { const s = stats[m.team_a]; s.played++; s.goalsFor+=ga; s.goalsAgainst+=gb; s.yellowCards+=ya; s.redCards+=ra; if (m.score_a>m.score_b) s.wins++; else if (m.score_a<m.score_b) s.losses++; else s.draws++; }
     if (m.team_b) { const s = stats[m.team_b]; s.played++; s.goalsFor+=gb; s.goalsAgainst+=ga; s.yellowCards+=yb; s.redCards+=rb; if (m.score_b>m.score_a) s.wins++; else if (m.score_b<m.score_a) s.losses++; else s.draws++; }
   }
-  // Group finish bonus applies to group-stage and overall leaderboards, not knockout
+  // Group finish bonus applies to group-stage and overall leaderboards, not knockout.
+  // Only award once ALL matches in that team's group are complete.
   if (stageFilter !== 'knockout') {
-    for (const f of db.prepare('SELECT * FROM group_finishes').all()) { ensure(f.team); stats[f.team].groupBonus = FINISH_BONUS[f.position] || 0; }
+    // Find which groups have every match scored
+    const groupCompletion = db.prepare(
+      `SELECT stage,
+              COUNT(*) AS total,
+              SUM(CASE WHEN score_a IS NOT NULL AND score_b IS NOT NULL THEN 1 ELSE 0 END) AS done
+       FROM matches WHERE stage LIKE 'Group %' GROUP BY stage`
+    ).all();
+    const completeGroups = new Set(
+      groupCompletion.filter(g => g.total > 0 && g.total === g.done).map(g => g.stage)
+    );
+    // Map each team to its group
+    const teamGroup = {};
+    for (const m of db.prepare("SELECT DISTINCT team_a, team_b, stage FROM matches WHERE stage LIKE 'Group %'").all()) {
+      teamGroup[m.team_a] = m.stage;
+      teamGroup[m.team_b] = m.stage;
+    }
+    for (const f of db.prepare('SELECT * FROM group_finishes').all()) {
+      ensure(f.team);
+      if (completeGroups.has(teamGroup[f.team])) {
+        stats[f.team].groupBonus = FINISH_BONUS[f.position] || 0;
+      }
+    }
   }
   return stats;
 }
