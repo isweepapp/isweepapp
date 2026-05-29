@@ -52,6 +52,21 @@ async function initHome() {
   }
 }
 
+function formatDate(d) {
+  if (!d) return '';
+  try {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(d)) {
+      const [y, mo, dy] = d.split('-').map(Number);
+      return new Date(y, mo - 1, dy).toLocaleDateString('en-GB', {
+        weekday: 'short', day: 'numeric', month: 'short',
+      }) + ' | Time TBC';
+    }
+    const dt = new Date(d);
+    return dt.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+      + ' | ' + dt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  } catch { return d; }
+}
+
 // -- Pre-tournament countdown --------------------------------------------------
 function showCountdown(matches) {
   const now      = new Date();
