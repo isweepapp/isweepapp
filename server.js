@@ -180,14 +180,19 @@ app.post('/api/entries', (req, res) => {
   const emailExists = db.prepare('SELECT id FROM participants WHERE email = ?').get(email);
   const isPrimary   = emailExists ? 0 : 1;
 
+  let newEntryId;
   const pid = runTransaction(() => {
     const id  = uuidv4();
     const now = new Date().toISOString();
     db.prepare('INSERT INTO participants (id, name, email, is_primary, extra_entries, tiebreak_guess, known_by, club_team, country_team, created_at) VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?, ?)')
       .run(id, name, email, isPrimary, tiebreak, knownBy, clubTeam, countryTeam, now);
-    db.prepare('INSERT INTO entries (id, participant_id, entry_index, created_at) VALUES (?, ?, 0, ?)').run(uuidv4(), id, now);
+    newEntryId = uuidv4();
+    db.prepare('INSERT INTO entries (id, participant_id, entry_index, created_at) VALUES (?, ?, 0, ?)').run(newEntryId, id, now);
     return id;
   });
+
+  // Auto-draw teams for this entry immediately
+  drawSingleEntry(newEntryId);
 
   const message = `Entry received for "${name}" — £5 due. Submit again with a different team name to enter again.`;
 
@@ -220,11 +225,16 @@ app.post('/api/entries/extra', (req, res) => {
 
   const newExtra  = participant.extra_entries + 1;
   const amountDue = newExtra + (participant.is_primary ? 0 : 1);
+  let extraEntryId;
   runTransaction(() => {
     db.prepare('UPDATE participants SET extra_entries = ?, tiebreak_guess = ? WHERE id = ?').run(newExtra, tiebreak, participant.id);
+    extraEntryId = uuidv4();
     db.prepare('INSERT INTO entries (id, participant_id, entry_index, created_at) VALUES (?, ?, ?, ?)')
-      .run(uuidv4(), participant.id, newExtra, new Date().toISOString());
+      .run(extraEntryId, participant.id, newExtra, new Date().toISOString());
   });
+
+  // Auto-draw teams for this extra entry immediately
+  drawSingleEntry(extraEntryId);
 
   res.json({
     ok: true,
@@ -766,6 +776,44 @@ app.get('/api/admin/sync-cards', requireAdmin, async (req, res) => {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 // Pick n distinct random items from arr
+// ── Auto-draw: assign teams to a single entry immediately on submission ────────
+function drawSingleEntry(entryId) {
+  const pot1 = db.prepare('SELECT name FROM teams WHERE pot = 1 ORDER BY name').all().map(r => r.name);
+  const pot2 = db.prepare('SELECT name FROM teams WHERE pot = 2 ORDER BY name').all().map(r => r.name);
+  const pot3 = db.prepare('SELECT name FROM teams WHERE pot = 3 ORDER BY name').all().map(r => r.name);
+
+  if (!pot1.length || pot2.length < 2 || pot3.length < 3) {
+    console.log('[Auto-draw] Pots not ready — entry will be assigned when draw is run manually.');
+    return false;
+  }
+
+  const usedCombos = new Set(
+    db.prepare(`SELECT pot1_team, pot2_team, pot2_team_2, pot3_team, pot3_team_2, pot3_team_3
+                FROM entries WHERE pot1_team IS NOT NULL AND pot2_team IS NOT NULL AND pot2_team_2 IS NOT NULL
+                  AND pot3_team IS NOT NULL AND pot3_team_2 IS NOT NULL AND pot3_team_3 IS NOT NULL`)
+      .all().map(e => comboKey(e.pot1_team, e.pot2_team, e.pot2_team_2, e.pot3_team, e.pot3_team_2, e.pot3_team_3))
+  );
+
+  let found = null;
+  for (let t = 0; t < MAX_TRIES; t++) {
+    const [p1]            = pickRandom(pot1, 1);
+    const [p2a, p2b]      = pickRandom(pot2, 2);
+    const [p3a, p3b, p3c] = pickRandom(pot3, 3);
+    const key = comboKey(p1, p2a, p2b, p3a, p3b, p3c);
+    if (!usedCombos.has(key)) { found = { p1, p2a, p2b, p3a, p3b, p3c }; break; }
+  }
+
+  if (!found) {
+    console.log('[Auto-draw] All combinations exhausted — entry left unassigned.');
+    return false;
+  }
+
+  db.prepare('UPDATE entries SET pot1_team=?, pot2_team=?, pot2_team_2=?, pot3_team=?, pot3_team_2=?, pot3_team_3=? WHERE id=?')
+    .run(found.p1, found.p2a, found.p2b, found.p3a, found.p3b, found.p3c, entryId);
+  console.log(`[Auto-draw] Entry ${entryId}: ${found.p1} | ${found.p2a}, ${found.p2b} | ${found.p3a}, ${found.p3b}, ${found.p3c}`);
+  return true;
+}
+
 function pickRandom(arr, n) {
   const pool = arr.slice();
   const out  = [];
