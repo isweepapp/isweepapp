@@ -65,6 +65,7 @@ const CLUB_ABBR = {
 };
 
 let currentTab    = 'overall';
+let statsData     = {};
 
 // Persist ranks across page refreshes via localStorage
 function storageKey() { return `isweep_ranks_${currentTab}`; }
@@ -82,6 +83,7 @@ async function loadStats() {
     const r = await fetch('/api/stats');
     if (!r.ok) return;
     const d = await r.json();
+    statsData = d;
     document.getElementById('stat-matches').textContent      = d.matchesPlayed  ?? '0';
     document.getElementById('stat-goals').textContent        = d.totalGoals     ?? '0';
     document.getElementById('stat-top').textContent          = d.topTeam        ?? '—';
@@ -104,6 +106,174 @@ async function loadLeaderboard() {
   }
 }
 
+function buildEntryRows(r, i, previousRanks) {
+  const pos      = i + 1;
+  const key      = `${r.name}:${r.entryIndex}`;
+  const prev     = previousRanks[key];
+  const expandId = `exp-${i}`;
+  const trs      = [];
+
+  const posClass   = pos === 1 ? 'pos-1' : pos === 2 ? 'pos-2' : pos === 3 ? 'pos-3' : '';
+  const entryLabel = r.totalEntries > 1
+    ? ` <span class="entry-num">#${r.entryIndex + 1}</span>` : '';
+
+  const movHtml = prev == null ? '<span class="mov-new">NEW</span>'
+                : prev > pos  ? `<span class="mov-up">▲${prev - pos}</span>`
+                : prev < pos  ? `<span class="mov-dn">▼${pos - prev}</span>`
+                : '<span class="mov-eq">—</span>';
+
+  const nameCell  = `<td class="td-persona">${r.knownBy || '—'}</td>`;
+  const flagCode  = r.countryTeam ? COUNTRY_FLAG[r.countryTeam] : null;
+  const flagCell  = `<td class="td-persona">${
+    flagCode ? `<span class="fi fi-${flagCode}" title="${r.countryTeam}" style="font-size:1.3rem"></span>` : '—'
+  }</td>`;
+  const abbr      = r.clubTeam ? (CLUB_ABBR[r.clubTeam] || r.clubTeam.slice(0,3).toUpperCase()) : null;
+  const crestCell = `<td class="td-persona">${
+    abbr ? `<span class="club-badge" title="${r.clubTeam}">${abbr}</span>` : '—'
+  }</td>`;
+
+  if (!r.assigned) {
+    trs.push(`<tr class="${posClass}">
+      <td class="td-pos">${pos}</td>
+      <td class="td-mov">${movHtml}</td>
+      <td class="td-name">${r.name}${entryLabel}</td>
+      ${nameCell}${flagCell}${crestCell}
+      <td class="td-stat">—</td><td class="td-stat">—</td><td class="td-stat">—</td>
+      <td class="td-stat">—</td><td class="td-stat">—</td><td class="td-stat">—</td>
+      <td class="td-stat">—</td><td class="td-stat">—</td><td class="td-stat">—</td>
+      <td class="td-pts">—</td>
+      <td class="td-expand-btn"></td>
+    </tr>`);
+    return trs;
+  }
+
+  const pts = r.stats ? r.stats.points : 0;
+  const s   = r.stats;
+
+  const allTeams = [
+    r.pot1Team ? { team: r.pot1Team, pot: 1 } : null,
+    ...(r.pot2Teams || []).filter(Boolean).map(t => ({ team: t, pot: 2 })),
+    ...(r.pot3Teams || []).filter(Boolean).map(t => ({ team: t, pot: 3 })),
+  ].filter(Boolean);
+
+  const teamItems = allTeams.map(({ team, pot }) => {
+    const tp = (r.teamPts && r.teamPts[team] != null) ? r.teamPts[team] : 0;
+    return `<div class="team-pts-item">
+      <span class="badge badge-pot${pot}">${flag(team)}${team}</span>
+      <span class="team-pts-val">${tp} pts</span>
+    </div>`;
+  }).join('');
+
+  trs.push(`<tr class="${posClass} main-row" data-expand="${expandId}">
+    <td class="td-pos">${pos}</td>
+    <td class="td-mov">${movHtml}</td>
+    <td class="td-name">${r.name}${entryLabel}</td>
+    ${nameCell}${flagCell}${crestCell}
+    <td class="td-stat">${s ? s.played        : '—'}</td>
+    <td class="td-stat pos">${s ? s.wins       : '—'}</td>
+    <td class="td-stat">${s ? s.draws          : '—'}</td>
+    <td class="td-stat">${s ? s.losses         : '—'}</td>
+    <td class="td-stat pos">${s ? s.goalsFor   : '—'}</td>
+    <td class="td-stat neg">${s ? s.goalsAgainst : '—'}</td>
+    <td class="td-stat neg">${s ? s.yellowCards : '—'}</td>
+    <td class="td-stat neg">${s ? s.redCards    : '—'}</td>
+    <td class="td-stat">${s ? s.groupBonus      : '—'}</td>
+    <td class="td-pts ${pos === 1 ? 'text-gold' : ''}">${pts}</td>
+    <td class="td-expand-btn"><button class="expand-btn" aria-expanded="false" title="Show drawn teams">▾</button></td>
+  </tr>`);
+
+  const statsHtml = s ? `
+    <div class="exp-stats exp-stats-mobile">
+      <span><em>${s.played}</em> P</span>
+      <span class="pos"><em>${s.wins}</em> W</span>
+      <span><em>${s.draws}</em> D</span>
+      <span><em>${s.losses}</em> L</span>
+      <span class="pos"><em>${s.goalsFor}</em> GF</span>
+      <span class="neg"><em>${s.goalsAgainst}</em> GA</span>
+      <span class="neg"><em>${s.yellowCards}</em> YC</span>
+      <span class="neg"><em>${s.redCards}</em> RC</span>
+      <span><em>${s.groupBonus}</em> Bon</span>
+      <span style="color:var(--gold);font-weight:800"><em>${pts}</em> Pts</span>
+    </div>` : '';
+
+  trs.push(`<tr class="expand-row" id="${expandId}" hidden>
+    <td colspan="15">
+      <div class="exp-teams">${teamItems}</div>
+      ${statsHtml}
+    </td>
+  </tr>`);
+
+  return trs;
+}
+
+function buildNewsFeedRow(rows, newRanks) {
+  // Compute insights from leaderboard data + cached stats
+  const cards = [];
+
+  // 1. Current leader
+  const leader = rows[0];
+  if (leader) {
+    const leaderPts = leader.stats ? leader.stats.points : 0;
+    cards.push({ icon: '🏆', label: 'Leading', value: leader.knownBy || leader.name, sub: `${leaderPts} pts` });
+  }
+
+  // 2. Biggest climber & faller
+  let topClimber = null, topClimberDelta = 0;
+  let topFaller  = null, topFallerDelta  = 0;
+  let newCount   = 0;
+  rows.forEach((r, i) => {
+    const key  = `${r.name}:${r.entryIndex}`;
+    const prev = previousRanks[key];
+    if (prev == null) { newCount++; return; }
+    const delta = prev - (i + 1);
+    if (delta > topClimberDelta) { topClimberDelta = delta; topClimber = r; }
+    if (delta < topFallerDelta)  { topFallerDelta  = delta; topFaller  = r; }
+  });
+
+  if (topClimber) {
+    cards.push({ icon: '📈', label: 'On the Rise', value: topClimber.knownBy || topClimber.name, sub: `▲${topClimberDelta} place${topClimberDelta > 1 ? 's' : ''}` });
+  }
+  if (topFaller) {
+    cards.push({ icon: '📉', label: 'Slipping', value: topFaller.knownBy || topFaller.name, sub: `▼${Math.abs(topFallerDelta)} place${Math.abs(topFallerDelta) > 1 ? 's' : ''}` });
+  }
+
+  // 3. New entries
+  if (newCount > 0) {
+    cards.push({ icon: '🆕', label: 'New Entries', value: `${newCount}`, sub: 'just joined' });
+  }
+
+  // 4. Stats-derived cards
+  if (statsData.topTeam) {
+    cards.push({ icon: '⭐', label: 'Hottest Nation', value: statsData.topTeam, sub: 'most pts so far' });
+  }
+  if (statsData.matchesPlayed > 0) {
+    cards.push({ icon: '⚽', label: 'Goals', value: `${statsData.totalGoals}`, sub: `in ${statsData.matchesPlayed} matches` });
+  }
+
+  // 6. Total entries
+  cards.push({ icon: '👥', label: 'Total Entries', value: `${rows.length}`, sub: 'sweepstakers' });
+
+  // Build card HTML
+  const cardHtml = cards.map(c => `
+    <div class="nf-card">
+      <div class="nf-icon">${c.icon}</div>
+      <div class="nf-body">
+        <div class="nf-label">${c.label}</div>
+        <div class="nf-value">${c.value}</div>
+        <div class="nf-sub">${c.sub}</div>
+      </div>
+    </div>`).join('');
+
+  return `<tr class="news-feed-row">
+    <td colspan="17">
+      <div class="news-feed-wrap">
+        <div class="news-feed-hd"><span class="nf-pulse"></span> iSweep News</div>
+        <div class="news-feed-cards">${cardHtml}</div>
+      </div>
+    </td>
+  </tr>`;
+}
+
 function renderLeaderboard(rows, tbody) {
   if (!rows.length) {
     tbody.innerHTML = '<tr><td colspan="17" class="prem-loading text-muted">No entries yet.</td></tr>';
@@ -114,118 +284,24 @@ function renderLeaderboard(rows, tbody) {
   rows.forEach((r, i) => { newRanks[`${r.name}:${r.entryIndex}`] = i + 1; });
 
   const trs = [];
+  const SPLIT = 10;
+
+  // Section label: Top 10
+  trs.push(`<tr class="lb-section-row"><td colspan="17"><span class="lb-section-lbl">🏆 Top 10</span></td></tr>`);
 
   rows.forEach((r, i) => {
-    const pos      = i + 1;
-    const key      = `${r.name}:${r.entryIndex}`;
-    const prev     = previousRanks[key];
-    const expandId = `exp-${i}`;
-
-    const posClass = pos === 1 ? 'pos-1' : pos === 2 ? 'pos-2' : pos === 3 ? 'pos-3' : '';
-    const entryLabel = r.totalEntries > 1
-      ? ` <span class="entry-num">#${r.entryIndex + 1}</span>` : '';
-
-    const movHtml = prev == null ? '<span class="mov-new">NEW</span>'
-                  : prev > pos  ? `<span class="mov-up">▲${prev - pos}</span>`
-                  : prev < pos  ? `<span class="mov-dn">▼${pos - prev}</span>`
-                  : '<span class="mov-eq">—</span>';
-
-    // Known-as cell
-    const nameCell = `<td class="td-persona">${r.knownBy || '—'}</td>`;
-
-    // Country flag cell
-    const flagCode  = r.countryTeam ? COUNTRY_FLAG[r.countryTeam] : null;
-    const flagCell  = `<td class="td-persona">${
-      flagCode ? `<span class="fi fi-${flagCode}" title="${r.countryTeam}" style="font-size:1.3rem"></span>` : '—'
-    }</td>`;
-
-    // Club badge cell
-    const abbr      = r.clubTeam ? (CLUB_ABBR[r.clubTeam] || r.clubTeam.slice(0,3).toUpperCase()) : null;
-    const crestCell = `<td class="td-persona">${
-      abbr ? `<span class="club-badge" title="${r.clubTeam}">${abbr}</span>` : '—'
-    }</td>`;
-
-    if (!r.assigned) {
-      trs.push(`<tr class="${posClass}">
-        <td class="td-pos">${pos}</td>
-        <td class="td-mov">${movHtml}</td>
-        <td class="td-name">${r.name}${entryLabel}</td>
-        ${nameCell}${flagCell}${crestCell}
-        <td class="td-stat">—</td>
-        <td class="td-stat">—</td>
-        <td class="td-stat">—</td>
-        <td class="td-stat">—</td>
-        <td class="td-stat">—</td>
-        <td class="td-stat">—</td>
-        <td class="td-stat">—</td>
-        <td class="td-stat">—</td>
-        <td class="td-stat">—</td>
-        <td class="td-pts">—</td>
-        <td class="td-expand-btn"></td>
-      </tr>`);
-      return;
+    // After top 10: inject news feed then "The Rest" header
+    if (i === SPLIT) {
+      trs.push(buildNewsFeedRow(rows, newRanks));
+      trs.push(`<tr class="lb-section-row lb-section-rest"><td colspan="17"><span class="lb-section-lbl">The Rest</span></td></tr>`);
     }
-
-    const pts = r.stats ? r.stats.points : 0;
-    const s   = r.stats;
-
-    // Build the 6 teams with individual points (for expanded row only)
-    const allTeams = [
-      r.pot1Team ? { team: r.pot1Team, pot: 1 } : null,
-      ...(r.pot2Teams || []).filter(Boolean).map(t => ({ team: t, pot: 2 })),
-      ...(r.pot3Teams || []).filter(Boolean).map(t => ({ team: t, pot: 3 })),
-    ].filter(Boolean);
-
-    const teamItems = allTeams.map(({ team, pot }) => {
-      const tp = (r.teamPts && r.teamPts[team] != null) ? r.teamPts[team] : 0;
-      return `<div class="team-pts-item">
-        <span class="badge badge-pot${pot}">${flag(team)}${team}</span>
-        <span class="team-pts-val">${tp} pts</span>
-      </div>`;
-    }).join('');
-
-    // Main row — all stats always visible
-    trs.push(`<tr class="${posClass} main-row" data-expand="${expandId}">
-      <td class="td-pos">${pos}</td>
-      <td class="td-mov">${movHtml}</td>
-      <td class="td-name">${r.name}${entryLabel}</td>
-      ${nameCell}${flagCell}${crestCell}
-      <td class="td-stat">${s ? s.played        : '—'}</td>
-      <td class="td-stat pos">${s ? s.wins       : '—'}</td>
-      <td class="td-stat">${s ? s.draws          : '—'}</td>
-      <td class="td-stat">${s ? s.losses         : '—'}</td>
-      <td class="td-stat pos">${s ? s.goalsFor   : '—'}</td>
-      <td class="td-stat neg">${s ? s.goalsAgainst : '—'}</td>
-      <td class="td-stat neg">${s ? s.yellowCards : '—'}</td>
-      <td class="td-stat neg">${s ? s.redCards    : '—'}</td>
-      <td class="td-stat">${s ? s.groupBonus      : '—'}</td>
-      <td class="td-pts ${pos === 1 ? 'text-gold' : ''}">${pts}</td>
-      <td class="td-expand-btn"><button class="expand-btn" aria-expanded="false" title="Show drawn teams">▾</button></td>
-    </tr>`);
-
-    // Stats breakdown for mobile (hidden on desktop via CSS)
-    const statsHtml = s ? `
-      <div class="exp-stats exp-stats-mobile">
-        <span><em>${s.played}</em> P</span>
-        <span class="pos"><em>${s.wins}</em> W</span>
-        <span><em>${s.draws}</em> D</span>
-        <span><em>${s.losses}</em> L</span>
-        <span class="pos"><em>${s.goalsFor}</em> GF</span>
-        <span class="neg"><em>${s.goalsAgainst}</em> GA</span>
-        <span class="neg"><em>${s.yellowCards}</em> YC</span>
-        <span class="neg"><em>${s.redCards}</em> RC</span>
-        <span><em>${s.groupBonus}</em> Bon</span>
-        <span style="color:var(--gold);font-weight:800"><em>${pts}</em> Pts</span>
-      </div>` : '';
-
-    // Expandable row — drawn teams + points breakdown
-    trs.push(`<tr class="expand-row" id="${expandId}" hidden>
-      <td colspan="15">
-        <div class="exp-teams">${teamItems}</div>
-        ${statsHtml}
-      </td>
-    </tr>`);
+    buildEntryRows(r, i, previousRanks).forEach(tr => trs.push(tr));
   });
+
+  // If ≤10 entries, still show the news feed at the bottom
+  if (rows.length <= SPLIT) {
+    trs.push(buildNewsFeedRow(rows, newRanks));
+  }
 
   tbody.innerHTML = trs.join('');
   savePrevRanks(newRanks);
