@@ -303,6 +303,10 @@ function renderLeaderboard(rows, tbody) {
     return;
   }
 
+  // Sort alphabetically until any points appear
+  const allZero = rows.every(r => !r.stats || r.stats.points === 0);
+  if (allZero) rows = [...rows].sort((a, b) => a.name.localeCompare(b.name));
+
   const newRanks = {};
   rows.forEach((r, i) => { newRanks[`${r.name}:${r.entryIndex}`] = i + 1; });
 
