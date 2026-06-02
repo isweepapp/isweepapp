@@ -106,8 +106,8 @@ async function loadLeaderboard() {
   }
 }
 
-function buildEntryRows(r, i, previousRanks) {
-  const pos      = i + 1;
+function buildEntryRows(r, i, previousRanks, pos) {
+  if (pos === undefined) pos = i + 1;
   const key      = `${r.name}:${r.entryIndex}`;
   const prev     = previousRanks[key];
   const expandId = `exp-${i}`;
@@ -206,6 +206,29 @@ function buildEntryRows(r, i, previousRanks) {
   return trs;
 }
 
+function buildSpursRow() {
+  const spursAbbr = CLUB_ABBR['Tottenham Hotspur'] || 'TOT';
+  return `<tr class="spurs-fixed-row" title="They almost got relegated…">
+    <td class="td-pos spurs-pos">17</td>
+    <td class="td-mov"><span title="Permanently anchored to 17th">📌</span></td>
+    <td class="td-name spurs-name">Tottenham Hotspur</td>
+    <td class="td-persona">Spurs</td>
+    <td class="td-persona"><span class="fi fi-gb-eng" title="England" style="font-size:1.3rem"></span></td>
+    <td class="td-persona"><span class="club-badge" title="Tottenham Hotspur">${spursAbbr}</span></td>
+    <td class="td-stat spurs-zero">0</td>
+    <td class="td-stat spurs-zero">0</td>
+    <td class="td-stat spurs-zero">0</td>
+    <td class="td-stat spurs-zero">0</td>
+    <td class="td-stat spurs-zero">0</td>
+    <td class="td-stat spurs-zero">0</td>
+    <td class="td-stat spurs-zero">0</td>
+    <td class="td-stat spurs-zero">0</td>
+    <td class="td-stat spurs-zero">—</td>
+    <td class="td-pts spurs-zero">0</td>
+    <td class="td-expand-btn" style="text-align:center;font-size:1rem" title="They almost got relegated…">😬</td>
+  </tr>`;
+}
+
 function buildNewsFeedRow(rows, newRanks) {
   // Compute insights from leaderboard data + cached stats
   const cards = [];
@@ -284,7 +307,9 @@ function renderLeaderboard(rows, tbody) {
   rows.forEach((r, i) => { newRanks[`${r.name}:${r.entryIndex}`] = i + 1; });
 
   const trs = [];
-  const SPLIT = 10;
+  const SPLIT     = 10;  // news feed injected after position 10
+  const SPURS_POS = 17;  // Spurs permanently locked to 17th
+  let spursInjected = false;
 
   // Section label: Top 10
   trs.push(`<tr class="lb-section-row"><td colspan="17"><span class="lb-section-lbl">🏆 Top 10</span></td></tr>`);
@@ -295,12 +320,23 @@ function renderLeaderboard(rows, tbody) {
       trs.push(buildNewsFeedRow(rows, newRanks));
       trs.push(`<tr class="lb-section-row lb-section-rest"><td colspan="17"><span class="lb-section-lbl">The Rest</span></td></tr>`);
     }
-    buildEntryRows(r, i, previousRanks).forEach(tr => trs.push(tr));
+    // At position 17: inject Spurs before the real entry (which shifts to 18)
+    if (i === SPURS_POS - 1 && !spursInjected) {
+      trs.push(buildSpursRow());
+      spursInjected = true;
+    }
+    // Real entries below pos 17 get bumped one place down
+    const pos = spursInjected && i >= SPURS_POS - 1 ? i + 2 : i + 1;
+    buildEntryRows(r, i, previousRanks, pos).forEach(tr => trs.push(tr));
   });
 
   // If ≤10 entries, still show the news feed at the bottom
   if (rows.length <= SPLIT) {
     trs.push(buildNewsFeedRow(rows, newRanks));
+  }
+  // If fewer than 16 real entries, Spurs still appears at the bottom
+  if (!spursInjected) {
+    trs.push(buildSpursRow());
   }
 
   tbody.innerHTML = trs.join('');
