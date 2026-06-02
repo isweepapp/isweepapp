@@ -493,6 +493,17 @@ app.get('/api/admin/participants', requireAdmin, (_req, res) => {
   `).all());
 });
 
+// ── Admin: Update participant details ─────────────────────────────────────────
+app.patch('/api/admin/participants/:name', requireAdmin, (req, res) => {
+  const name = decodeURIComponent(req.params.name);
+  const { knownBy, clubTeam, countryTeam } = req.body;
+  const p = db.prepare('SELECT id FROM participants WHERE name = ?').get(name);
+  if (!p) return res.status(404).json({ error: `No participant found with name "${name}".` });
+  db.prepare('UPDATE participants SET known_by=?, club_team=?, country_team=? WHERE id=?')
+    .run(knownBy || null, clubTeam || null, countryTeam || null, p.id);
+  res.json({ ok: true, message: `Updated "${name}".` });
+});
+
 // ── Admin: Clear all entries ──────────────────────────────────────────────────
 app.post('/api/admin/clear-entries', requireAdmin, (_req, res) => {
   runTransaction(() => {

@@ -68,8 +68,8 @@ async function loadParticipants() {
   try {
     const r = await adminFetch('/api/admin/participants');
     const rows = await r.json();
-    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="7" class="text-muted" style="padding:0.75rem">No entries yet.</td></tr>'; return; }
-    tbody.innerHTML = rows.map((p, i) => `<tr>
+    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="8" class="text-muted" style="padding:0.75rem">No entries yet.</td></tr>'; return; }
+    tbody.innerHTML = rows.map((p, i) => `<tr id="ptr-${i}">
       <td>${i + 1}</td>
       <td>${esc(p.name)}</td>
       <td>${esc(p.email)}</td>
@@ -77,8 +77,51 @@ async function loadParticipants() {
       <td>${p.total_entries}</td>
       <td>£${p.amount_due}</td>
       <td>${p.tiebreak_guess ?? ''}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="toggleParticipantEdit(${i},${JSON.stringify(JSON.stringify(p))})">✏️</button></td>
+    </tr>
+    <tr id="pte-${i}" hidden>
+      <td colspan="8" style="padding:0.75rem 1rem;background:rgba(255,255,255,0.03)">
+        <div style="display:flex;flex-wrap:wrap;gap:0.6rem;align-items:flex-end">
+          <label style="font-size:0.8rem;color:var(--text-muted)">Known As<br>
+            <input id="pti-knownBy-${i}" class="form-control" style="width:140px" placeholder="Known as">
+          </label>
+          <label style="font-size:0.8rem;color:var(--text-muted)">Club Team<br>
+            <input id="pti-clubTeam-${i}" class="form-control" style="width:160px" placeholder="Club team">
+          </label>
+          <label style="font-size:0.8rem;color:var(--text-muted)">Country Team<br>
+            <input id="pti-countryTeam-${i}" class="form-control" style="width:140px" placeholder="Country">
+          </label>
+          <button class="btn btn-primary btn-sm" onclick="saveParticipantEdit(${i},${JSON.stringify(JSON.stringify(p))})">Save</button>
+          <button class="btn btn-outline btn-sm" onclick="document.getElementById('pte-${i}').hidden=true">Cancel</button>
+        </div>
+      </td>
     </tr>`).join('');
-  } catch { tbody.innerHTML = '<tr><td colspan="7" class="text-muted" style="padding:0.75rem">Failed to load.</td></tr>'; }
+  } catch { tbody.innerHTML = '<tr><td colspan="8" class="text-muted" style="padding:0.75rem">Failed to load.</td></tr>'; }
+}
+
+function toggleParticipantEdit(i, pJson) {
+  const p = JSON.parse(pJson);
+  document.getElementById(`pti-knownBy-${i}`).value    = p.known_by    || '';
+  document.getElementById(`pti-clubTeam-${i}`).value   = p.club_team   || '';
+  document.getElementById(`pti-countryTeam-${i}`).value = p.country_team || '';
+  document.getElementById(`pte-${i}`).hidden = false;
+}
+
+async function saveParticipantEdit(i, pJson) {
+  const p = JSON.parse(pJson);
+  const knownBy     = document.getElementById(`pti-knownBy-${i}`).value.trim();
+  const clubTeam    = document.getElementById(`pti-clubTeam-${i}`).value.trim();
+  const countryTeam = document.getElementById(`pti-countryTeam-${i}`).value.trim();
+  try {
+    const r = await adminFetch(`/api/admin/participants/${encodeURIComponent(p.name)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ knownBy, clubTeam, countryTeam }),
+    });
+    const data = await r.json();
+    if (!r.ok) { alert(data.error || 'Save failed'); return; }
+    loadParticipants();
+  } catch { alert('Network error'); }
 }
 
 // -- Money Table ---------------------------------------------------------------
