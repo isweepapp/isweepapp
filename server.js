@@ -493,6 +493,60 @@ app.get('/api/admin/participants', requireAdmin, (_req, res) => {
   `).all());
 });
 
+// ── Admin: Export all entries as CSV (Excel-ready) ────────────────────────────
+app.get('/api/admin/export/entries', requireAdmin, (_req, res) => {
+  const participants = db.prepare(`
+    SELECT id, name, email, known_by, club_team, country_team, tiebreak_guess
+    FROM participants ORDER BY name ASC
+  `).all();
+  const getEntries = db.prepare('SELECT * FROM entries WHERE participant_id = ? ORDER BY entry_index ASC');
+  const allStats   = computeTeamStats(null);
+  const tPts       = t => { const s = allStats[t]; if (!s) return 0; return teamPoints(s); };
+
+  const cols = [
+    'Entry Name','Email','Known As','Club Team','Country Team',
+    'Pot 1 Team','Pot 1 Pts',
+    'Pot 2 Team 1','Pot 2 Team 1 Pts',
+    'Pot 2 Team 2','Pot 2 Team 2 Pts',
+    'Pot 3 Team 1','Pot 3 Team 1 Pts',
+    'Pot 3 Team 2','Pot 3 Team 2 Pts',
+    'Pot 3 Team 3','Pot 3 Team 3 Pts',
+    'Total Points','Goals Predicted'
+  ];
+
+  const q = s => `"${String(s ?? '').replace(/"/g, '""')}"`;
+
+  const lines = [cols.map(q).join(',')];
+
+  for (const p of participants) {
+    const entries = getEntries.all(p.id);
+    for (const e of entries) {
+      const teams = [
+        e.pot1_team, e.pot2_team, e.pot2_team_2,
+        e.pot3_team, e.pot3_team_2, e.pot3_team_3,
+      ];
+      const totalPts = teams.reduce((sum, t) => sum + (t ? tPts(t) : 0), 0);
+      lines.push([
+        p.name, p.email, p.known_by || '', p.club_team || '', p.country_team || '',
+        e.pot1_team   || '', e.pot1_team   ? tPts(e.pot1_team)   : '',
+        e.pot2_team   || '', e.pot2_team   ? tPts(e.pot2_team)   : '',
+        e.pot2_team_2 || '', e.pot2_team_2 ? tPts(e.pot2_team_2) : '',
+        e.pot3_team   || '', e.pot3_team   ? tPts(e.pot3_team)   : '',
+        e.pot3_team_2 || '', e.pot3_team_2 ? tPts(e.pot3_team_2) : '',
+        e.pot3_team_3 || '', e.pot3_team_3 ? tPts(e.pot3_team_3) : '',
+        totalPts,
+        p.tiebreak_guess ?? '',
+      ].map(q).join(','));
+    }
+  }
+
+  const csv      = '﻿' + lines.join('\r\n'); // BOM for Excel UTF-8
+  const filename = `isweep-entries-${new Date().toISOString().slice(0,10)}.csv`;
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.send(csv);
+});
+
 // ── Admin: Update participant details ─────────────────────────────────────────
 app.patch('/api/admin/participants/:name', requireAdmin, (req, res) => {
   const name = decodeURIComponent(req.params.name);
