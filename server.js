@@ -606,10 +606,9 @@ app.post('/api/admin/send-email', requireAdmin, async (req, res) => {
     return res.status(400).json({ error: 'No recipients found.' });
   }
 
-  // Send via Resend REST API
-  const { default: fetch } = await import('node-fetch').catch(() => ({ default: globalThis.fetch }));
+  // Send via Resend REST API (Node 22 built-in fetch)
   const sendOne = async (email) => {
-    const r = await globalThis.fetch('https://api.resend.com/emails', {
+    const r = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
