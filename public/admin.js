@@ -470,12 +470,12 @@ async function sendEmail(mode) {
     if (d.details?.sent?.length)   logEl.textContent += '\nSent to:\n'   + d.details.sent.join('\n');
     if (d.details?.failed?.length) logEl.textContent += '\n\nFailed:\n'  + d.details.failed.map(f => `${f.email}: ${f.error}`).join('\n');
 
-    showAlert(alertEl, d.failed === 0
-      ? `✅ Email sent successfully to ${d.sent} recipient${d.sent !== 1 ? 's' : ''}.`
-      : `⚠️ Sent ${d.sent}, failed ${d.failed}. Check the log below.`,
-      d.failed === 0 ? 'success' : 'warning');
+    showAlert(alertEl, d.failed === 0 ? 'success' : 'warning',
+      d.failed === 0
+        ? `✅ Email sent successfully to ${d.sent} recipient${d.sent !== 1 ? 's' : ''}.`
+        : `⚠️ Sent ${d.sent}, failed ${d.failed}. Check the log below.`);
   } catch (err) {
-    showAlert(alertEl, `Error: ${err.message}`, 'error');
+    showAlert(alertEl, 'error', `Error: ${err.message}`);
   } finally {
     testBtn.disabled = false;
     allBtn.disabled  = false;
