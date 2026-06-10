@@ -632,6 +632,8 @@ app.post('/api/admin/send-email', requireAdmin, async (req, res) => {
         results.failed.push({ email: r.email, error: err.message });
         console.error(`[Email] Failed for ${r.email}: ${err.message}`);
       }
+      // Stay under Resend's 5 req/sec rate limit
+      await new Promise(resolve => setTimeout(resolve, 250));
     }
 
     res.json({
