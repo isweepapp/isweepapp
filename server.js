@@ -594,7 +594,7 @@ app.post('/api/admin/send-email', requireAdmin, async (req, res) => {
   // Determine recipient list
   let recipients;
   if (mode === 'test') {
-    const testAddr = to || process.env.EMAIL_TEST_TO || 'johnswaine@dolphind.com';
+    const testAddr = to || process.env.EMAIL_TEST_TO || 'isweepapp@gmail.com';
     recipients = [{ email: testAddr }];
   } else {
     recipients = db.prepare(
