@@ -435,6 +435,57 @@ document.getElementById('gf-form').addEventListener('submit', async e => {
   finally  { btn.disabled = false; }
 });
 
+// -- Send email ----------------------------------------------------------------
+async function sendEmail(mode) {
+  const alertEl = document.getElementById('email-alert');
+  const logEl   = document.getElementById('email-log');
+  const testBtn = document.getElementById('email-test-btn');
+  const allBtn  = document.getElementById('email-all-btn');
+  hideAlert(alertEl);
+  logEl.classList.add('hidden');
+  logEl.textContent = '';
+
+  if (mode === 'all') {
+    if (!confirm('Send the 1 Day To Go email to ALL participants with an email address?\n\nThis cannot be undone.')) return;
+  }
+
+  testBtn.disabled = true;
+  allBtn.disabled  = true;
+  const activeBtn  = mode === 'test' ? testBtn : allBtn;
+  const origText   = activeBtn.textContent;
+  activeBtn.textContent = 'Sending…';
+
+  try {
+    const r = await fetch('/api/admin/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ template: '1day-to-go', mode }),
+      credentials: 'include',
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Send failed');
+
+    logEl.classList.remove('hidden');
+    logEl.textContent = `✅ Sent: ${d.sent}   ❌ Failed: ${d.failed}\n`;
+    if (d.details?.sent?.length)   logEl.textContent += '\nSent to:\n'   + d.details.sent.join('\n');
+    if (d.details?.failed?.length) logEl.textContent += '\n\nFailed:\n'  + d.details.failed.map(f => `${f.email}: ${f.error}`).join('\n');
+
+    showAlert(alertEl, d.failed === 0
+      ? `✅ Email sent successfully to ${d.sent} recipient${d.sent !== 1 ? 's' : ''}.`
+      : `⚠️ Sent ${d.sent}, failed ${d.failed}. Check the log below.`,
+      d.failed === 0 ? 'success' : 'warning');
+  } catch (err) {
+    showAlert(alertEl, `Error: ${err.message}`, 'error');
+  } finally {
+    testBtn.disabled = false;
+    allBtn.disabled  = false;
+    activeBtn.textContent = origText;
+  }
+}
+
+document.getElementById('email-test-btn').addEventListener('click', () => sendEmail('test'));
+document.getElementById('email-all-btn').addEventListener('click',  () => sendEmail('all'));
+
 // -- Clear entries -------------------------------------------------------------
 document.getElementById('clear-btn').addEventListener('click', async () => {
   if (!confirm('Delete ALL entries and participants This cannot be undone.')) return;

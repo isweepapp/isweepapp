@@ -568,6 +568,81 @@ app.delete('/api/admin/participants/:name', requireAdmin, (req, res) => {
   res.json({ ok: true, message: `Deleted "${name}" and all their entries.` });
 });
 
+// ── Admin: Send email ─────────────────────────────────────────────────────────
+// Requires env vars: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM
+// Optional: SMTP_SECURE=true for port 465 (default false = STARTTLS on 587)
+app.post('/api/admin/send-email', requireAdmin, async (req, res) => {
+  const { template = '1day-to-go', mode = 'test', to } = req.body;
+
+  // Load email template from disk
+  const templatePath = path.join(__dirname, 'emails', `${template}.html`);
+  if (!fs.existsSync(templatePath)) {
+    return res.status(404).json({ error: `Email template "${template}.html" not found.` });
+  }
+  const html = fs.readFileSync(templatePath, 'utf8');
+
+  // Check SMTP config
+  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    return res.status(500).json({ error: 'SMTP not configured. Set SMTP_HOST, SMTP_USER and SMTP_PASS in Railway Variables.' });
+  }
+
+  const nodemailer = require('nodemailer');
+  const transporter = nodemailer.createTransport({
+    host:   process.env.SMTP_HOST,
+    port:   parseInt(process.env.SMTP_PORT || '587'),
+    secure: process.env.SMTP_SECURE === 'true',
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  });
+
+  const from = process.env.SMTP_FROM || `iSweep <${process.env.SMTP_USER}>`;
+  const subject = '⚽ iSweep — 1 Day To Go! The World Cup Kicks Off Tomorrow!';
+
+  // Determine recipient list
+  let recipients;
+  if (mode === 'test') {
+    // Single test address — use provided 'to' or fall back to env var
+    const testAddr = to || process.env.SMTP_TEST_TO || 'johnswaine@dolphind.com';
+    recipients = [{ email: testAddr, name: 'Test' }];
+  } else {
+    // All participants who have an email address
+    recipients = db.prepare(
+      'SELECT DISTINCT email, name FROM participants WHERE email IS NOT NULL AND email != "" ORDER BY email'
+    ).all();
+  }
+
+  if (!recipients.length) {
+    return res.status(400).json({ error: 'No recipients found.' });
+  }
+
+  const results = { sent: [], failed: [] };
+
+  for (const r of recipients) {
+    try {
+      await transporter.sendMail({
+        from,
+        to: r.email,
+        subject,
+        html,
+      });
+      results.sent.push(r.email);
+      console.log(`[Email] Sent to ${r.email}`);
+    } catch (err) {
+      results.failed.push({ email: r.email, error: err.message });
+      console.error(`[Email] Failed for ${r.email}: ${err.message}`);
+    }
+  }
+
+  res.json({
+    ok: results.failed.length === 0,
+    sent: results.sent.length,
+    failed: results.failed.length,
+    details: results,
+  });
+});
+
 // ── Admin: Clear all entries ──────────────────────────────────────────────────
 app.post('/api/admin/clear-entries', requireAdmin, (_req, res) => {
   runTransaction(() => {
