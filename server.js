@@ -573,72 +573,77 @@ app.delete('/api/admin/participants/:name', requireAdmin, (req, res) => {
 // Optional:        RESEND_FROM      e.g. "iSweep <noreply@yourdomain.com>"
 //                                   defaults to onboarding@resend.dev (test only)
 app.post('/api/admin/send-email', requireAdmin, async (req, res) => {
-  const { template = '1day-to-go', mode = 'test', to } = req.body;
+  try {
+    const { template = '1day-to-go', mode = 'test', to } = req.body || {};
 
-  // Load email template from disk
-  const templatePath = path.join(__dirname, 'emails', `${template}.html`);
-  if (!fs.existsSync(templatePath)) {
-    return res.status(404).json({ error: `Email template "${template}.html" not found.` });
-  }
-  const html = fs.readFileSync(templatePath, 'utf8');
-
-  // Check Resend API key
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ error: 'RESEND_API_KEY not set. Add it in Railway Variables (get a free key at resend.com).' });
-  }
-
-  const from    = process.env.RESEND_FROM || 'iSweep <onboarding@resend.dev>';
-  const subject = '⚽ iSweep — 1 Day To Go! The World Cup Kicks Off Tomorrow!';
-
-  // Determine recipient list
-  let recipients;
-  if (mode === 'test') {
-    const testAddr = to || process.env.EMAIL_TEST_TO || 'isweepapp@gmail.com';
-    recipients = [{ email: testAddr }];
-  } else {
-    recipients = db.prepare(
-      'SELECT DISTINCT email FROM participants WHERE email IS NOT NULL AND email != "" ORDER BY email'
-    ).all();
-  }
-
-  if (!recipients.length) {
-    return res.status(400).json({ error: 'No recipients found.' });
-  }
-
-  // Send via Resend REST API (Node 22 built-in fetch)
-  const sendOne = async (email) => {
-    const r = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ from, to: [email], subject, html }),
-    });
-    const body = await r.json();
-    if (!r.ok) throw new Error(body.message || JSON.stringify(body));
-    return body;
-  };
-
-  const results = { sent: [], failed: [] };
-  for (const r of recipients) {
-    try {
-      await sendOne(r.email);
-      results.sent.push(r.email);
-      console.log(`[Email] Sent to ${r.email}`);
-    } catch (err) {
-      results.failed.push({ email: r.email, error: err.message });
-      console.error(`[Email] Failed for ${r.email}: ${err.message}`);
+    // Load email template from disk
+    const templatePath = path.join(__dirname, 'emails', `${template}.html`);
+    if (!fs.existsSync(templatePath)) {
+      return res.status(404).json({ error: `Email template "${template}.html" not found.` });
     }
-  }
+    const html = fs.readFileSync(templatePath, 'utf8');
 
-  res.json({
-    ok: results.failed.length === 0,
-    sent: results.sent.length,
-    failed: results.failed.length,
-    details: results,
-  });
+    // Check Resend API key
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({ error: 'RESEND_API_KEY not set. Add it in Railway Variables (get a free key at resend.com).' });
+    }
+
+    const from    = process.env.RESEND_FROM || 'iSweep <onboarding@resend.dev>';
+    const subject = 'iSweep - 1 Day To Go! The World Cup Kicks Off Tomorrow!';
+
+    // Determine recipient list
+    let recipients;
+    if (mode === 'test') {
+      const testAddr = to || process.env.EMAIL_TEST_TO || 'isweepapp@gmail.com';
+      recipients = [{ email: testAddr }];
+    } else {
+      recipients = db.prepare(
+        'SELECT DISTINCT email FROM participants WHERE email IS NOT NULL AND email != "" ORDER BY email'
+      ).all();
+    }
+
+    if (!recipients.length) {
+      return res.status(400).json({ error: 'No recipients found.' });
+    }
+
+    // Send via Resend REST API (Node 22 built-in fetch)
+    const sendOne = async (email) => {
+      const r = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ from, to: [email], subject, html }),
+      });
+      const body = await r.json();
+      if (!r.ok) throw new Error(body.message || JSON.stringify(body));
+      return body;
+    };
+
+    const results = { sent: [], failed: [] };
+    for (const r of recipients) {
+      try {
+        await sendOne(r.email);
+        results.sent.push(r.email);
+        console.log(`[Email] Sent to ${r.email}`);
+      } catch (err) {
+        results.failed.push({ email: r.email, error: err.message });
+        console.error(`[Email] Failed for ${r.email}: ${err.message}`);
+      }
+    }
+
+    res.json({
+      ok: results.failed.length === 0,
+      sent: results.sent.length,
+      failed: results.failed.length,
+      details: results,
+    });
+  } catch (err) {
+    console.error('[Email] Unexpected error:', err);
+    res.status(500).json({ error: err.message || 'Unexpected server error' });
+  }
 });
 
 // ── Admin: Clear all entries ──────────────────────────────────────────────────
