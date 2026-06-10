@@ -558,6 +558,16 @@ app.patch('/api/admin/participants/:name', requireAdmin, (req, res) => {
   res.json({ ok: true, message: `Updated "${name}".` });
 });
 
+// ── Admin: Delete a single participant and all their entries ─────────────────
+app.delete('/api/admin/participants/:name', requireAdmin, (req, res) => {
+  const name = decodeURIComponent(req.params.name);
+  const p = db.prepare('SELECT id FROM participants WHERE name = ?').get(name);
+  if (!p) return res.status(404).json({ error: `No participant found with name "${name}".` });
+  db.prepare('DELETE FROM entries WHERE participant_id = ?').run(p.id);
+  db.prepare('DELETE FROM participants WHERE id = ?').run(p.id);
+  res.json({ ok: true, message: `Deleted "${name}" and all their entries.` });
+});
+
 // ── Admin: Clear all entries ──────────────────────────────────────────────────
 app.post('/api/admin/clear-entries', requireAdmin, (_req, res) => {
   runTransaction(() => {
