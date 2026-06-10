@@ -465,15 +465,18 @@ async function sendEmail(mode) {
     const d = await r.json();
     if (!r.ok) throw new Error(d.error || 'Send failed');
 
-    logEl.classList.remove('hidden');
-    logEl.textContent = `✅ Sent: ${d.sent}   ❌ Failed: ${d.failed}\n`;
-    if (d.details?.sent?.length)   logEl.textContent += '\nSent to:\n'   + d.details.sent.join('\n');
-    if (d.details?.failed?.length) logEl.textContent += '\n\nFailed:\n'  + d.details.failed.map(f => `${f.email}: ${f.error}`).join('\n');
-
-    showAlert(alertEl, d.failed === 0 ? 'success' : 'warning',
-      d.failed === 0
-        ? `✅ Email sent successfully to ${d.sent} recipient${d.sent !== 1 ? 's' : ''}.`
-        : `⚠️ Sent ${d.sent}, failed ${d.failed}. Check the log below.`);
+    if (d.queued) {
+      showAlert(alertEl, 'success', `✅ Sending to ${d.queued} recipients in the background. Check Railway logs for details.`);
+    } else {
+      logEl.classList.remove('hidden');
+      logEl.textContent = `✅ Sent: ${d.sent}   ❌ Failed: ${d.failed}\n`;
+      if (d.details?.sent?.length)   logEl.textContent += '\nSent to:\n'  + d.details.sent.join('\n');
+      if (d.details?.failed?.length) logEl.textContent += '\n\nFailed:\n' + d.details.failed.map(f => `${f.email}: ${f.error}`).join('\n');
+      showAlert(alertEl, d.failed === 0 ? 'success' : 'warning',
+        d.failed === 0
+          ? `✅ Email sent successfully to ${d.sent} recipient${d.sent !== 1 ? 's' : ''}.`
+          : `⚠️ Sent ${d.sent}, failed ${d.failed}. Check the log below.`);
+    }
   } catch (err) {
     showAlert(alertEl, 'error', `Error: ${err.message}`);
   } finally {
