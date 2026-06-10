@@ -599,7 +599,7 @@ app.post('/api/admin/send-email', requireAdmin, async (req, res) => {
       recipients = [{ email: testAddr }];
     } else {
       recipients = db.prepare(
-        'SELECT DISTINCT email FROM participants WHERE email IS NOT NULL AND email != "" ORDER BY email'
+        "SELECT DISTINCT email FROM participants WHERE email IS NOT NULL AND email != '' ORDER BY email"
       ).all();
     }
 
