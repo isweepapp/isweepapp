@@ -622,26 +622,35 @@ app.post('/api/admin/send-email', requireAdmin, async (req, res) => {
       return body;
     };
 
-    const results = { sent: [], failed: [] };
-    for (const r of recipients) {
+    // For single test email — wait and return result
+    if (mode === 'test') {
       try {
-        await sendOne(r.email);
-        results.sent.push(r.email);
-        console.log(`[Email] Sent to ${r.email}`);
+        await sendOne(recipients[0].email);
+        return res.json({ ok: true, sent: 1, failed: 0, details: { sent: [recipients[0].email], failed: [] } });
       } catch (err) {
-        results.failed.push({ email: r.email, error: err.message });
-        console.error(`[Email] Failed for ${r.email}: ${err.message}`);
+        return res.status(500).json({ error: err.message });
       }
-      // Stay under Resend's 5 req/sec rate limit
-      await new Promise(resolve => setTimeout(resolve, 250));
     }
 
-    res.json({
-      ok: results.failed.length === 0,
-      sent: results.sent.length,
-      failed: results.failed.length,
-      details: results,
-    });
+    // For bulk send — respond immediately, process in background
+    res.json({ ok: true, queued: recipients.length, message: `Sending to ${recipients.length} recipients in the background. Check server logs.` });
+
+    // Background send with rate limiting
+    (async () => {
+      let sent = 0; let failed = 0;
+      for (const r of recipients) {
+        try {
+          await sendOne(r.email);
+          sent++;
+          console.log(`[Email] Sent to ${r.email} (${sent}/${recipients.length})`);
+        } catch (err) {
+          failed++;
+          console.error(`[Email] Failed for ${r.email}: ${err.message}`);
+        }
+        await new Promise(resolve => setTimeout(resolve, 250));
+      }
+      console.log(`[Email] Bulk send complete. Sent: ${sent}, Failed: ${failed}`);
+    })();
   } catch (err) {
     console.error('[Email] Unexpected error:', err);
     res.status(500).json({ error: err.message || 'Unexpected server error' });
