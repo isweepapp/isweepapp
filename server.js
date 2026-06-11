@@ -1050,8 +1050,65 @@ function computeTeamScores() {
   return r;
 }
 
+// ── Scheduled auto-sync ───────────────────────────────────────────────────────
+// Runs every 30 minutes if FOOTBALL_DATA_API_KEY is set.
+// Syncs all match scores and group standings automatically.
+async function scheduledSync() {
+  if (!process.env.FOOTBALL_DATA_API_KEY) return;
+  try {
+    const { matches } = await ftdbGet('/v4/competitions/WC/matches');
+    const upsert = db.prepare(`
+      INSERT INTO matches (id, date, team_a, team_b, score_a, score_b, goals_a, goals_b,
+                           yellows_a, yellows_b, reds_a, reds_b, stage)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        date=excluded.date, team_a=excluded.team_a, team_b=excluded.team_b,
+        score_a=excluded.score_a, score_b=excluded.score_b,
+        goals_a=excluded.goals_a, goals_b=excluded.goals_b,
+        stage=excluded.stage
+    `);
+    let synced = 0;
+    runTransaction(() => {
+      for (const m of matches) {
+        if (!m.homeTeam?.name || !m.awayTeam?.name) continue;
+        const stageMapper = FTDB_STAGE_MAP[m.stage];
+        const stage = stageMapper ? stageMapper(m) : (m.stage || 'Unknown');
+        const teamA = normFtdbTeam(m.homeTeam.name);
+        const teamB = normFtdbTeam(m.awayTeam.name);
+        const fin = m.status === 'FINISHED';
+        const sa  = fin ? (m.score?.fullTime?.home ?? null) : null;
+        const sb  = fin ? (m.score?.fullTime?.away ?? null) : null;
+        upsert.run(String(m.id), m.utcDate, teamA, teamB, sa, sb, sa, sb,
+                   null, null, null, null, stage);
+        synced++;
+      }
+    });
+    // Sync group standings
+    try {
+      const { standings } = await ftdbGet('/v4/competitions/WC/standings');
+      const gfUp = db.prepare('INSERT INTO group_finishes (team, position) VALUES (?, ?) ON CONFLICT(team) DO UPDATE SET position=excluded.position');
+      runTransaction(() => {
+        for (const group of (standings || [])) {
+          if (group.type !== 'TOTAL') continue;
+          for (const row of (group.table || [])) {
+            if (row.position >= 1 && row.position <= 4)
+              gfUp.run(normFtdbTeam(row.team.name), row.position);
+          }
+        }
+      });
+    } catch (_) { /* standings not yet available */ }
+    cleanupSeededMatches();
+    console.log(`[ScheduledSync] ${synced} matches updated at ${new Date().toISOString()}`);
+  } catch (e) {
+    console.warn(`[ScheduledSync] Failed: ${e.message}`);
+  }
+}
+
 // ── Start ─────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`\n  World Cup 2026 Sweepstake — http://localhost:${PORT}\n`);
   if (!ADMIN_PASSWORD_HASH) console.warn('  WARNING: ADMIN_PASSWORD not set — admin panel disabled.\n');
+  // Run immediately on startup, then every 30 minutes
+  scheduledSync();
+  setInterval(scheduledSync, 30 * 60 * 1000);
 });
