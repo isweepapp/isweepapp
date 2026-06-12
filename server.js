@@ -298,6 +298,32 @@ app.get('/api/participants', (_req, res) => {
   `).all());
 });
 
+// ── Public: Live match or next fixture ───────────────────────────────────────
+app.get('/api/live-match', (_req, res) => {
+  const live = db.prepare(`
+    SELECT id, date, team_a, team_b, score_a, score_b,
+           yellows_a, yellows_b, reds_a, reds_b, stage
+    FROM matches
+    WHERE score_a IS NOT NULL AND score_b IS NOT NULL
+      AND date >= datetime('now', '-3 hours')
+      AND date <= datetime('now', '+2 hours')
+    ORDER BY date ASC LIMIT 1
+  `).get();
+
+  if (live) return res.json({ type: 'live', match: live });
+
+  const next = db.prepare(`
+    SELECT id, date, team_a, team_b, stage
+    FROM matches
+    WHERE score_a IS NULL AND date > datetime('now')
+    ORDER BY date ASC LIMIT 1
+  `).get();
+
+  if (next) return res.json({ type: 'next', match: next });
+
+  res.json({ type: 'none' });
+});
+
 // ── Public: Stats ─────────────────────────────────────────────────────────────
 app.get('/api/stats', (req, res) => {
   triggerBackgroundSync();

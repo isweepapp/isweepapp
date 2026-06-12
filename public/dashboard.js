@@ -84,10 +84,51 @@ async function loadStats() {
     if (!r.ok) return;
     const d = await r.json();
     statsData = d;
-    document.getElementById('stat-matches').textContent      = d.matchesPlayed  ?? '0';
-    document.getElementById('stat-goals').textContent        = d.totalGoals     ?? '0';
-    document.getElementById('stat-top').textContent          = d.topTeam        ?? '—';
-    document.getElementById('stat-participants').textContent = d.participantCount ?? '0';
+    document.getElementById('stat-matches').textContent = d.matchesPlayed  ?? '0';
+    document.getElementById('stat-goals').textContent   = d.totalGoals     ?? '0';
+    document.getElementById('stat-top').textContent     = d.topTeam        ?? '—';
+  } catch (_) {}
+}
+
+async function loadLiveMatch() {
+  const label = document.getElementById('live-match-label');
+  const body  = document.getElementById('live-match-body');
+  try {
+    const d = await fetch('/api/live-match').then(r => r.json());
+    if (d.type === 'live') {
+      const m = d.match;
+      label.innerHTML = '<span style="display:inline-flex;align-items:center;gap:0.35rem">'
+        + '<span style="width:8px;height:8px;border-radius:50%;background:#4ade80;display:inline-block;animation:nf-blink 1.2s ease-in-out infinite"></span>Live</span>';
+      const cardHtml = (y, r) => {
+        let s = '';
+        if (+y > 0) s += ('<span style="display:inline-block;width:10px;height:13px;background:#facc15;border-radius:1px;margin-right:2px"></span>').repeat(+y);
+        if (+r > 0) s += ('<span style="display:inline-block;width:10px;height:13px;background:#f87171;border-radius:1px;margin-right:2px"></span>').repeat(+r);
+        return s || '<span style="font-size:0.7rem;color:var(--text-muted)">—</span>';
+      };
+      const ya = m.yellows_a ?? 0, yb = m.yellows_b ?? 0;
+      const ra = m.reds_a   ?? 0,  rb = m.reds_b   ?? 0;
+      body.innerHTML = ''
+        + '<div style="font-size:0.82rem;font-weight:700;color:var(--text)">'
+        +   m.team_a + ' <span style="color:var(--gold)">' + m.score_a + ' – ' + m.score_b + '</span> ' + m.team_b
+        + '</div>'
+        + '<div style="font-size:0.75rem;margin-top:0.3rem;display:flex;gap:1rem">'
+        +   '<span>' + cardHtml(ya, ra) + '</span>'
+        +   '<span>' + cardHtml(yb, rb) + '</span>'
+        + '</div>'
+        + '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:0.15rem">' + (m.stage || '') + '</div>';
+    } else if (d.type === 'next') {
+      const m = d.match;
+      label.textContent = 'Next Fixture';
+      const dt    = m.date ? new Date(m.date) : null;
+      const dtStr = dt ? dt.toLocaleString('en-GB', { weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }) : '';
+      body.innerHTML = ''
+        + '<div style="font-size:0.82rem;font-weight:700;color:var(--text)">' + m.team_a + ' vs ' + m.team_b + '</div>'
+        + '<div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.2rem">' + dtStr + '</div>'
+        + '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:0.1rem">' + (m.stage || '') + '</div>';
+    } else {
+      label.textContent = 'Next Fixture';
+      body.innerHTML = '<div style="font-size:0.85rem;color:var(--text-muted)">—</div>';
+    }
   } catch (_) {}
 }
 
@@ -446,11 +487,13 @@ function tick() {
   if (--secs < 0) {
     secs = 60;
     loadStats();
+    loadLiveMatch();
     if (currentTab === 'goals') loadGoalsLeaderboard();
     else loadLeaderboard();
   }
 }
 
 loadStats();
+loadLiveMatch();
 loadLeaderboard();
 setInterval(tick, 1000);
