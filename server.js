@@ -1195,6 +1195,32 @@ function triggerBackgroundSync() {
       } catch (_) { /* standings not yet available */ }
       cleanupSeededMatches();
       console.log(`[AutoSync] ${synced} matches updated from football-data.org`);
+
+      // Fetch card data for live matches + any finished matches still missing cards
+      const liveIds = matches
+        .filter(m => m.status === 'IN_PLAY' || m.status === 'PAUSED')
+        .map(m => String(m.id));
+      const missingCardIds = db.prepare(
+        'SELECT id FROM matches WHERE score_a IS NOT NULL AND yellows_a IS NULL LIMIT 5'
+      ).all().map(r => r.id);
+      const cardIds = [...new Set([...liveIds, ...missingCardIds])];
+
+      const updCards = db.prepare('UPDATE matches SET yellows_a=?, yellows_b=?, reds_a=?, reds_b=? WHERE id=?');
+      for (const id of cardIds) {
+        try {
+          const data     = await ftdbGet(`/v4/matches/${id}`);
+          const bookings = data.bookings || [];
+          const homeId   = data.homeTeam?.id;
+          let ya=0, yb=0, ra=0, rb=0;
+          for (const b of bookings) {
+            const home = b.team?.id === homeId;
+            if (b.card === 'YELLOW_CARD')                               { home ? ya++ : yb++; }
+            if (b.card === 'RED_CARD' || b.card === 'YELLOW_RED_CARD') { home ? ra++ : rb++; }
+          }
+          updCards.run(ya, yb, ra, rb, id);
+        } catch (_) {}
+      }
+      if (cardIds.length) console.log(`[AutoSync] Cards updated for ${cardIds.length} match(es)`);
     } catch (e) {
       console.warn(`[AutoSync] Failed: ${e.message}`);
     }
