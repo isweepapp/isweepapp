@@ -54,6 +54,13 @@ if (!db.prepare("SELECT name FROM migrations WHERE name='card_zero_reset_v1'").g
   console.log('[Migration] card_zero_reset_v1: zero card data reset to NULL for re-sync with upgraded API key');
 }
 
+// One-time migration: reset cards written as 0 by incorrect b.type check (should be b.card=YELLOW/RED).
+if (!db.prepare("SELECT name FROM migrations WHERE name='card_field_fix_v1'").get()) {
+  db.exec("UPDATE matches SET yellows_a=NULL, yellows_b=NULL, reds_a=NULL, reds_b=NULL WHERE score_a IS NOT NULL AND yellows_a=0 AND yellows_b=0 AND reds_a=0 AND reds_b=0");
+  db.exec("INSERT INTO migrations (name) VALUES ('card_field_fix_v1')");
+  console.log('[Migration] card_field_fix_v1: reset zeros from b.type bug — will re-sync with b.card=YELLOW/RED');
+}
+
 // One-time migration: rename teams to official names (Turkey→Türkiye, Congo DR→DR Congo)
 // Fixes teams seeded before renames were added; updates teams, entries and matches tables.
 if (!db.prepare("SELECT name FROM migrations WHERE name='team_rename_v1'").get()) {
@@ -956,14 +963,12 @@ app.get('/api/admin/sync-cards', requireAdmin, async (req, res) => {
       const data     = await ftdbGet(`/v4/matches/${id}`);
       const bookings = data.bookings || [];
       const homeId   = data.homeTeam?.id;
-      console.log(`[CardSync] match ${id}: homeId=${homeId}, bookings=${JSON.stringify(bookings)}`);
       let ya=0, yb=0, ra=0, rb=0;
       for (const b of bookings) {
         const home = b.team?.id === homeId;
-        if (b.type === 'YELLOW_CARD')                              { home ? ya++ : yb++; }
-        if (b.type === 'RED_CARD' || b.type === 'YELLOW_RED_CARD') { home ? ra++ : rb++; }
+        if (b.card === 'YELLOW')                    { home ? ya++ : yb++; }
+        if (b.card === 'RED' || b.card === 'YELLOW_RED') { home ? ra++ : rb++; }
       }
-      console.log(`[CardSync] match ${id}: ya=${ya} yb=${yb} ra=${ra} rb=${rb}`);
       updCards.run(ya, yb, ra, rb, id);
       processed++;
       send({ type: 'progress', processed, total: toSync.length });
@@ -1156,8 +1161,8 @@ async function scheduledSync() {
           let ya=0, yb=0, ra=0, rb=0;
           for (const b of bookings) {
             const home = b.team?.id === homeId;
-            if (b.type === 'YELLOW_CARD')                              { home ? ya++ : yb++; }
-            if (b.type === 'RED_CARD' || b.type === 'YELLOW_RED_CARD') { home ? ra++ : rb++; }
+            if (b.card === 'YELLOW')                         { home ? ya++ : yb++; }
+            if (b.card === 'RED' || b.card === 'YELLOW_RED') { home ? ra++ : rb++; }
           }
           updCards.run(ya, yb, ra, rb, id);
           console.log(`[ScheduledSync] Cards synced for match ${id}`);
