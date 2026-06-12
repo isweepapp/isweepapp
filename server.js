@@ -1147,10 +1147,10 @@ app.get('/api/matches', (_req, res) => {
   // Always respond immediately with cached DB data
   res.json(db.prepare('SELECT id, date, team_a, team_b, score_a, score_b, goals_a, goals_b, stage FROM matches ORDER BY date, id').all());
 
-  // Background sync — silently skipped if no API key or last sync was <3 min ago
+  // Background sync — silently skipped if no API key or last sync was <60 s ago
   if (!process.env.FOOTBALL_DATA_API_KEY) return;
   const now = Date.now();
-  if (now - _lastAutoSync < 3 * 60 * 1000) return;
+  if (now - _lastAutoSync < 60 * 1000) return;
   _lastAutoSync = now;
 
   (async () => {
@@ -1174,9 +1174,9 @@ app.get('/api/matches', (_req, res) => {
           const stage = stageMapper ? stageMapper(m) : (m.stage || 'Unknown');
           const teamA = normFtdbTeam(m.homeTeam.name);
           const teamB = normFtdbTeam(m.awayTeam.name);
-          const fin = m.status === 'FINISHED';
-          const sa  = fin ? (m.score?.fullTime?.home ?? null) : null;
-          const sb  = fin ? (m.score?.fullTime?.away ?? null) : null;
+          const live = m.status === 'FINISHED' || m.status === 'IN_PLAY' || m.status === 'PAUSED';
+          const sa  = live ? (m.score?.fullTime?.home ?? null) : null;
+          const sb  = live ? (m.score?.fullTime?.away ?? null) : null;
           upsert.run(String(m.id), m.utcDate, teamA, teamB, sa, sb, sa, sb,
                      null, null, null, null, stage);
           synced++;
