@@ -897,11 +897,11 @@ app.get('/api/admin/sync-cards', requireAdmin, async (req, res) => {
   const send = d => res.write(`data: ${JSON.stringify(d)}\n\n`);
 
   const toSync = db.prepare(
-    'SELECT id FROM matches WHERE score_a IS NOT NULL AND (yellows_a IS NULL OR reds_a IS NULL)'
+    'SELECT id FROM matches WHERE score_a IS NOT NULL'
   ).all();
 
   if (!toSync.length) {
-    send({ type: 'done', message: 'All finished matches already have card data.' });
+    send({ type: 'done', message: 'No finished matches to sync card data for.' });
     res.end(); return;
   }
 
@@ -921,8 +921,8 @@ app.get('/api/admin/sync-cards', requireAdmin, async (req, res) => {
       let ya=0, yb=0, ra=0, rb=0;
       for (const b of bookings) {
         const home = b.team?.id === homeId;
-        if (b.card === 'YELLOW_CARD')                              { home ? ya++ : yb++; }
-        if (b.card === 'RED_CARD' || b.card === 'YELLOW_RED_CARD') { home ? ra++ : rb++; }
+        if (b.type === 'YELLOW_CARD')                              { home ? ya++ : yb++; }
+        if (b.type === 'RED_CARD' || b.type === 'YELLOW_RED_CARD') { home ? ra++ : rb++; }
       }
       updCards.run(ya, yb, ra, rb, id);
       processed++;
