@@ -376,7 +376,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     const isGoals = currentTab === 'goals';
     document.querySelector('.prem-table-wrap').hidden = isGoals;
     document.getElementById('goals-container').hidden = !isGoals;
-    if (isGoals) { loadGoalsLeaderboard(); return; }
+    if (isGoals) { document.getElementById('foul-desc').hidden = true; loadGoalsLeaderboard(); return; }
     previousRanks = loadPrevRanks();
     loadLeaderboard();
   });
