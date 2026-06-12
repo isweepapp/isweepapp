@@ -1239,7 +1239,8 @@ function triggerBackgroundSync() {
           const data     = await ftdbGet(`/v4/matches/${id}`);
           const bookings = data.bookings || [];
           const homeId   = data.homeTeam?.id;
-          console.log(`[AutoSync] Match ${id} status=${data.status} bookings=${bookings.length} homeId=${homeId} keys=${Object.keys(data).join(',')}`);
+          console.log(`[AutoSync] Match ${id} status=${data.status} bookings=${bookings.length} homeId=${homeId}`);
+          if (bookings.length) console.log(`[AutoSync] Sample booking:`, JSON.stringify(bookings[0]));
           let ya=0, yb=0, ra=0, rb=0;
           for (const b of bookings) {
             const home = b.team?.id === homeId;
