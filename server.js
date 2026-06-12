@@ -1244,8 +1244,8 @@ function triggerBackgroundSync() {
           let ya=0, yb=0, ra=0, rb=0;
           for (const b of bookings) {
             const home = b.team?.id === homeId;
-            if (b.card === 'YELLOW_CARD')                               { home ? ya++ : yb++; }
-            if (b.card === 'RED_CARD' || b.card === 'YELLOW_RED_CARD') { home ? ra++ : rb++; }
+            if (b.card === 'YELLOW' || b.card === 'YELLOW_CARD')                                          { home ? ya++ : yb++; }
+            if (b.card === 'RED' || b.card === 'RED_CARD' || b.card === 'YELLOW_RED' || b.card === 'YELLOW_RED_CARD') { home ? ra++ : rb++; }
           }
           updCards.run(ya, yb, ra, rb, id);
           console.log(`[AutoSync] Cards match ${id}: ya=${ya} yb=${yb} ra=${ra} rb=${rb}`);
