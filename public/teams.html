@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="iSweep">
+  <link rel="apple-touch-icon" href="/assets/icon-180.png">
+  <title>iSweep — My Teams</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
+  <style>
+    .page-intro {
+      text-align: center;
+      margin-bottom: 1.75rem;
+    }
+    .page-intro h2 {
+      font-size: 1.5rem;
+      font-weight: 900;
+      color: var(--gold);
+      margin-bottom: 0.3rem;
+    }
+    .page-intro p {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    /* ── Name picker ─────────────────────────────────────────────────── */
+    .picker-wrap {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+    .picker-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+    }
+    .name-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .name-btn {
+      padding: 0.55rem 1.1rem;
+      border-radius: 999px;
+      border: 1.5px solid var(--card-border);
+      background: transparent;
+      color: var(--text);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.18s;
+      white-space: nowrap;
+    }
+    .name-btn:hover {
+      border-color: var(--teal);
+      color: var(--teal);
+    }
+    .name-btn.selected {
+      background: var(--teal);
+      border-color: var(--teal);
+      color: #0a0e1a;
+      font-weight: 800;
+    }
+
+    /* ── Teams panel ─────────────────────────────────────────────────── */
+    .teams-panel {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      animation: fadeIn 0.2s ease;
+    }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+
+    .teams-panel-hd {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 1.25rem;
+    }
+    .teams-panel-name {
+      font-size: 1.25rem;
+      font-weight: 900;
+      color: var(--text);
+    }
+    .teams-panel-count {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      background: rgba(255,255,255,0.07);
+      border-radius: 999px;
+      padding: 0.15rem 0.55rem;
+    }
+
+    .teams-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 0.75rem;
+    }
+    .team-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 0.9rem 0.75rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.45rem;
+      text-align: center;
+      transition: border-color 0.18s;
+    }
+    .team-card:hover { border-color: rgba(255,255,255,0.2); }
+    .team-flag { font-size: 2.2rem; line-height: 1; }
+    .team-name { font-size: 0.88rem; font-weight: 700; color: var(--text); line-height: 1.2; }
+
+    .prompt {
+      text-align: center;
+      padding: 2.5rem 1rem;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+    .prompt-icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <img src="/assets/logo.png" alt="iSweep World Cup Sweepstake" class="sweepstake-logo">
+      <nav>
+        <a href="/">Home</a>
+        <a href="/enter.html">Enter</a>
+        <a href="/prizes.html">Prizes</a>
+        <a href="/teams.html" class="active">My Teams</a>
+        <a href="/dashboard.html">Leaderboard</a>
+        <a href="/matches.html">Group Stage</a>
+        <a href="/knockout.html">Knockout</a>
+        <a href="/pots.html">Pots</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="container" style="max-width:900px">
+
+    <div class="page-intro">
+      <h2>🌍 My Teams</h2>
+      <p>Pick your name to see which countries you've been allocated</p>
+    </div>
+
+    <div class="picker-wrap">
+      <div class="picker-label">Who are you?</div>
+      <div class="name-grid" id="name-grid">
+        <div class="text-muted" style="font-size:0.88rem">Loading…</div>
+      </div>
+    </div>
+
+    <div id="teams-output"></div>
+
+  </div>
+
+  <script src="flags.js"></script>
+  <script>
+    'use strict';
+
+    const FLAG_CODES = {};
+    if (typeof GROUPS !== 'undefined') {
+      GROUPS.forEach(g => g.teams.forEach(t => { FLAG_CODES[t.name] = t.code; }));
+    }
+
+    function flagHtml(team) {
+      const code = FLAG_CODES[team];
+      return code
+        ? `<span class="fi fi-${code}" style="font-size:2.2rem;line-height:1;" title="${team}"></span>`
+        : `<span style="font-size:2.2rem;line-height:1;">🏳️</span>`;
+    }
+
+    let allEntries = [];
+    let selected   = null;
+
+    async function load() {
+      try {
+        const r = await fetch('/api/entries');
+        allEntries = await r.json();
+        renderGrid();
+      } catch {
+        document.getElementById('name-grid').innerHTML =
+          '<span style="color:var(--text-muted);font-size:0.88rem">Failed to load — please refresh.</span>';
+      }
+    }
+
+    function renderGrid() {
+      // Deduplicate by knownBy — group multiple participant records with same name
+      const seen = new Map();
+      for (const p of allEntries) {
+        const key = p.knownBy.trim().toLowerCase();
+        if (!seen.has(key)) seen.set(key, { knownBy: p.knownBy, teams: [] });
+        seen.get(key).teams.push(...p.teams);
+      }
+      const people = [...seen.values()].sort((a, b) => a.knownBy.localeCompare(b.knownBy));
+
+      const grid = document.getElementById('name-grid');
+      grid.innerHTML = people.map(p => `
+        <button class="name-btn" data-key="${p.knownBy.trim().toLowerCase()}">${p.knownBy}</button>
+      `).join('');
+
+      grid.querySelectorAll('.name-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          grid.querySelectorAll('.name-btn').forEach(b => b.classList.remove('selected'));
+          btn.classList.add('selected');
+          const key = btn.dataset.key;
+          const person = people.find(p => p.knownBy.trim().toLowerCase() === key);
+          renderTeams(person);
+        });
+      });
+    }
+
+    function renderTeams(person) {
+      const out = document.getElementById('teams-output');
+      if (!person || !person.teams.length) {
+        out.innerHTML = `<div class="prompt"><div class="prompt-icon">😕</div>No teams allocated yet.</div>`;
+        return;
+      }
+
+      const cards = person.teams.map(team => `
+        <div class="team-card">
+          ${flagHtml(team)}
+          <div class="team-name">${team}</div>
+        </div>
+      `).join('');
+
+      out.innerHTML = `
+        <div class="teams-panel">
+          <div class="teams-panel-hd">
+            <span class="teams-panel-name">${person.knownBy}</span>
+            <span class="teams-panel-count">${person.teams.length} team${person.teams.length !== 1 ? 's' : ''}</span>
+          </div>
+          <div class="teams-grid">${cards}</div>
+        </div>`;
+    }
+
+    load();
+  </script>
+</body>
+</html>

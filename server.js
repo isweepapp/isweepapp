@@ -393,6 +393,24 @@ app.get('/api/leaderboard/foul', (_req, res) => {
   res.json(teams);
 });
 
+// ── Public: All entries with allocated teams (for My Teams page) ──────────────
+app.get('/api/entries', (_req, res) => {
+  const participants = db.prepare(
+    'SELECT id, name, known_by FROM participants ORDER BY LOWER(known_by), LOWER(name)'
+  ).all();
+  const getEntries = db.prepare(
+    'SELECT entry_index, pot1_team, pot2_team, pot2_team_2, pot3_team, pot3_team_2, pot3_team_3 FROM entries WHERE participant_id = ? ORDER BY entry_index ASC'
+  );
+  const result = participants.map(p => {
+    const entries = getEntries.all(p.id);
+    const teams = entries.flatMap(e =>
+      [e.pot1_team, e.pot2_team, e.pot2_team_2, e.pot3_team, e.pot3_team_2, e.pot3_team_3].filter(Boolean)
+    );
+    return { name: p.name, knownBy: p.known_by || p.name, teams };
+  }).filter(p => p.teams.length > 0);
+  res.json(result);
+});
+
 // ── Public: Prize fund breakdown ──────────────────────────────────────────────
 app.get('/api/prizes', (_req, res) => {
   const rows         = db.prepare('SELECT (1 + extra_entries) AS total_entries FROM participants WHERE paid = 1').all();
