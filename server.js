@@ -46,6 +46,28 @@ if (!db.prepare("SELECT name FROM migrations WHERE name='card_type_fix_v1'").get
   console.log('[Migration] card_type_fix_v1: card data reset to NULL for re-sync');
 }
 
+// One-time migration: rename teams to official names (Turkey→Türkiye, Congo DR→DR Congo)
+// Fixes teams seeded before renames were added; updates teams, entries and matches tables.
+if (!db.prepare("SELECT name FROM migrations WHERE name='team_rename_v1'").get()) {
+  const renames = [['Turkey', 'Türkiye'], ['Congo DR', 'DR Congo']];
+  for (const [old, neo] of renames) {
+    if (db.prepare('SELECT 1 FROM teams WHERE name=?').get(old)) {
+      db.exec(`UPDATE teams   SET name='${neo}' WHERE name='${old}'`);
+      db.exec(`UPDATE matches SET team_a='${neo}' WHERE team_a='${old}'`);
+      db.exec(`UPDATE matches SET team_b='${neo}' WHERE team_b='${old}'`);
+      db.exec(`UPDATE entries SET pot1_team='${neo}' WHERE pot1_team='${old}'`);
+      db.exec(`UPDATE entries SET pot2_team='${neo}' WHERE pot2_team='${old}'`);
+      db.exec(`UPDATE entries SET pot2_team_2='${neo}' WHERE pot2_team_2='${old}'`);
+      db.exec(`UPDATE entries SET pot3_team='${neo}' WHERE pot3_team='${old}'`);
+      db.exec(`UPDATE entries SET pot3_team_2='${neo}' WHERE pot3_team_2='${old}'`);
+      db.exec(`UPDATE entries SET pot3_team_3='${neo}' WHERE pot3_team_3='${old}'`);
+      db.exec(`UPDATE group_finishes SET team='${neo}' WHERE team='${old}'`);
+      console.log(`[Migration] team_rename_v1: renamed '${old}' → '${neo}'`);
+    }
+  }
+  db.exec("INSERT INTO migrations (name) VALUES ('team_rename_v1')");
+}
+
 // Migrate: add tiebreak_guess for existing databases
 try { db.exec('ALTER TABLE participants ADD COLUMN tiebreak_guess INTEGER NULL'); } catch (_) {}
 
