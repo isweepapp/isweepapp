@@ -93,29 +93,15 @@ async function loadStats() {
 
 // -- Leaderboard ---------------------------------------------------------------
 async function loadLeaderboard() {
-  const mainWrap = document.getElementById('main-table-wrap');
-  const foulWrap = document.getElementById('foul-table-wrap');
+  const foulDesc = document.getElementById('foul-desc');
 
-  if (currentTab === 'foul') {
-    mainWrap.hidden = true;
-    foulWrap.hidden = false;
-    const tbody = document.getElementById('foul-tbody');
-    try {
-      const r = await fetch('/api/leaderboard/foul');
-      if (!r.ok) throw new Error();
-      renderFoulLeague(await r.json(), tbody);
-    } catch {
-      tbody.innerHTML = '<tr><td colspan="6" class="prem-loading">Failed to load — retrying…</td></tr>';
-    }
-    return;
-  }
+  const endpoint = currentTab === 'overall'  ? '/api/leaderboard'
+                 : currentTab === 'group'    ? '/api/leaderboard/group'
+                 : currentTab === 'knockout' ? '/api/leaderboard/knockout'
+                 :                             '/api/leaderboard/foul';
 
-  mainWrap.hidden = false;
-  foulWrap.hidden = true;
+  foulDesc.hidden = (currentTab !== 'foul');
 
-  const endpoint = currentTab === 'overall' ? '/api/leaderboard'
-                 : currentTab === 'group'   ? '/api/leaderboard/group'
-                 : '/api/leaderboard/knockout';
   const tbody = document.getElementById('standings-tbody');
   try {
     const r = await fetch(endpoint);
@@ -124,30 +110,6 @@ async function loadLeaderboard() {
   } catch {
     tbody.innerHTML = '<tr><td colspan="17" class="prem-loading">Failed to load — retrying…</td></tr>';
   }
-}
-
-// -- Foul League ---------------------------------------------------------------
-function renderFoulLeague(rows, tbody) {
-  if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="6" class="prem-loading text-muted">No teams found.</td></tr>';
-    return;
-  }
-  const MEDALS = ['🥇','🥈','🥉'];
-  const trs = rows.map((r, i) => {
-    const pos     = i + 1;
-    const medal   = MEDALS[i] || pos;
-    const flagHtml = flag(r.team);
-    const cardClass = r.totalCards > 0 ? 'neg' : '';
-    return `<tr>
-      <td class="td-pos">${medal}</td>
-      <td class="td-name">${flagHtml}${r.team}</td>
-      <td class="td-stat">${r.played}</td>
-      <td class="td-stat ${r.yellowCards > 0 ? 'neg' : ''}">${r.yellowCards}</td>
-      <td class="td-stat ${r.redCards > 0 ? 'neg' : ''}">${r.redCards}</td>
-      <td class="td-pts ${cardClass}" style="font-weight:800">${r.totalCards}</td>
-    </tr>`;
-  });
-  tbody.innerHTML = trs.join('');
 }
 
 function buildEntryRows(r, i, previousRanks, pos) {

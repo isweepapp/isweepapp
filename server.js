@@ -314,8 +314,9 @@ app.get('/api/stats', (_req, res) => {
 });
 
 // ── Leaderboard builder (shared by all three stage views) ─────────────────────
-function buildLeaderboard(stageFilter) {
-  const participants = db.prepare('SELECT id, name, known_by, club_team, country_team, (1 + extra_entries) AS total_entries FROM participants').all();
+function buildLeaderboard(stageFilter, knownByFilter) {
+  let participants = db.prepare('SELECT id, name, known_by, club_team, country_team, (1 + extra_entries) AS total_entries FROM participants').all();
+  if (knownByFilter) participants = participants.filter(p => (p.known_by || '').toLowerCase() === knownByFilter.toLowerCase());
   const getEntries   = db.prepare('SELECT * FROM entries WHERE participant_id = ? ORDER BY entry_index ASC');
   const allStats     = computeTeamStats(stageFilter);
 
@@ -369,29 +370,8 @@ app.get('/api/leaderboard',          (_req, res) => res.json(buildLeaderboard(nu
 app.get('/api/leaderboard/group',    (_req, res) => res.json(buildLeaderboard('group')));
 app.get('/api/leaderboard/knockout', (_req, res) => res.json(buildLeaderboard('knockout')));
 
-// ── Public: Foul League — Simon's teams ranked by cards received ──────────────
-app.get('/api/leaderboard/foul', (_req, res) => {
-  const participants = db.prepare(
-    "SELECT id FROM participants WHERE lower(email) = 'simon@drakey.com'"
-  ).all();
-  if (!participants.length) return res.json([]);
-
-  const allStats   = computeTeamStats(null);
-  const getEntries = db.prepare('SELECT * FROM entries WHERE participant_id = ? ORDER BY entry_index ASC');
-
-  const teams = [];
-  for (const p of participants) {
-    for (const e of getEntries.all(p.id)) {
-      for (const team of [e.pot1_team, e.pot2_team, e.pot2_team_2, e.pot3_team, e.pot3_team_2, e.pot3_team_3].filter(Boolean)) {
-        const s = allStats[team] || { played:0, yellowCards:0, redCards:0 };
-        teams.push({ team, played: s.played, yellowCards: s.yellowCards, redCards: s.redCards, totalCards: s.yellowCards + s.redCards });
-      }
-    }
-  }
-
-  teams.sort((a, b) => b.totalCards - a.totalCards || b.yellowCards - a.yellowCards);
-  res.json(teams);
-});
+// ── Public: Foul League — Drakey's teams (known_by = Drakey) standard leaderboard
+app.get('/api/leaderboard/foul', (_req, res) => res.json(buildLeaderboard(null, 'Drakey')));
 
 // ── Public: All entries with allocated teams (for My Teams page) ──────────────
 app.get('/api/entries', (_req, res) => {
