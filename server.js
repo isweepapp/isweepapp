@@ -765,7 +765,10 @@ app.post('/api/admin/send-update', requireAdmin, async (req, res) => {
     const siteUrl = process.env.SITE_URL || 'https://isweepapp.up.railway.app';
 
     // ── gather live data ────────────────────────────────────────────────────
-    const leaderboard = buildLeaderboard().slice(0, 12);
+    const allRows   = buildLeaderboard().filter(p => p.assigned);
+    const top3      = allRows.slice(0, 3);
+    const bottom3   = allRows.length > 3 ? allRows.slice(-3) : [];
+    const totalEntries = allRows.length;
 
     // Recent results: completed matches in last 5 days
     const cutoff = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -832,18 +835,25 @@ app.post('/api/admin/send-update', requireAdmin, async (req, res) => {
         <td style="padding:8px 8px;font-size:11px;color:#8a92a6;white-space:nowrap;">${fmtDate(m.date)}</td>
       </tr>`).join('');
 
-    const leaderboardRows = leaderboard.map((p, i) => {
-      const pos  = i + 1;
-      const bg   = pos <= 3 ? 'background:#1a1f3a;' : '';
-      const nameColor = pos <= 3 ? '#d4a72c' : '#e8eaf0';
+    const makeRow = (p, pos, isBottom) => {
+      const pts = p.stats?.points ?? '—';
+      const rowBg = isBottom ? 'background:rgba(248,113,113,0.06);' : 'background:#1a1f3a;';
+      const ptsColor = isBottom ? '#f87171' : '#d4a72c';
+      const icon = isBottom ? '💀' : medal(pos);
       return `
-      <tr style="${bg}">
-        <td style="padding:7px 10px;font-size:13px;color:#8a92a6;text-align:center;">${medal(pos)}</td>
-        <td style="padding:7px 10px;font-size:13px;color:${nameColor};font-weight:700;">${esc(p.name)}</td>
-        <td style="padding:7px 10px;font-size:13px;color:#8a92a6;text-align:center;">${p.played}</td>
-        <td style="padding:7px 10px;font-size:14px;color:#d4a72c;font-weight:900;text-align:center;">${p.points}</td>
+      <tr style="${rowBg}">
+        <td style="padding:8px 10px;font-size:14px;text-align:center;">${icon}</td>
+        <td style="padding:8px 10px;font-size:13px;color:#e8eaf0;font-weight:700;">${esc(p.name)}</td>
+        <td style="padding:8px 10px;font-size:15px;color:${ptsColor};font-weight:900;text-align:center;">${pts}</td>
       </tr>`;
-    }).join('');
+    };
+
+    const topRows    = top3.map((p, i) => makeRow(p, i + 1, false)).join('');
+    const dividerRow = bottom3.length ? `
+      <tr>
+        <td colspan="3" style="padding:4px 10px;text-align:center;font-size:11px;color:#555a6e;letter-spacing:2px;">· · ·</td>
+      </tr>` : '';
+    const bottomRows = bottom3.map((p, i) => makeRow(p, totalEntries - bottom3.length + i + 1, true)).join('');
 
     const html = `<!DOCTYPE html>
 <html lang="en">
@@ -974,20 +984,16 @@ app.post('/api/admin/send-update', requireAdmin, async (req, res) => {
     <!-- LEADERBOARD -->
     <tr>
       <td bgcolor="#111126" style="border-left:1px solid #222240;border-right:1px solid #222240;padding:0 32px 28px;">
-        <div style="font-size:11px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:#d4a72c;margin-bottom:12px;">🏆 Current Standings (Top 12)</div>
+        <div style="font-size:11px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:#d4a72c;margin-bottom:12px;">🏆 Current Standings</div>
         <table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;border:1px solid #222240;border-radius:8px;overflow:hidden;">
-          <thead>
-            <tr style="background:#1a1f3a;">
-              <th style="padding:8px 10px;font-size:11px;color:#8a92a6;text-align:center;font-weight:700;letter-spacing:1px;"></th>
-              <th style="padding:8px 10px;font-size:11px;color:#8a92a6;text-align:left;font-weight:700;letter-spacing:1px;">ENTRY</th>
-              <th style="padding:8px 10px;font-size:11px;color:#8a92a6;text-align:center;font-weight:700;letter-spacing:1px;">P</th>
-              <th style="padding:8px 10px;font-size:11px;color:#d4a72c;text-align:center;font-weight:700;letter-spacing:1px;">PTS</th>
-            </tr>
-          </thead>
-          <tbody>${leaderboardRows}</tbody>
+          <tbody>
+            ${topRows}
+            ${dividerRow}
+            ${bottomRows}
+          </tbody>
         </table>
-        <p style="margin:10px 0 0;font-size:11px;color:#8a92a6;text-align:center;">
-          <a href="${siteUrl}/dashboard.html" style="color:#06d6a0;text-decoration:none;">View full leaderboard →</a>
+        <p style="margin:12px 0 0;font-size:13px;text-align:center;">
+          <a href="${siteUrl}/dashboard.html" style="color:#06d6a0;text-decoration:none;font-weight:700;">View the full leaderboard →</a>
         </p>
       </td>
     </tr>
