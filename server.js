@@ -750,6 +750,326 @@ app.post('/api/admin/send-email', requireAdmin, async (req, res) => {
   }
 });
 
+// ── Admin: Send live update email ─────────────────────────────────────────────
+// Generates a fully dynamic HTML email with live leaderboard, recent results,
+// upcoming fixtures, and feature highlights. Supports test / all modes.
+app.post('/api/admin/send-update', requireAdmin, async (req, res) => {
+  try {
+    const { mode = 'test', to } = req.body || {};
+
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) return res.status(500).json({ error: 'RESEND_API_KEY not set in Railway Variables.' });
+
+    const from    = process.env.RESEND_FROM || 'iSweep <onboarding@resend.dev>';
+    const subject = 'iSweep — Tournament Update 🏆⚽';
+    const siteUrl = process.env.SITE_URL || 'https://isweepapp.up.railway.app';
+
+    // ── gather live data ────────────────────────────────────────────────────
+    const leaderboard = buildLeaderboard().slice(0, 12);
+
+    // Recent results: completed matches in last 5 days
+    const cutoff = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const recentResults = db.prepare(`
+      SELECT team_a, team_b, score_a, score_b, date, stage
+      FROM matches WHERE score_a IS NOT NULL AND date >= ? ORDER BY date DESC, id DESC LIMIT 12
+    `).all(cutoff);
+
+    // Upcoming fixtures: next 8 unplayed matches
+    const upcoming = db.prepare(`
+      SELECT team_a, team_b, date, stage
+      FROM matches WHERE score_a IS NULL AND team_a NOT LIKE 'TBD%' AND team_b NOT LIKE 'TBD%'
+      ORDER BY date ASC LIMIT 8
+    `).all();
+
+    // ── helpers ─────────────────────────────────────────────────────────────
+    const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+    const FLAG_CODES_MAP = {};
+    try {
+      const flagsPath = path.join(__dirname, 'public', 'flags.js');
+      const flagsSrc  = fs.readFileSync(flagsPath, 'utf8');
+      const m = flagsSrc.match(/const\s+GROUPS\s*=\s*(\[[\s\S]*?\]);/);
+      if (m) {
+        // Safe eval via Function
+        const groups = (new Function('return ' + m[1]))();
+        for (const g of groups) for (const t of g.teams) FLAG_CODES_MAP[t.name] = t.code;
+      }
+    } catch (_) {}
+
+    // Country flag as a single emoji using flag.emoji or unicode flag sequence
+    const flagEmoji = (team) => {
+      const code = FLAG_CODES_MAP[team];
+      if (!code || code.length !== 2) return '🏳️';
+      const cp = (c) => 0x1F1E6 + (c.toUpperCase().charCodeAt(0) - 65);
+      return String.fromCodePoint(cp(code[0]), cp(code[1]));
+    };
+
+    const fmtDate = (d) => {
+      if (!d) return '';
+      return new Date(d).toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' });
+    };
+    const fmtTime = (d) => {
+      if (!d) return '';
+      return new Date(d).toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+    };
+
+    const medal = (pos) => pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : `${pos}.`;
+
+    // ── build HTML ──────────────────────────────────────────────────────────
+    const recentRows = recentResults.map(m => `
+      <tr>
+        <td style="padding:8px 10px;font-size:13px;color:#e8eaf0;text-align:right;font-weight:700;">${flagEmoji(m.team_a)} ${esc(m.team_a)}</td>
+        <td style="padding:8px 6px;text-align:center;background:#1a1f3a;font-size:15px;font-weight:900;color:#d4a72c;white-space:nowrap;">${m.score_a} – ${m.score_b}</td>
+        <td style="padding:8px 10px;font-size:13px;color:#e8eaf0;font-weight:700;">${flagEmoji(m.team_b)} ${esc(m.team_b)}</td>
+        <td style="padding:8px 8px;font-size:11px;color:#8a92a6;white-space:nowrap;">${fmtDate(m.date)}</td>
+      </tr>`).join('');
+
+    const upcomingRows = upcoming.map(m => `
+      <tr>
+        <td style="padding:8px 10px;font-size:13px;color:#e8eaf0;text-align:right;font-weight:700;">${flagEmoji(m.team_a)} ${esc(m.team_a)}</td>
+        <td style="padding:8px 6px;text-align:center;background:#1a1f3a;font-size:12px;font-weight:700;color:#06d6a0;white-space:nowrap;">${fmtTime(m.date)}</td>
+        <td style="padding:8px 10px;font-size:13px;color:#e8eaf0;font-weight:700;">${flagEmoji(m.team_b)} ${esc(m.team_b)}</td>
+        <td style="padding:8px 8px;font-size:11px;color:#8a92a6;white-space:nowrap;">${fmtDate(m.date)}</td>
+      </tr>`).join('');
+
+    const leaderboardRows = leaderboard.map((p, i) => {
+      const pos  = i + 1;
+      const bg   = pos <= 3 ? 'background:#1a1f3a;' : '';
+      const nameColor = pos <= 3 ? '#d4a72c' : '#e8eaf0';
+      return `
+      <tr style="${bg}">
+        <td style="padding:7px 10px;font-size:13px;color:#8a92a6;text-align:center;">${medal(pos)}</td>
+        <td style="padding:7px 10px;font-size:13px;color:${nameColor};font-weight:700;">${esc(p.name)}</td>
+        <td style="padding:7px 10px;font-size:13px;color:#8a92a6;text-align:center;">${p.played}</td>
+        <td style="padding:7px 10px;font-size:14px;color:#d4a72c;font-weight:900;text-align:center;">${p.points}</td>
+      </tr>`;
+    }).join('');
+
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>iSweep — Tournament Update</title>
+</head>
+<body style="margin:0;padding:0;background-color:#0d0d1a;font-family:'Segoe UI',Arial,Helvetica,sans-serif;">
+
+<!-- Preview text -->
+<div style="display:none;font-size:1px;color:#0d0d1a;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">Latest standings, recent results &amp; upcoming games — plus new features you might have missed!</div>
+
+<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#0d0d1a">
+  <tr><td align="center" style="padding:24px 12px 48px;">
+  <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;">
+
+    <!-- HEADER -->
+    <tr>
+      <td align="center" bgcolor="#12192e" style="border-radius:16px 16px 0 0;border:1px solid #222240;border-bottom:none;padding:32px 32px 24px;">
+        <div style="text-align:center;margin-bottom:14px;">
+          <span style="font-size:40px;font-weight:900;color:#d4a72c;letter-spacing:-2px;">i</span><span style="font-size:40px;font-weight:900;color:#06d6a0;letter-spacing:-2px;">Sweep</span>
+          <div style="font-size:10px;font-weight:700;color:#8a92a6;letter-spacing:4px;text-transform:uppercase;margin-top:4px;">⚽&nbsp; World Cup 2026 &nbsp;⚽</div>
+        </div>
+        <table cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto 18px;">
+          <tr><td bgcolor="#d4a72c" style="border-radius:50px;padding:8px 24px;">
+            <span style="font-size:12px;font-weight:bold;color:#0d0d1a;letter-spacing:2px;text-transform:uppercase;">🏆 Tournament Update</span>
+          </td></tr>
+        </table>
+        <h1 style="margin:0 0 8px;font-size:22px;font-weight:800;color:#e8eaf0;text-align:center;">We're Up and Running!</h1>
+        <p style="margin:0;font-size:13px;color:#8a92a6;text-align:center;">USA &middot; Canada &middot; Mexico &nbsp;|&nbsp; 11 June – 19 July 2026</p>
+      </td>
+    </tr>
+
+    <!-- INTRO -->
+    <tr>
+      <td bgcolor="#111126" style="border-left:1px solid #222240;border-right:1px solid #222240;padding:26px 32px 22px;">
+        <p style="margin:0 0 12px;font-size:15px;color:#e8eaf0;line-height:1.75;">
+          We are now a few games in — any teething bugs have been caught and exterminated! 🐛
+          However, if you notice anything out of kilter please let Admin know.
+        </p>
+        <p style="margin:0;font-size:14px;color:#8a92a6;line-height:1.7;">
+          We've also been busy behind the scenes adding a couple of new features to help you keep track…
+        </p>
+      </td>
+    </tr>
+
+    <!-- FEATURE HIGHLIGHTS -->
+    <tr>
+      <td bgcolor="#111126" style="border-left:1px solid #222240;border-right:1px solid #222240;padding:0 32px 26px;">
+
+        <!-- My Teams -->
+        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:14px;background:#12192e;border:1px solid #222240;border-radius:10px;">
+          <tr>
+            <td style="padding:14px 16px;">
+              <div style="font-size:13px;font-weight:800;color:#06d6a0;margin-bottom:4px;">🌍 My Teams</div>
+              <div style="font-size:13px;color:#c0c6d4;line-height:1.6;">
+                With many memories and eyes not being as sharp as they were, we now have an easy way to find your teams.
+                Head to the <strong style="color:#e8eaf0;"><a href="${siteUrl}/teams.html" style="color:#06d6a0;text-decoration:none;">My Teams</a></strong> page, click on your name, and see all the countries you've been allocated.
+              </div>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Fixtures -->
+        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:14px;background:#12192e;border:1px solid #222240;border-radius:10px;">
+          <tr>
+            <td style="padding:14px 16px;">
+              <div style="font-size:13px;font-weight:800;color:#d4a72c;margin-bottom:4px;">📅 Fixtures</div>
+              <div style="font-size:13px;color:#c0c6d4;line-height:1.6;">
+                Click on the <strong style="color:#e8eaf0;"><a href="${siteUrl}/fixtures.html" style="color:#d4a72c;text-decoration:none;">Fixtures</a></strong> page to see today's games in full with big flags and scores, plus upcoming matches — and you'll see whose teams are playing!
+              </div>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Foul League -->
+        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#12192e;border:1px solid #222240;border-radius:10px;">
+          <tr>
+            <td style="padding:14px 16px;">
+              <div style="font-size:13px;font-weight:800;color:#d4a72c;margin-bottom:4px;">🦆 Drakey's Foul League</div>
+              <div style="font-size:13px;color:#c0c6d4;line-height:1.6;">
+                Being our largest benefactor, Drakey now has his very own private <strong style="color:#e8eaf0;"><a href="${siteUrl}/dashboard.html" style="color:#d4a72c;text-decoration:none;">Foul League</a></strong> tab on the Leaderboard. Quack quack. 🦆
+              </div>
+            </td>
+          </tr>
+        </table>
+
+      </td>
+    </tr>
+
+    <!-- DIVIDER -->
+    <tr><td bgcolor="#111126" style="border-left:1px solid #222240;border-right:1px solid #222240;padding:0 32px;">
+      <hr style="border:none;border-top:1px solid #222240;margin:4px 0 20px;">
+    </td></tr>
+
+    ${recentResults.length ? `
+    <!-- RECENT RESULTS -->
+    <tr>
+      <td bgcolor="#111126" style="border-left:1px solid #222240;border-right:1px solid #222240;padding:0 32px 24px;">
+        <div style="font-size:11px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:#d4a72c;margin-bottom:12px;">⚽ Recent Results</div>
+        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;border:1px solid #222240;border-radius:8px;overflow:hidden;">
+          <tbody>${recentRows}</tbody>
+        </table>
+      </td>
+    </tr>
+    <tr><td bgcolor="#111126" style="border-left:1px solid #222240;border-right:1px solid #222240;padding:0 32px;">
+      <hr style="border:none;border-top:1px solid #222240;margin:4px 0 20px;">
+    </td></tr>
+    ` : ''}
+
+    ${upcoming.length ? `
+    <!-- UPCOMING FIXTURES -->
+    <tr>
+      <td bgcolor="#111126" style="border-left:1px solid #222240;border-right:1px solid #222240;padding:0 32px 24px;">
+        <div style="font-size:11px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:#06d6a0;margin-bottom:12px;">📅 Coming Up</div>
+        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;border:1px solid #222240;border-radius:8px;overflow:hidden;">
+          <tbody>${upcomingRows}</tbody>
+        </table>
+      </td>
+    </tr>
+    <tr><td bgcolor="#111126" style="border-left:1px solid #222240;border-right:1px solid #222240;padding:0 32px;">
+      <hr style="border:none;border-top:1px solid #222240;margin:4px 0 20px;">
+    </td></tr>
+    ` : ''}
+
+    <!-- LEADERBOARD -->
+    <tr>
+      <td bgcolor="#111126" style="border-left:1px solid #222240;border-right:1px solid #222240;padding:0 32px 28px;">
+        <div style="font-size:11px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:#d4a72c;margin-bottom:12px;">🏆 Current Standings (Top 12)</div>
+        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;border:1px solid #222240;border-radius:8px;overflow:hidden;">
+          <thead>
+            <tr style="background:#1a1f3a;">
+              <th style="padding:8px 10px;font-size:11px;color:#8a92a6;text-align:center;font-weight:700;letter-spacing:1px;"></th>
+              <th style="padding:8px 10px;font-size:11px;color:#8a92a6;text-align:left;font-weight:700;letter-spacing:1px;">ENTRY</th>
+              <th style="padding:8px 10px;font-size:11px;color:#8a92a6;text-align:center;font-weight:700;letter-spacing:1px;">P</th>
+              <th style="padding:8px 10px;font-size:11px;color:#d4a72c;text-align:center;font-weight:700;letter-spacing:1px;">PTS</th>
+            </tr>
+          </thead>
+          <tbody>${leaderboardRows}</tbody>
+        </table>
+        <p style="margin:10px 0 0;font-size:11px;color:#8a92a6;text-align:center;">
+          <a href="${siteUrl}/dashboard.html" style="color:#06d6a0;text-decoration:none;">View full leaderboard →</a>
+        </p>
+      </td>
+    </tr>
+
+    <!-- FOOTER -->
+    <tr>
+      <td align="center" bgcolor="#0c1020" style="border-radius:0 0 16px 16px;border:1px solid #222240;border-top:none;padding:24px 32px;">
+        <p style="margin:0 0 10px;font-size:12px;color:#8a92a6;">
+          <a href="${siteUrl}" style="color:#06d6a0;text-decoration:none;font-weight:700;">Visit iSweep</a>
+          &nbsp;&middot;&nbsp;
+          <a href="${siteUrl}/fixtures.html" style="color:#8a92a6;text-decoration:none;">Fixtures</a>
+          &nbsp;&middot;&nbsp;
+          <a href="${siteUrl}/teams.html" style="color:#8a92a6;text-decoration:none;">My Teams</a>
+          &nbsp;&middot;&nbsp;
+          <a href="${siteUrl}/dashboard.html" style="color:#8a92a6;text-decoration:none;">Leaderboard</a>
+        </p>
+        <p style="margin:0;font-size:11px;color:#555a6e;">iSweep World Cup 2026 Sweepstake &mdash; Good luck everyone! ⚽</p>
+      </td>
+    </tr>
+
+  </table>
+  </td></tr>
+</table>
+</body>
+</html>`;
+
+    // ── send ────────────────────────────────────────────────────────────────
+    let recipients;
+    if (mode === 'test') {
+      const testAddr = to || process.env.EMAIL_TEST_TO || 'isweepapp@gmail.com';
+      recipients = [{ email: testAddr }];
+    } else {
+      recipients = db.prepare(
+        "SELECT DISTINCT email FROM participants WHERE email IS NOT NULL AND email != '' ORDER BY email"
+      ).all();
+    }
+    if (!recipients.length) return res.status(400).json({ error: 'No recipients found.' });
+
+    const sendOne = async (email) => {
+      const r = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from, to: [email], subject, html }),
+      });
+      const body = await r.json();
+      if (!r.ok) throw new Error(body.message || JSON.stringify(body));
+      return body;
+    };
+
+    if (mode === 'test') {
+      try {
+        await sendOne(recipients[0].email);
+        return res.json({ ok: true, sent: 1, failed: 0, details: { sent: [recipients[0].email], failed: [] } });
+      } catch (err) {
+        return res.status(500).json({ error: err.message });
+      }
+    }
+
+    res.json({ ok: true, queued: recipients.length, message: `Sending update to ${recipients.length} recipients in the background. Check server logs.` });
+
+    (async () => {
+      let sent = 0; let failed = 0;
+      for (const r of recipients) {
+        try {
+          await sendOne(r.email);
+          sent++;
+          console.log(`[UpdateEmail] Sent to ${r.email} (${sent}/${recipients.length})`);
+        } catch (err) {
+          failed++;
+          console.error(`[UpdateEmail] Failed for ${r.email}: ${err.message}`);
+        }
+        await new Promise(resolve => setTimeout(resolve, 250));
+      }
+      console.log(`[UpdateEmail] Done. Sent: ${sent}, Failed: ${failed}`);
+    })();
+
+  } catch (err) {
+    console.error('[UpdateEmail] Unexpected error:', err);
+    res.status(500).json({ error: err.message || 'Unexpected server error' });
+  }
+});
+
 // ── Admin: Clear all entries ──────────────────────────────────────────────────
 app.post('/api/admin/clear-entries', requireAdmin, (_req, res) => {
   runTransaction(() => {

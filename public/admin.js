@@ -489,6 +489,44 @@ async function sendEmail(mode) {
 document.getElementById('email-test-btn').addEventListener('click', () => sendEmail('test'));
 document.getElementById('email-all-btn').addEventListener('click',  () => sendEmail('all'));
 
+// -- Send tournament update email -----------------------------------------------
+async function sendUpdateEmail(mode) {
+  const alertEl  = document.getElementById('update-email-alert');
+  const logEl    = document.getElementById('update-email-log');
+  const testBtn  = document.getElementById('update-email-test-btn');
+  const allBtn   = document.getElementById('update-email-all-btn');
+  hideAlert(alertEl); logEl.classList.add('hidden'); logEl.textContent = '';
+
+  if (mode === 'all') {
+    if (!confirm('Send the tournament update email to ALL participants with an email address?\n\nThis cannot be undone.')) return;
+  }
+
+  const activeBtn  = mode === 'test' ? testBtn : allBtn;
+  const origText   = activeBtn.textContent;
+  activeBtn.disabled = true; activeBtn.textContent = 'Sending…';
+
+  try {
+    const r = await adminFetch('/api/admin/send-update', { method: 'POST', body: JSON.stringify({ mode }) });
+    const d = await r.json();
+    if (!r.ok) { showAlert(alertEl, d.error || 'Send failed.', 'error'); return; }
+
+    if (mode === 'test') {
+      showAlert(alertEl, `✅ Test update email sent successfully!`, 'success');
+    } else {
+      showAlert(alertEl, `✅ ${d.message || 'Sending in background…'}`, 'success');
+      logEl.classList.remove('hidden');
+      logEl.textContent = `Queued ${d.queued} recipient(s). Check Railway logs for delivery details.`;
+    }
+  } catch (err) {
+    showAlert(alertEl, `Error: ${err.message}`, 'error');
+  } finally {
+    activeBtn.disabled = false; activeBtn.textContent = origText;
+  }
+}
+
+document.getElementById('update-email-test-btn').addEventListener('click', () => sendUpdateEmail('test'));
+document.getElementById('update-email-all-btn').addEventListener('click',  () => sendUpdateEmail('all'));
+
 // -- Clear entries -------------------------------------------------------------
 document.getElementById('clear-btn').addEventListener('click', async () => {
   if (!confirm('Delete ALL entries and participants This cannot be undone.')) return;
