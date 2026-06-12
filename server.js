@@ -762,7 +762,7 @@ app.post('/api/admin/send-update', requireAdmin, async (req, res) => {
 
     const from    = process.env.RESEND_FROM || 'iSweep <onboarding@resend.dev>';
     const subject = 'iSweep — Tournament Update 🏆⚽';
-    const siteUrl = process.env.SITE_URL || 'https://isweepapp.up.railway.app';
+    const siteUrl = process.env.SITE_URL || 'https://isweepapp.uk';
 
     // ── gather live data ────────────────────────────────────────────────────
     const allRows   = buildLeaderboard().filter(p => p.assigned);
