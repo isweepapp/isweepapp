@@ -495,7 +495,13 @@ async function sendUpdateEmail(mode) {
   const logEl    = document.getElementById('update-email-log');
   const testBtn  = document.getElementById('update-email-test-btn');
   const allBtn   = document.getElementById('update-email-all-btn');
+  const toInput  = document.getElementById('update-email-to');
   hideAlert(alertEl); logEl.classList.add('hidden'); logEl.textContent = '';
+
+  if (mode === 'test') {
+    const addr = toInput.value.trim();
+    if (!addr) { showAlert(alertEl, 'Please enter a test email address above.', 'error'); return; }
+  }
 
   if (mode === 'all') {
     if (!confirm('Send the tournament update email to ALL participants with an email address?\n\nThis cannot be undone.')) return;
@@ -506,12 +512,17 @@ async function sendUpdateEmail(mode) {
   activeBtn.disabled = true; activeBtn.textContent = 'Sending…';
 
   try {
-    const r = await adminFetch('/api/admin/send-update', { method: 'POST', body: JSON.stringify({ mode }) });
+    const payload = { mode, to: mode === 'test' ? toInput.value.trim() : undefined };
+    const r = await adminFetch('/api/admin/send-update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
     const d = await r.json();
     if (!r.ok) { showAlert(alertEl, d.error || 'Send failed.', 'error'); return; }
 
     if (mode === 'test') {
-      showAlert(alertEl, `✅ Test update email sent successfully!`, 'success');
+      showAlert(alertEl, `✅ Test update email sent to ${toInput.value.trim()} — check your inbox (and spam folder).`, 'success');
     } else {
       showAlert(alertEl, `✅ ${d.message || 'Sending in background…'}`, 'success');
       logEl.classList.remove('hidden');
