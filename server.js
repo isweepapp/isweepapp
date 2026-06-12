@@ -926,12 +926,14 @@ app.get('/api/admin/sync-cards', requireAdmin, async (req, res) => {
       const data     = await ftdbGet(`/v4/matches/${id}`);
       const bookings = data.bookings || [];
       const homeId   = data.homeTeam?.id;
+      console.log(`[CardSync] match ${id}: homeId=${homeId}, bookings=${JSON.stringify(bookings)}`);
       let ya=0, yb=0, ra=0, rb=0;
       for (const b of bookings) {
         const home = b.team?.id === homeId;
         if (b.type === 'YELLOW_CARD')                              { home ? ya++ : yb++; }
         if (b.type === 'RED_CARD' || b.type === 'YELLOW_RED_CARD') { home ? ra++ : rb++; }
       }
+      console.log(`[CardSync] match ${id}: ya=${ya} yb=${yb} ra=${ra} rb=${rb}`);
       updCards.run(ya, yb, ra, rb, id);
       processed++;
       send({ type: 'progress', processed, total: toSync.length });
