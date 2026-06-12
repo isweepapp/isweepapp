@@ -305,8 +305,8 @@ app.get('/api/live-match', (_req, res) => {
            yellows_a, yellows_b, reds_a, reds_b, stage
     FROM matches
     WHERE score_a IS NOT NULL AND score_b IS NOT NULL
-      AND date >= datetime('now', '-3 hours')
-      AND date <= datetime('now', '+2 hours')
+      AND datetime(date) >= datetime('now', '-3 hours')
+      AND datetime(date) <= datetime('now', '+2 hours')
     ORDER BY date ASC LIMIT 1
   `).get();
 
@@ -315,7 +315,7 @@ app.get('/api/live-match', (_req, res) => {
   const next = db.prepare(`
     SELECT id, date, team_a, team_b, stage
     FROM matches
-    WHERE score_a IS NULL AND date > datetime('now')
+    WHERE score_a IS NULL AND datetime(date) > datetime('now')
     ORDER BY date ASC LIMIT 1
   `).get();
 
