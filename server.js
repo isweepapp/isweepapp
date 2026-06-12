@@ -958,7 +958,7 @@ app.get('/api/admin/sync-cards', requireAdmin, async (req, res) => {
   let processed = 0, errors = 0;
 
   for (const { id } of toSync) {
-    await new Promise(r => setTimeout(r, 6500));
+    await new Promise(r => setTimeout(r, 2500));
     try {
       const data     = await ftdbGet(`/v4/matches/${id}`);
       const bookings = data.bookings || [];
@@ -1153,7 +1153,7 @@ async function scheduledSync() {
       console.log(`[ScheduledSync] Syncing cards for ${toSyncCards.length} match(es)…`);
       const updCards = db.prepare('UPDATE matches SET yellows_a=?, yellows_b=?, reds_a=?, reds_b=? WHERE id=?');
       for (const { id } of toSyncCards) {
-        await new Promise(r => setTimeout(r, 6500));
+        await new Promise(r => setTimeout(r, 2500));
         try {
           const data     = await ftdbGet(`/v4/matches/${id}`);
           const bookings = data.bookings || [];
@@ -1182,5 +1182,5 @@ app.listen(PORT, () => {
   if (!ADMIN_PASSWORD_HASH) console.warn('  WARNING: ADMIN_PASSWORD not set — admin panel disabled.\n');
   // Run immediately on startup, then every 30 minutes
   scheduledSync();
-  setInterval(scheduledSync, 30 * 60 * 1000);
+  setInterval(scheduledSync, 5 * 60 * 1000);
 });
