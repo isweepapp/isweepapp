@@ -46,6 +46,14 @@ if (!db.prepare("SELECT name FROM migrations WHERE name='card_type_fix_v1'").get
   console.log('[Migration] card_type_fix_v1: card data reset to NULL for re-sync');
 }
 
+// One-time migration: reset cards that were synced as all-zeros with the old free-tier key.
+// Now that the API key is upgraded, reset to NULL so they get re-fetched with real booking data.
+if (!db.prepare("SELECT name FROM migrations WHERE name='card_zero_reset_v1'").get()) {
+  db.exec("UPDATE matches SET yellows_a=NULL, yellows_b=NULL, reds_a=NULL, reds_b=NULL WHERE score_a IS NOT NULL AND yellows_a=0 AND yellows_b=0 AND reds_a=0 AND reds_b=0");
+  db.exec("INSERT INTO migrations (name) VALUES ('card_zero_reset_v1')");
+  console.log('[Migration] card_zero_reset_v1: zero card data reset to NULL for re-sync with upgraded API key');
+}
+
 // One-time migration: rename teams to official names (Turkey→Türkiye, Congo DR→DR Congo)
 // Fixes teams seeded before renames were added; updates teams, entries and matches tables.
 if (!db.prepare("SELECT name FROM migrations WHERE name='team_rename_v1'").get()) {
