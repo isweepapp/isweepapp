@@ -38,6 +38,14 @@ if (db.prepare('SELECT COUNT(*) AS cnt FROM matches').get().cnt === 0) {
 // Startup cleanup: remove seeded rows already superseded by a prior API sync
 cleanupSeededMatches();
 
+// One-time migration: reset card data incorrectly written as 0 (was using b.card, should be b.type)
+// This forces a clean re-sync via the Sync Card Data button.
+if (!db.prepare("SELECT name FROM migrations WHERE name='card_type_fix_v1'").get()) {
+  db.exec("UPDATE matches SET yellows_a=NULL, yellows_b=NULL, reds_a=NULL, reds_b=NULL WHERE score_a IS NOT NULL");
+  db.exec("INSERT INTO migrations (name) VALUES ('card_type_fix_v1')");
+  console.log('[Migration] card_type_fix_v1: card data reset to NULL for re-sync');
+}
+
 // Migrate: add tiebreak_guess for existing databases
 try { db.exec('ALTER TABLE participants ADD COLUMN tiebreak_guess INTEGER NULL'); } catch (_) {}
 
@@ -897,11 +905,11 @@ app.get('/api/admin/sync-cards', requireAdmin, async (req, res) => {
   const send = d => res.write(`data: ${JSON.stringify(d)}\n\n`);
 
   const toSync = db.prepare(
-    'SELECT id FROM matches WHERE score_a IS NOT NULL'
+    'SELECT id FROM matches WHERE score_a IS NOT NULL AND (yellows_a IS NULL OR reds_a IS NULL)'
   ).all();
 
   if (!toSync.length) {
-    send({ type: 'done', message: 'No finished matches to sync card data for.' });
+    send({ type: 'done', message: 'All finished matches already have card data.' });
     res.end(); return;
   }
 

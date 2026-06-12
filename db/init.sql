@@ -53,3 +53,8 @@ CREATE TABLE IF NOT EXISTS group_finishes (
   team     TEXT    PRIMARY KEY,
   position INTEGER NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS migrations (
+  name TEXT PRIMARY KEY,
+  applied_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
