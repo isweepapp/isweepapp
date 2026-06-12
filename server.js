@@ -1107,6 +1107,33 @@ async function scheduledSync() {
     } catch (_) { /* standings not yet available */ }
     cleanupSeededMatches();
     console.log(`[ScheduledSync] ${synced} matches updated at ${new Date().toISOString()}`);
+
+    // Auto card sync: fetch cards for any newly-finished matches (at most ~2 at a time)
+    const toSyncCards = db.prepare(
+      'SELECT id FROM matches WHERE score_a IS NOT NULL AND (yellows_a IS NULL OR reds_a IS NULL)'
+    ).all();
+    if (toSyncCards.length) {
+      console.log(`[ScheduledSync] Syncing cards for ${toSyncCards.length} match(es)…`);
+      const updCards = db.prepare('UPDATE matches SET yellows_a=?, yellows_b=?, reds_a=?, reds_b=? WHERE id=?');
+      for (const { id } of toSyncCards) {
+        await new Promise(r => setTimeout(r, 6500));
+        try {
+          const data     = await ftdbGet(`/v4/matches/${id}`);
+          const bookings = data.bookings || [];
+          const homeId   = data.homeTeam?.id;
+          let ya=0, yb=0, ra=0, rb=0;
+          for (const b of bookings) {
+            const home = b.team?.id === homeId;
+            if (b.type === 'YELLOW_CARD')                              { home ? ya++ : yb++; }
+            if (b.type === 'RED_CARD' || b.type === 'YELLOW_RED_CARD') { home ? ra++ : rb++; }
+          }
+          updCards.run(ya, yb, ra, rb, id);
+          console.log(`[ScheduledSync] Cards synced for match ${id}`);
+        } catch (e) {
+          console.warn(`[ScheduledSync] Card sync failed for match ${id}: ${e.message}`);
+        }
+      }
+    }
   } catch (e) {
     console.warn(`[ScheduledSync] Failed: ${e.message}`);
   }
