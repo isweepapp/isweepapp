@@ -299,7 +299,8 @@ app.get('/api/participants', (_req, res) => {
 });
 
 // ── Public: Stats ─────────────────────────────────────────────────────────────
-app.get('/api/stats', (_req, res) => {
+app.get('/api/stats', (req, res) => {
+  triggerBackgroundSync();
   const matchesPlayed    = db.prepare('SELECT COUNT(*) AS cnt FROM matches WHERE score_a IS NOT NULL AND score_b IS NOT NULL').get().cnt;
   const totalGoals       = db.prepare('SELECT COALESCE(SUM(COALESCE(goals_a,0)+COALESCE(goals_b,0)),0) AS t FROM matches WHERE score_a IS NOT NULL AND score_b IS NOT NULL').get().t || 0;
   const participantCount = db.prepare('SELECT COUNT(*) AS cnt FROM participants').get().cnt;
@@ -1140,14 +1141,10 @@ app.get('/api/goals-leaderboard', (_req, res) => {
   res.json({ matchesPlayed, totalGoals, avgPerGame: avgPerGame !== null ? +avgPerGame.toFixed(2) : null, projectedTotal, entries });
 });
 
-// ── Public: All matches (with fire-and-forget background sync) ────────────────
+// ── Background sync helper ────────────────────────────────────────────────────
 let _lastAutoSync = 0;
 
-app.get('/api/matches', (_req, res) => {
-  // Always respond immediately with cached DB data
-  res.json(db.prepare('SELECT id, date, team_a, team_b, score_a, score_b, goals_a, goals_b, stage FROM matches ORDER BY date, id').all());
-
-  // Background sync — silently skipped if no API key or last sync was <60 s ago
+function triggerBackgroundSync() {
   if (!process.env.FOOTBALL_DATA_API_KEY) return;
   const now = Date.now();
   if (now - _lastAutoSync < 60 * 1000) return;
@@ -1202,6 +1199,11 @@ app.get('/api/matches', (_req, res) => {
       console.warn(`[AutoSync] Failed: ${e.message}`);
     }
   })();
+}
+
+// ── Public: All matches ───────────────────────────────────────────────────────
+app.get('/api/matches', (_req, res) => {
+  res.json(db.prepare('SELECT id, date, team_a, team_b, score_a, score_b, goals_a, goals_b, stage FROM matches ORDER BY date, id').all());
 });
 
 // ── Admin: All matches (full detail) ─────────────────────────────────────────
