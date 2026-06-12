@@ -108,14 +108,18 @@ async function loadLiveMatch() {
       const ya = m.yellows_a ?? 0, yb = m.yellows_b ?? 0;
       const ra = m.reds_a   ?? 0,  rb = m.reds_b   ?? 0;
       body.innerHTML = ''
-        + '<div style="font-size:0.82rem;font-weight:700;color:var(--text)">'
-        +   m.team_a + ' <span style="color:var(--gold)">' + m.score_a + ' – ' + m.score_b + '</span> ' + m.team_b
+        + '<div style="display:flex;align-items:center;gap:0.4rem;font-size:0.8rem;font-weight:700;color:var(--text)">'
+        +   '<div style="flex:1;text-align:right">'
+        +     '<div>' + m.team_a + '</div>'
+        +     '<div style="margin-top:0.2rem;min-height:14px">' + cardHtml(ya, ra) + '</div>'
+        +   '</div>'
+        +   '<div style="color:var(--gold);font-size:0.9rem;flex-shrink:0">' + m.score_a + ' – ' + m.score_b + '</div>'
+        +   '<div style="flex:1;text-align:left">'
+        +     '<div>' + m.team_b + '</div>'
+        +     '<div style="margin-top:0.2rem;min-height:14px">' + cardHtml(yb, rb) + '</div>'
+        +   '</div>'
         + '</div>'
-        + '<div style="font-size:0.75rem;margin-top:0.3rem;display:flex;gap:1rem">'
-        +   '<span>' + cardHtml(ya, ra) + '</span>'
-        +   '<span>' + cardHtml(yb, rb) + '</span>'
-        + '</div>'
-        + '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:0.15rem">' + (m.stage || '') + '</div>';
+        + '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:0.2rem;text-align:center">' + (m.stage || '') + '</div>';
     } else if (d.type === 'next') {
       const m = d.match;
       label.textContent = 'Next Fixture';
