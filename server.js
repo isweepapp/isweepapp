@@ -1196,14 +1196,16 @@ function triggerBackgroundSync() {
       cleanupSeededMatches();
       console.log(`[AutoSync] ${synced} matches updated from football-data.org`);
 
-      // Fetch card data for live matches + any finished matches still missing cards
-      const liveIds = matches
-        .filter(m => m.status === 'IN_PLAY' || m.status === 'PAUSED')
+      // Fetch card data for: live matches, recently finished (last 3h), and any still missing cards
+      const recentCutoff = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
+      const liveOrRecentIds = matches
+        .filter(m => m.status === 'IN_PLAY' || m.status === 'PAUSED' || m.status === 'LIVE'
+                  || (m.status === 'FINISHED' && m.utcDate >= recentCutoff))
         .map(m => String(m.id));
       const missingCardIds = db.prepare(
-        'SELECT id FROM matches WHERE score_a IS NOT NULL AND yellows_a IS NULL LIMIT 5'
+        'SELECT id FROM matches WHERE score_a IS NOT NULL AND yellows_a IS NULL LIMIT 10'
       ).all().map(r => r.id);
-      const cardIds = [...new Set([...liveIds, ...missingCardIds])];
+      const cardIds = [...new Set([...liveOrRecentIds, ...missingCardIds])];
 
       const updCards = db.prepare('UPDATE matches SET yellows_a=?, yellows_b=?, reds_a=?, reds_b=? WHERE id=?');
       for (const id of cardIds) {
@@ -1218,9 +1220,12 @@ function triggerBackgroundSync() {
             if (b.card === 'RED_CARD' || b.card === 'YELLOW_RED_CARD') { home ? ra++ : rb++; }
           }
           updCards.run(ya, yb, ra, rb, id);
-        } catch (_) {}
+          console.log(`[AutoSync] Cards match ${id}: ya=${ya} yb=${yb} ra=${ra} rb=${rb}`);
+        } catch (e) {
+          console.warn(`[AutoSync] Card fetch failed for match ${id}: ${e.message}`);
+        }
       }
-      if (cardIds.length) console.log(`[AutoSync] Cards updated for ${cardIds.length} match(es)`);
+      if (cardIds.length) console.log(`[AutoSync] Card sync attempted for ${cardIds.length} match(es)`);
     } catch (e) {
       console.warn(`[AutoSync] Failed: ${e.message}`);
     }
