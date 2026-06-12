@@ -367,6 +367,63 @@ function renderLeaderboard(rows, tbody) {
   });
 }
 
+// -- Goals leaderboard ---------------------------------------------------------
+async function loadGoalsLeaderboard() {
+  const goalsEl      = document.getElementById('goals-tbody');
+  const projEl       = document.getElementById('goals-projection');
+  const prevGoalsKey = 'isweep_goals_order';
+  let prevOrder = null;
+  try { prevOrder = JSON.parse(localStorage.getItem(prevGoalsKey)); } catch {}
+
+  try {
+    const data = await fetch('/api/goals-leaderboard').then(r => r.json());
+    const { matchesPlayed, totalGoals, avgPerGame, projectedTotal, entries } = data;
+
+    if (projectedTotal !== null) {
+      projEl.innerHTML = `Based on <strong>${matchesPlayed}</strong> games played and <strong>${totalGoals}</strong> goals scored `
+        + `(avg <strong>${avgPerGame}</strong>/game), the projected total for all 104 games is `
+        + `<strong style="color:var(--gold)">${projectedTotal}</strong> goals. Closest prediction wins.`;
+    } else {
+      projEl.innerHTML = `No matches played yet — rankings show predictions in ascending order. Closest to the final total wins.`;
+    }
+
+    if (!entries.length) {
+      goalsEl.innerHTML = `<tr><td colspan="6" class="prem-loading">No entries yet.</td></tr>`;
+      return;
+    }
+
+    const prevMap = {};
+    if (Array.isArray(prevOrder)) prevOrder.forEach((k, i) => { prevMap[k] = i + 1; });
+    localStorage.setItem(prevGoalsKey, JSON.stringify(entries.map(e => e.name)));
+
+    goalsEl.innerHTML = entries.map((e, i) => {
+      const rank     = i + 1;
+      const posClass = rank === 1 ? 'pos-1' : rank === 2 ? 'pos-2' : rank === 3 ? 'pos-3' : '';
+      const prev     = prevMap[e.name];
+      const movHtml  = Object.keys(prevMap).length === 0 ? '<span class="mov-eq">&mdash;</span>'
+                     : prev === undefined               ? '<span class="mov-new">NEW</span>'
+                     : prev > rank  ? `<span class="mov-up">&#9650;${prev - rank}</span>`
+                     : prev < rank  ? `<span class="mov-dn">&#9660;${rank - prev}</span>`
+                     : '<span class="mov-eq">&mdash;</span>';
+      const knownCell = `<td class="td-persona">${e.knownBy || ''}</td>`;
+      const diffCell  = e.diff !== null
+        ? `<td class="td-stat${e.diff === 0 ? ' pos' : ''}">${e.diff === 0 ? 'Exact!' : e.diff}</td>`
+        : `<td class="td-stat">&mdash;</td>`;
+      return `<tr class="${posClass}">
+        <td class="td-pos">${rank}</td>
+        <td class="td-mov">${movHtml}</td>
+        <td class="td-name">${e.name}</td>
+        ${knownCell}
+        <td class="td-stat">${e.guess}</td>
+        ${diffCell}
+      </tr>`;
+    }).join('');
+  } catch (err) {
+    document.getElementById('goals-tbody').innerHTML =
+      `<tr><td colspan="6" class="prem-loading" style="color:#f87171">Could not load goals leaderboard.</td></tr>`;
+  }
+}
+
 // -- Tabs ----------------------------------------------------------------------
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
