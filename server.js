@@ -1120,6 +1120,26 @@ app.post('/api/admin/money/paid', requireAdmin, (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Public: Goals leaderboard (tiebreak ranking) ─────────────────────────────
+app.get('/api/goals-leaderboard', (_req, res) => {
+  const matchesPlayed  = db.prepare('SELECT COUNT(*) AS cnt FROM matches WHERE score_a IS NOT NULL AND score_b IS NOT NULL').get().cnt;
+  const totalGoals     = db.prepare('SELECT COALESCE(SUM(COALESCE(goals_a,0)+COALESCE(goals_b,0)),0) AS t FROM matches WHERE score_a IS NOT NULL AND score_b IS NOT NULL').get().t || 0;
+  const avgPerGame     = matchesPlayed > 0 ? totalGoals / matchesPlayed : null;
+  const projectedTotal = avgPerGame !== null ? +(avgPerGame * 104).toFixed(1) : null;
+
+  const participants = db.prepare('SELECT name, known_by, tiebreak_guess FROM participants WHERE tiebreak_guess IS NOT NULL').all();
+  const entries = participants.map(p => ({
+    name: p.name,
+    knownBy: p.known_by || null,
+    guess: p.tiebreak_guess,
+    diff: projectedTotal !== null ? +Math.abs(p.tiebreak_guess - projectedTotal).toFixed(1) : null,
+  }));
+  if (projectedTotal !== null) entries.sort((a, b) => a.diff - b.diff);
+  else entries.sort((a, b) => a.guess - b.guess);
+
+  res.json({ matchesPlayed, totalGoals, avgPerGame: avgPerGame !== null ? +avgPerGame.toFixed(2) : null, projectedTotal, entries });
+});
+
 // ── Public: All matches (with fire-and-forget background sync) ────────────────
 let _lastAutoSync = 0;
 

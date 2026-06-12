@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 // -- Flag lookup for World Cup teams (from flags.js GROUPS) --------------------
 const FLAG_CODES = {};
@@ -64,8 +64,8 @@ const CLUB_ABBR = {
   'Inter Miami':'MIA','Monterrey':'MTY','Tigres UANL':'TIG',
 };
 
-let currentTab    = 'overall';
-let statsData     = {};
+let currentTab = 'overall';
+let statsData  = {};
 
 // Persist ranks across page refreshes via localStorage
 function storageKey() { return `isweep_ranks_${currentTab}`; }
@@ -372,7 +372,11 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    currentTab    = btn.dataset.tab;
+    currentTab = btn.dataset.tab;
+    const isGoals = currentTab === 'goals';
+    document.querySelector('.prem-table-wrap').hidden = isGoals;
+    document.getElementById('goals-container').hidden = !isGoals;
+    if (isGoals) { loadGoalsLeaderboard(); return; }
     previousRanks = loadPrevRanks();
     loadLeaderboard();
   });
@@ -382,7 +386,12 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 let secs = 60;
 function tick() {
   document.getElementById('countdown').textContent = secs;
-  if (--secs < 0) { secs = 60; loadStats(); loadLeaderboard(); }
+  if (--secs < 0) {
+    secs = 60;
+    loadStats();
+    if (currentTab === 'goals') loadGoalsLeaderboard();
+    else loadLeaderboard();
+  }
 }
 
 loadStats();
