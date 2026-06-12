@@ -369,6 +369,30 @@ app.get('/api/leaderboard',          (_req, res) => res.json(buildLeaderboard(nu
 app.get('/api/leaderboard/group',    (_req, res) => res.json(buildLeaderboard('group')));
 app.get('/api/leaderboard/knockout', (_req, res) => res.json(buildLeaderboard('knockout')));
 
+// ── Public: Foul League — Simon's teams ranked by cards received ──────────────
+app.get('/api/leaderboard/foul', (_req, res) => {
+  const participants = db.prepare(
+    "SELECT id FROM participants WHERE lower(email) = 'simon@drakey.com'"
+  ).all();
+  if (!participants.length) return res.json([]);
+
+  const allStats   = computeTeamStats(null);
+  const getEntries = db.prepare('SELECT * FROM entries WHERE participant_id = ? ORDER BY entry_index ASC');
+
+  const teams = [];
+  for (const p of participants) {
+    for (const e of getEntries.all(p.id)) {
+      for (const team of [e.pot1_team, e.pot2_team, e.pot2_team_2, e.pot3_team, e.pot3_team_2, e.pot3_team_3].filter(Boolean)) {
+        const s = allStats[team] || { played:0, yellowCards:0, redCards:0 };
+        teams.push({ team, played: s.played, yellowCards: s.yellowCards, redCards: s.redCards, totalCards: s.yellowCards + s.redCards });
+      }
+    }
+  }
+
+  teams.sort((a, b) => b.totalCards - a.totalCards || b.yellowCards - a.yellowCards);
+  res.json(teams);
+});
+
 // ── Public: Prize fund breakdown ──────────────────────────────────────────────
 app.get('/api/prizes', (_req, res) => {
   const rows         = db.prepare('SELECT (1 + extra_entries) AS total_entries FROM participants WHERE paid = 1').all();

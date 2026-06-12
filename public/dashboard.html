@@ -198,10 +198,11 @@
       <button class="tab-btn active" data-tab="overall">Overall</button>
       <button class="tab-btn" data-tab="group">Group Stage</button>
       <button class="tab-btn" data-tab="knockout">Knockout</button>
+      <button class="tab-btn" data-tab="foul">🟨 Foul League</button>
     </div>
 
-    <!-- Leaderboard table -->
-    <div class="prem-table-wrap">
+    <!-- Leaderboard table (Overall / Group / Knockout) -->
+    <div id="main-table-wrap" class="prem-table-wrap">
       <table class="prem-table">
         <thead>
           <tr>
@@ -240,6 +241,34 @@
         <span><strong>RC</strong> Reds <em>(-3)</em></span>
         <span><strong>Bon</strong> Group Finish Bonus</span>
         <span><strong>Pts</strong> Total Points</span>
+      </div>
+    </div>
+
+    <!-- Foul League table -->
+    <div id="foul-table-wrap" class="prem-table-wrap" hidden>
+      <div style="margin-bottom:1rem;font-size:0.88rem;color:var(--text-muted);line-height:1.5;">
+        🟨🟥 Simon's teams ranked by cards received. The <em>dirtier</em> the team, the higher the glory.
+      </div>
+      <table class="prem-table">
+        <thead>
+          <tr>
+            <th class="th-pos" title="Position">Pos</th>
+            <th class="th-name">Team</th>
+            <th title="Matches Played">P</th>
+            <th title="Yellow Cards">🟨</th>
+            <th title="Red Cards">🟥</th>
+            <th title="Total Cards">Total</th>
+          </tr>
+        </thead>
+        <tbody id="foul-tbody">
+          <tr><td colspan="6" class="prem-loading">Loading…</td></tr>
+        </tbody>
+      </table>
+      <div class="col-key">
+        <span><strong>P</strong> Played</span>
+        <span>🟨 Yellow Cards</span>
+        <span>🟥 Red Cards</span>
+        <span><strong>Total</strong> Cards received</span>
       </div>
     </div>
 
