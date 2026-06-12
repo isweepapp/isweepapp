@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="iSweep">
+  <link rel="apple-touch-icon" href="/assets/icon-180.png">
+  <title>iSweep — Fixtures &amp; Results</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
+  <style>
+
+    /* ── Day section ───────────────────────────────────────────────── */
+    .day-section { margin-bottom: 2rem; }
+
+    .day-header {
+      display: flex;
+      align-items: baseline;
+      gap: 0.7rem;
+      margin-bottom: 0.9rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--card-border);
+    }
+    .day-label {
+      font-size: 0.72rem;
+      font-weight: 900;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .day-label.today { color: var(--gold); }
+    .day-date {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .day-section.today .day-date { color: var(--gold); }
+    .live-dot {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #f87171;
+      animation: blink 1.4s ease-in-out infinite;
+      margin-left: 0.3rem;
+      vertical-align: middle;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+    /* ── TODAY big match cards ─────────────────────────────────────── */
+    .today-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 0.9rem;
+    }
+
+    .match-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1rem;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 0.75rem;
+      align-items: center;
+    }
+    .day-section.today .match-card {
+      border-color: rgba(212,167,44,0.35);
+      background: linear-gradient(135deg, rgba(212,167,44,0.04) 0%, transparent 60%);
+    }
+
+    .match-side {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
+      text-align: center;
+    }
+    .match-side.side-b { /* mirror — same centre alignment */ }
+
+    .match-flag { font-size: 3.2rem; line-height: 1; }
+    .match-team-name {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: var(--text);
+      line-height: 1.2;
+    }
+    .owner-chips {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.3rem;
+      margin-top: 0.1rem;
+    }
+    .owner-chip {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--teal);
+      background: rgba(6,214,160,0.1);
+      border: 1px solid rgba(6,214,160,0.25);
+      border-radius: 999px;
+      padding: 0.15rem 0.5rem;
+      white-space: nowrap;
+    }
+
+    .match-mid {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.3rem;
+      min-width: 70px;
+    }
+    .match-score {
+      font-size: 1.75rem;
+      font-weight: 900;
+      color: var(--text);
+      letter-spacing: 0.05em;
+      white-space: nowrap;
+    }
+    .match-score.upcoming {
+      font-size: 1.1rem;
+      color: var(--teal);
+      font-weight: 800;
+    }
+    .match-stage {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    /* ── Compact rows (past / future days) ────────────────────────── */
+    .compact-matches {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .match-row {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 0.6rem 0.9rem;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    .day-section.past .match-row { opacity: 0.72; }
+
+    .row-side {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      overflow: hidden;
+    }
+    .row-side.side-b {
+      flex-direction: row-reverse;
+      text-align: right;
+    }
+    .row-flag { font-size: 1.3rem; flex-shrink: 0; }
+    .row-info { display: flex; flex-direction: column; gap: 0.05rem; overflow: hidden; }
+    .row-team-name {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .row-owners {
+      font-size: 0.7rem;
+      color: var(--teal);
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .row-side.side-b .row-info { align-items: flex-end; }
+
+    .row-mid {
+      text-align: center;
+      min-width: 60px;
+    }
+    .row-score {
+      font-size: 1rem;
+      font-weight: 900;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .row-score.upcoming {
+      font-size: 0.85rem;
+      color: var(--teal);
+    }
+    .row-stage {
+      font-size: 0.62rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* ── Focus anchor ──────────────────────────────────────────────── */
+    .focus-anchor { scroll-margin-top: 80px; }
+
+    /* ── Mobile tweaks ─────────────────────────────────────────────── */
+    @media (max-width: 520px) {
+      .match-flag { font-size: 2.4rem; }
+      .match-team-name { font-size: 0.82rem; }
+      .match-score { font-size: 1.4rem; }
+      .match-card { padding: 1rem 0.6rem; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <img src="/assets/logo.png" alt="iSweep World Cup Sweepstake" class="sweepstake-logo">
+      <nav>
+        <a href="/">Home</a>
+        <a href="/enter.html">Enter</a>
+        <a href="/prizes.html">Prizes</a>
+        <a href="/teams.html">My Teams</a>
+        <a href="/fixtures.html" class="active">Fixtures</a>
+        <a href="/dashboard.html">Leaderboard</a>
+        <a href="/matches.html">Group Stage</a>
+        <a href="/knockout.html">Knockout</a>
+        <a href="/pots.html">Pots</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="container" style="max-width:820px">
+    <div id="fixtures-root"><p class="text-muted" style="text-align:center;padding:2rem">Loading…</p></div>
+  </div>
+
+  <script src="flags.js"></script>
+  <script>
+    'use strict';
+
+    // Build flag-code lookup from flags.js GROUPS data
+    const FLAG_CODES = {};
+    if (typeof GROUPS !== 'undefined') {
+      GROUPS.forEach(g => g.teams.forEach(t => { FLAG_CODES[t.name] = t.code; }));
+    }
+
+    function flagSpan(team, size) {
+      const code = FLAG_CODES[team];
+      return code
+        ? `<span class="fi fi-${code}" style="font-size:${size};line-height:1" title="${team}"></span>`
+        : `<span style="font-size:${size};line-height:1">🏳️</span>`;
+    }
+
+    // Return local date string YYYY-MM-DD in user's timezone
+    function localDate(dateStr) {
+      if (!dateStr) return '';
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('en-CA'); // ISO format in local TZ
+    }
+
+    function kickOff(dateStr) {
+      if (!dateStr) return '—';
+      return new Date(dateStr).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function dayLabel(dateStr) {
+      const today = localDate(new Date().toISOString());
+      const d = localDate(dateStr);
+      if (d === today) return 'TODAY';
+      const yesterday = localDate(new Date(Date.now() - 86400000).toISOString());
+      const tomorrow  = localDate(new Date(Date.now() + 86400000).toISOString());
+      if (d === yesterday) return 'Yesterday';
+      if (d === tomorrow)  return 'Tomorrow';
+      return '';
+    }
+
+    function friendlyDate(dateStr) {
+      return new Date(dateStr).toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long' });
+    }
+
+    function ownerChips(owners) {
+      if (!owners.length) return '';
+      return `<div class="owner-chips">${owners.map(o =>
+        `<span class="owner-chip">${o}</span>`).join('')}</div>`;
+    }
+
+    function buildTodayCard(m) {
+      const finished  = m.scoreA !== null && m.scoreB !== null;
+      const scoreHtml = finished
+        ? `<div class="match-score">${m.scoreA} – ${m.scoreB}</div>`
+        : `<div class="match-score upcoming">${kickOff(m.date)}</div>`;
+      return `
+        <div class="match-card">
+          <div class="match-side side-a">
+            ${flagSpan(m.teamA, '3.2rem')}
+            <div class="match-team-name">${m.teamA}</div>
+            ${ownerChips(m.ownersA)}
+          </div>
+          <div class="match-mid">
+            ${scoreHtml}
+            <div class="match-stage">${m.stage || ''}</div>
+          </div>
+          <div class="match-side side-b">
+            ${flagSpan(m.teamB, '3.2rem')}
+            <div class="match-team-name">${m.teamB}</div>
+            ${ownerChips(m.ownersB)}
+          </div>
+        </div>`;
+    }
+
+    function buildCompactRow(m) {
+      const finished  = m.scoreA !== null && m.scoreB !== null;
+      const scoreHtml = finished
+        ? `<div class="row-score">${m.scoreA} – ${m.scoreB}</div>`
+        : `<div class="row-score upcoming">${kickOff(m.date)}</div>`;
+      const ownA = m.ownersA.join(' · ');
+      const ownB = m.ownersB.join(' · ');
+      return `
+        <div class="match-row">
+          <div class="row-side side-a">
+            ${flagSpan(m.teamA, '1.3rem')}
+            <div class="row-info">
+              <div class="row-team-name">${m.teamA}</div>
+              ${ownA ? `<div class="row-owners">${ownA}</div>` : ''}
+            </div>
+          </div>
+          <div class="row-mid">
+            ${scoreHtml}
+            <div class="row-stage">${m.stage || ''}</div>
+          </div>
+          <div class="row-side side-b">
+            <div class="row-info">
+              <div class="row-team-name">${m.teamB}</div>
+              ${ownB ? `<div class="row-owners">${ownB}</div>` : ''}
+            </div>
+            ${flagSpan(m.teamB, '1.3rem')}
+          </div>
+        </div>`;
+    }
+
+    async function load() {
+      const root = document.getElementById('fixtures-root');
+      try {
+        const r = await fetch('/api/fixtures');
+        const matches = await r.json();
+
+        // Group by local date
+        const groups = new Map();
+        for (const m of matches) {
+          const d = localDate(m.date) || 'unknown';
+          if (!groups.has(d)) groups.set(d, []);
+          groups.get(d).push(m);
+        }
+
+        const todayStr = localDate(new Date().toISOString());
+        // Find the "focus" day: today if we have games, else next upcoming day
+        let focusDay = todayStr;
+        if (!groups.has(todayStr)) {
+          const future = [...groups.keys()].filter(d => d > todayStr).sort();
+          focusDay = future[0] || [...groups.keys()].pop();
+        }
+
+        const sections = [];
+        for (const [date, dayMatches] of groups) {
+          const isToday   = date === todayStr;
+          const isFocus   = date === focusDay;
+          const isPast    = date < todayStr;
+          const label     = dayLabel(dayMatches[0].date);
+          const friendly  = friendlyDate(dayMatches[0].date);
+          const liveDot   = isToday && dayMatches.some(m => m.scoreA === null) ? '<span class="live-dot"></span>' : '';
+
+          const matchesHtml = isFocus
+            ? `<div class="today-cards">${dayMatches.map(buildTodayCard).join('')}</div>`
+            : `<div class="compact-matches">${dayMatches.map(buildCompactRow).join('')}</div>`;
+
+          sections.push(`
+            <div class="day-section ${isToday ? 'today' : ''} ${isFocus ? 'focus-day' : ''} ${isPast ? 'past' : ''} focus-anchor" id="day-${date}">
+              <div class="day-header">
+                ${label ? `<span class="day-label ${isToday ? 'today' : ''}">${label}${liveDot}</span>` : ''}
+                <span class="day-date">${friendly}</span>
+              </div>
+              ${matchesHtml}
+            </div>`);
+        }
+
+        root.innerHTML = sections.join('');
+
+        // Scroll to focus day
+        const focusEl = document.getElementById(`day-${focusDay}`);
+        if (focusEl) focusEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+      } catch(e) {
+        root.innerHTML = '<p class="text-muted" style="text-align:center;padding:2rem">Failed to load fixtures.</p>';
+      }
+    }
+
+    load();
+  </script>
+</body>
+</html>

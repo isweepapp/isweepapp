@@ -373,6 +373,32 @@ app.get('/api/leaderboard/knockout', (_req, res) => res.json(buildLeaderboard('k
 // ── Public: Foul League — Drakey's teams (known_by = Drakey) standard leaderboard
 app.get('/api/leaderboard/foul', (_req, res) => res.json(buildLeaderboard(null, 'Drakey')));
 
+// ── Public: Fixtures with owner data ─────────────────────────────────────────
+app.get('/api/fixtures', (_req, res) => {
+  const matches = db.prepare('SELECT * FROM matches ORDER BY date ASC, id ASC').all();
+  // Build team → [knownBy] map from all entries in one pass
+  const entries = db.prepare(`
+    SELECT COALESCE(p.known_by, p.name) AS known_by,
+           e.pot1_team, e.pot2_team, e.pot2_team_2, e.pot3_team, e.pot3_team_2, e.pot3_team_3
+    FROM entries e JOIN participants p ON p.id = e.participant_id
+  `).all();
+  const ownerMap = {};
+  for (const e of entries) {
+    for (const team of [e.pot1_team, e.pot2_team, e.pot2_team_2, e.pot3_team, e.pot3_team_2, e.pot3_team_3].filter(Boolean)) {
+      if (!ownerMap[team]) ownerMap[team] = new Set();
+      ownerMap[team].add(e.known_by);
+    }
+  }
+  const owners = t => ownerMap[t] ? [...ownerMap[t]] : [];
+  res.json(matches.map(m => ({
+    id: m.id, date: m.date, stage: m.stage,
+    teamA: m.team_a, teamB: m.team_b,
+    scoreA: m.score_a, scoreB: m.score_b,
+    ownersA: owners(m.team_a),
+    ownersB: owners(m.team_b),
+  })));
+});
+
 // ── Public: All entries with allocated teams (for My Teams page) ──────────────
 app.get('/api/entries', (_req, res) => {
   const participants = db.prepare(
