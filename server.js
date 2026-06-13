@@ -1724,11 +1724,14 @@ async function scheduledSync() {
   }
 }
 
+// ── Process-level error guards (prevent silent Railway crashes) ───────────────
+process.on('uncaughtException',        e => console.error('[CRASH] uncaughtException:', e));
+process.on('unhandledRejection', (r, p) => console.error('[CRASH] unhandledRejection:', r, p));
+
 // ── Start ─────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`\n  World Cup 2026 Sweepstake — http://localhost:${PORT}\n`);
   if (!ADMIN_PASSWORD_HASH) console.warn('  WARNING: ADMIN_PASSWORD not set — admin panel disabled.\n');
-  // Run immediately on startup, then every 30 minutes
   scheduledSync();
   setInterval(scheduledSync, 5 * 60 * 1000);
 });
