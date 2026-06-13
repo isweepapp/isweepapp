@@ -471,8 +471,8 @@ async function loadGoalsLeaderboard() {
 
 // -- Tabs ----------------------------------------------------------------------
 // ── Stats: points history chart ───────────────────────────────────────────────
-const PODIUM_COLORS  = { 1: '#22c55e', 2: '#eab308', 3: '#f97316' };
-const BOTTOM_COLORS  = ['#ef4444', '#f97316', '#fca5a5'];
+const PODIUM_COLORS  = { 1: '#f59e0b', 2: '#22c55e', 3: '#ef4444' };
+const BOTTOM_COLORS  = ['#ef4444', '#22c55e', '#f59e0b'];
 const SELECTED_COLOR = '#2dd4bf';
 const GREY_COLOR     = 'rgba(255,255,255,0.12)';
 
@@ -564,7 +564,7 @@ async function loadPositionHistory() {
       pickerEl.innerHTML = series.map(s => {
         let cls = 'pos-pill';
         if (s.finalPos <= 3)             cls += ` pos-pill-top pos-pill-top-${s.finalPos}`;
-        else if (total - s.finalPos < 3) cls += ' pos-pill-bottom';
+        else if (total - s.finalPos < 3) cls += ` pos-pill-bottom pos-pill-bottom-${total - s.finalPos}`;
         return `<button class="${cls}" data-name="${esc(s.name)}">${esc(s.name)}</button>`;
       }).join('');
       pickerEl.querySelectorAll('.pos-pill').forEach(btn => {
