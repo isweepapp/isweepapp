@@ -90,11 +90,17 @@ nav a:hover, nav a.active {
   background: rgba(240,192,64,0.08);
 }
 nav a[href="/dashboard.html"] {
-  order: -1;
+  order: -2;
   font-size: 1.1rem;
   font-weight: 700;
   padding: 0.5rem 2rem;
-  margin-bottom: 0.3rem;
+  margin-bottom: 0.1rem;
+}
+nav::after {
+  content: '';
+  flex-basis: 100%;
+  order: -1;
+  height: 0;
 }
 
 /* ── Cards ────────────────────────────────────────────────────────────────── */
