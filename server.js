@@ -469,36 +469,36 @@ app.get('/api/position-history', (_req, res) => {
     }))
   );
 
-  const dates = [...new Set(matches.map(m => (m.date||'').slice(0,10)))].filter(Boolean).sort();
-  if (!dates.length) return res.json({ labels: [], series: [] });
+  if (!matches.length) return res.json({ labels: [], series: [] });
 
-  const history = dates.map(limit => {
-    const tp = {};
-    for (const m of matches) {
-      if ((m.date||'').slice(0,10) > limit) break;
-      const ga=m.goals_a||0,gb=m.goals_b||0,ya=m.yellows_a||0,yb=m.yellows_b||0,ra=m.reds_a||0,rb=m.reds_b||0;
-      const w = m.score_a > m.score_b, d = m.score_a === m.score_b;
-      tp[m.team_a] = (tp[m.team_a]||0) + (w?3:d?1:0) + ga*2 - gb - ya - ra*3;
-      tp[m.team_b] = (tp[m.team_b]||0) + (!w&&!d?3:d?1:0) + gb*2 - ga - yb - rb*3;
-    }
+  // Compute cumulative entry points after each individual match
+  const teamPts = {};
+  const history = matches.map(m => {
+    const ga=m.goals_a||0,gb=m.goals_b||0,ya=m.yellows_a||0,yb=m.yellows_b||0,ra=m.reds_a||0,rb=m.reds_b||0;
+    const w = m.score_a > m.score_b, d = m.score_a === m.score_b;
+    teamPts[m.team_a] = (teamPts[m.team_a]||0) + (w?3:d?1:0) + ga*2 - gb - ya - ra*3;
+    teamPts[m.team_b] = (teamPts[m.team_b]||0) + (!w&&!d?3:d?1:0) + gb*2 - ga - yb - rb*3;
+    // snapshot with finish bonuses
+    const tp = { ...teamPts };
     for (const [t,p] of Object.entries(finishMap)) if (tp[t]!=null) tp[t]+=(FINISH_BONUS[p]||0);
-    const sorted = entryList.map(e=>({name:e.name,pts:e.teams.reduce((s,t)=>s+(tp[t]||0),0)}))
-                             .sort((a,b)=>b.pts-a.pts);
-    const pos={};
-    sorted.forEach((e,i)=>{pos[e.name]=i+1;});
-    return pos;
+    return entryList.map(e => e.teams.reduce((s,t) => s+(tp[t]||0), 0));
   });
 
-  const names = [...new Set(entryList.map(e=>e.name))];
-  const series = names.map(name=>({
-    name,
-    positions: dates.map((_,i)=>history[i][name]??null),
-    finalPos:  history[history.length-1]?.[name]??999
-  })).sort((a,b)=>a.finalPos-b.finalPos);
+  // Final ranking by points
+  const finalPts = history[history.length - 1];
+  const ranked = entryList.map((e, i) => ({ name: e.name, idx: i, pts: finalPts[i] }))
+    .sort((a,b) => b.pts - a.pts);
+
+  const series = ranked.map((r, rank) => ({
+    name: r.name,
+    points: history.map(h => h[r.idx]),
+    finalPts: r.pts,
+    finalPos: rank + 1,
+  }));
 
   res.json({
-    labels: dates.map(d=>new Date(d+'T12:00:00Z').toLocaleDateString('en-GB',{day:'numeric',month:'short'})),
-    series
+    labels: matches.map((_, i) => `G${i + 1}`),
+    series,
   });
 });
 

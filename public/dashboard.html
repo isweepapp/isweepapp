@@ -282,9 +282,24 @@
 
     <!-- Stats / Position history chart -->
     <div id="stats-container" hidden>
-      <div style="margin-bottom:0.75rem;font-size:0.85rem;color:var(--text-muted)">
-        Leaderboard position after each match day — lower is better. Top 10 highlighted.
+      <style>
+        .pos-picker { display:flex; flex-wrap:wrap; gap:0.4rem 0.5rem; margin-bottom:1rem; }
+        .pos-pill {
+          padding:0.3rem 0.85rem; border-radius:999px; border:1px solid rgba(255,255,255,0.15);
+          background:rgba(255,255,255,0.04); color:rgba(255,255,255,0.45);
+          font-size:0.78rem; font-weight:600; cursor:pointer; transition:all 0.18s;
+        }
+        .pos-pill:hover { border-color:rgba(255,255,255,0.35); color:rgba(255,255,255,0.8); }
+        .pos-pill-top-1 { border-color:rgba(245,158,11,0.5); color:#f59e0b; background:rgba(245,158,11,0.08); }
+        .pos-pill-top-2 { border-color:rgba(148,163,184,0.5); color:#94a3b8; background:rgba(148,163,184,0.08); }
+        .pos-pill-top-3 { border-color:rgba(205,127,50,0.5); color:#cd7f32; background:rgba(205,127,50,0.08); }
+        .pos-pill-bottom { border-color:rgba(248,113,113,0.4); color:#f87171; background:rgba(248,113,113,0.07); }
+        .pos-pill-active { border-color:#2dd4bf !important; color:#2dd4bf !important; background:rgba(45,212,191,0.12) !important; }
+      </style>
+      <div style="margin-bottom:0.6rem;font-size:0.85rem;color:var(--text-muted)">
+        Points accumulation per match — top 3 and bottom 3 always highlighted. Click a name to track them.
       </div>
+      <div id="pos-picker" class="pos-picker"></div>
       <div style="position:relative;height:480px;background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--radius);padding:1rem;">
         <canvas id="pos-chart"></canvas>
         <div id="pos-chart-empty" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;color:var(--text-muted);font-size:0.9rem">

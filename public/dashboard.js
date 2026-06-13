@@ -470,78 +470,124 @@ async function loadGoalsLeaderboard() {
 }
 
 // -- Tabs ----------------------------------------------------------------------
-// ── Stats: position history chart ────────────────────────────────────────────
-const CHART_COLORS = [
-  '#f59e0b','#06d6a0','#60a5fa','#f87171','#a78bfa',
-  '#fb923c','#34d399','#38bdf8','#f472b6','#4ade80',
-];
+// ── Stats: points history chart ───────────────────────────────────────────────
+const PODIUM_COLORS  = { 1: '#f59e0b', 2: '#94a3b8', 3: '#cd7f32' };
+const BOTTOM_COLORS  = ['#f87171', '#fb923c', '#fca5a5'];
+const SELECTED_COLOR = '#2dd4bf';
+const GREY_COLOR     = 'rgba(255,255,255,0.12)';
+
 let posChartInstance = null;
+let posChartData     = null;
+const selectedNames  = new Set();
+
+function seriesColor(finalPos, total, name) {
+  if (selectedNames.has(name))      return SELECTED_COLOR;
+  if (PODIUM_COLORS[finalPos])      return PODIUM_COLORS[finalPos];
+  if (total - finalPos < 3)         return BOTTOM_COLORS[total - finalPos];
+  return GREY_COLOR;
+}
+
+function isHighlighted(finalPos, total, name) {
+  return finalPos <= 3 || (total - finalPos) < 3 || selectedNames.has(name);
+}
+
+function rebuildPosChart() {
+  if (!posChartData || !posChartData.series.length) return;
+  const { labels, series } = posChartData;
+  const total = series.length;
+  const datasets = series.map(s => {
+    const hi    = isHighlighted(s.finalPos, total, s.name);
+    const color = seriesColor(s.finalPos, total, s.name);
+    return {
+      label: s.name, data: s.points,
+      borderColor: color, backgroundColor: 'transparent',
+      borderWidth: hi ? (s.finalPos <= 3 ? 3 : 2.5) : 1,
+      pointRadius: hi ? 3 : 0, pointHoverRadius: hi ? 5 : 0,
+      tension: 0.35, spanGaps: true, order: hi ? 0 : 1,
+    };
+  });
+  if (posChartInstance) posChartInstance.destroy();
+  posChartInstance = new Chart(document.getElementById('pos-chart'), {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      scales: {
+        x: {
+          ticks: { color: 'rgba(255,255,255,0.45)', font: { size: 10 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 20 },
+          grid:  { color: 'rgba(255,255,255,0.05)' },
+          title: { display: true, text: 'Match', color: 'rgba(255,255,255,0.35)', font: { size: 11 } },
+        },
+        y: {
+          ticks: { color: 'rgba(255,255,255,0.4)', font: { size: 11 } },
+          grid:  { color: 'rgba(255,255,255,0.06)' },
+          title: { display: true, text: 'Points', color: 'rgba(255,255,255,0.35)', font: { size: 11 } },
+        },
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          mode: 'index', intersect: false,
+          filter: item => isHighlighted(series[item.datasetIndex].finalPos, total, series[item.datasetIndex].name),
+          callbacks: {
+            title: items => `After ${items[0].label}`,
+            label: item => ` ${item.dataset.label}: ${item.raw} pts`,
+          },
+          backgroundColor: 'rgba(10,14,26,0.95)',
+          borderColor: 'rgba(255,255,255,0.12)', borderWidth: 1,
+          titleColor: 'rgba(255,255,255,0.6)', bodyColor: '#fff',
+        },
+      },
+    },
+  });
+}
+
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 async function loadPositionHistory() {
   const canvas   = document.getElementById('pos-chart');
   const emptyEl  = document.getElementById('pos-chart-empty');
   const legendEl = document.getElementById('pos-legend');
+  const pickerEl = document.getElementById('pos-picker');
   if (!canvas) return;
   try {
-    const data = await fetch('/api/position-history').then(r => r.json());
-    if (!data.labels || !data.labels.length) {
+    posChartData = await fetch('/api/position-history').then(r => r.json());
+    if (!posChartData.labels || !posChartData.labels.length) {
       canvas.style.display = 'none';
-      emptyEl.style.display = 'flex';
+      if (emptyEl) emptyEl.style.display = 'flex';
       return;
     }
-    const total = data.series.length;
-    const datasets = data.series.map((s, i) => {
-      const top = i < 10;
-      const color = top ? CHART_COLORS[i] : 'rgba(255,255,255,0.1)';
-      return {
-        label: s.name, data: s.positions,
-        borderColor: color, backgroundColor: 'transparent',
-        borderWidth: top ? 2.5 : 1,
-        pointRadius: top ? 3 : 0,
-        pointHoverRadius: 5,
-        tension: 0.3, spanGaps: true,
-      };
-    });
-    if (posChartInstance) posChartInstance.destroy();
-    posChartInstance = new Chart(canvas, {
-      type: 'line',
-      data: { labels: data.labels, datasets },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        scales: {
-          y: {
-            reverse: true, min: 1, max: total,
-            ticks: { stepSize: Math.ceil(total / 10), color: 'rgba(255,255,255,0.4)', font: { size: 11 } },
-            grid: { color: 'rgba(255,255,255,0.06)' },
-            title: { display: true, text: 'Position', color: 'rgba(255,255,255,0.4)', font: { size: 11 } },
-          },
-          x: {
-            ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 11 }, maxRotation: 45 },
-            grid: { color: 'rgba(255,255,255,0.06)' },
-          },
-        },
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            mode: 'index', intersect: false,
-            callbacks: {
-              title: items => `After ${items[0].label}`,
-              label: item => ` ${item.dataset.label}: #${item.raw}`,
-            },
-            backgroundColor: 'rgba(10,14,26,0.95)',
-            borderColor: 'rgba(255,255,255,0.12)', borderWidth: 1,
-            titleColor: 'rgba(255,255,255,0.6)', bodyColor: '#fff',
-          },
-        },
-      },
-    });
-    legendEl.innerHTML = data.series.slice(0, 10).map((s, i) =>
-      `<span style="display:inline-flex;align-items:center;gap:0.3rem">
-        <span style="display:inline-block;width:18px;height:3px;border-radius:2px;background:${CHART_COLORS[i]}"></span>
-        <span style="color:var(--text)">${s.name.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</span>
-      </span>`
-    ).join('');
-  } catch(e) {
+    const { series } = posChartData;
+    const total = series.length;
+
+    if (pickerEl) {
+      pickerEl.innerHTML = series.map(s => {
+        let cls = 'pos-pill';
+        if (s.finalPos <= 3)             cls += ` pos-pill-top pos-pill-top-${s.finalPos}`;
+        else if (total - s.finalPos < 3) cls += ' pos-pill-bottom';
+        return `<button class="${cls}" data-name="${esc(s.name)}">${esc(s.name)}</button>`;
+      }).join('');
+      pickerEl.querySelectorAll('.pos-pill').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const name = btn.dataset.name;
+          if (selectedNames.has(name)) { selectedNames.delete(name); btn.classList.remove('pos-pill-active'); }
+          else                         { selectedNames.add(name);    btn.classList.add('pos-pill-active'); }
+          rebuildPosChart();
+        });
+      });
+    }
+
+    if (legendEl) {
+      const top3    = series.filter(s => s.finalPos <= 3);
+      const bottom3 = series.filter(s => total - s.finalPos < 3).reverse();
+      legendEl.innerHTML = [
+        ...top3.map(s    => `<span style="display:inline-flex;align-items:center;gap:0.3rem"><span style="display:inline-block;width:18px;height:3px;border-radius:2px;background:${PODIUM_COLORS[s.finalPos]}"></span><span style="color:var(--text)">${esc(s.name)}</span></span>`),
+        ...bottom3.map((s, i) => `<span style="display:inline-flex;align-items:center;gap:0.3rem"><span style="display:inline-block;width:18px;height:3px;border-radius:2px;background:${BOTTOM_COLORS[i]}"></span><span style="color:var(--text-muted)">${esc(s.name)}</span></span>`),
+      ].join('');
+    }
+
+    rebuildPosChart();
+  } catch (_) {
     if (canvas) canvas.style.display = 'none';
     if (emptyEl) emptyEl.style.display = 'flex';
   }
