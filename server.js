@@ -1265,6 +1265,41 @@ app.get('/api/matches', (_req, res) => {
   res.json(db.prepare('SELECT id, date, team_a, team_b, score_a, score_b, goals_a, goals_b, stage FROM matches ORDER BY date, id').all());
 });
 
+// ── Country breakdown: per-team match-by-match points ─────────────────────────
+app.get('/api/country-breakdown', (_req, res) => {
+  const teams    = db.prepare('SELECT name, pot FROM teams').all();
+  const matches  = db.prepare('SELECT * FROM matches WHERE score_a IS NOT NULL AND score_b IS NOT NULL ORDER BY date, id').all();
+  const finishes = db.prepare('SELECT * FROM group_finishes').all();
+  const finishMap = Object.fromEntries(finishes.map(f => [f.team, f.position]));
+
+  const calcMatchPts = (gf, ga, yc, rc, result) => {
+    const rp = result === 'W' ? 3 : result === 'D' ? 1 : 0;
+    return { result: rp, goalsFor: gf*2, goalsAgainst: -ga, yellowCards: -yc, redCards: rc*-3,
+             total: rp + gf*2 - ga - yc - rc*3 };
+  };
+
+  const teamData = {};
+  for (const t of teams) teamData[t.name] = { team: t.name, pot: t.pot, matches: [] };
+
+  for (const m of matches) {
+    const ga = m.goals_a||0, gb = m.goals_b||0, ya = m.yellows_a||0, yb = m.yellows_b||0, ra = m.reds_a||0, rb = m.reds_b||0;
+    const rA = m.score_a > m.score_b ? 'W' : m.score_a < m.score_b ? 'L' : 'D';
+    const rB = rA === 'W' ? 'L' : rA === 'L' ? 'W' : 'D';
+    if (teamData[m.team_a]) teamData[m.team_a].matches.push({ date: m.date, stage: m.stage, opponent: m.team_b, scoreFor: m.score_a, scoreAgainst: m.score_b, result: rA, pts: calcMatchPts(ga, gb, ya, ra, rA) });
+    if (teamData[m.team_b]) teamData[m.team_b].matches.push({ date: m.date, stage: m.stage, opponent: m.team_a, scoreFor: m.score_b, scoreAgainst: m.score_a, result: rB, pts: calcMatchPts(gb, ga, yb, rb, rB) });
+  }
+
+  const result = Object.values(teamData).map(t => {
+    const bonusPos   = finishMap[t.team] || null;
+    const bonusPts   = bonusPos ? (FINISH_BONUS[bonusPos] || 0) : 0;
+    const matchTotal = t.matches.reduce((s, m) => s + m.pts.total, 0);
+    return { ...t, groupFinish: bonusPos ? { position: bonusPos, pts: bonusPts } : null, totalPts: matchTotal + bonusPts };
+  });
+
+  result.sort((a, b) => b.totalPts - a.totalPts);
+  res.json(result);
+});
+
 // ── Admin: All matches (full detail) ─────────────────────────────────────────
 app.get('/api/admin/matches', requireAdmin, (_req, res) => {
   res.json(db.prepare('SELECT * FROM matches ORDER BY date, id').all());
