@@ -417,7 +417,28 @@ app.get('/api/fixtures', (_req, res) => {
     }
   }
   const owners = t => ownerMap[t] ? [...ownerMap[t]] : [];
-  res.json(matches.map(m => ({
+
+  // Deduplicate: order-independent team key so FTDB home/away swaps still merge
+  const seen = new Map();
+  for (const m of matches) {
+    const teamKey = [m.team_a, m.team_b].sort().join('~');
+    const key = [teamKey, m.date ? m.date.slice(0, 10) : ''].join('|');
+    const existing = seen.get(key);
+    if (!existing) { seen.set(key, m); continue; }
+    const mBetter = (m.score_a !== null && existing.score_a === null)
+      || (m.date && existing.date && m.date.length > existing.date.length);
+    if (mBetter) seen.set(key, m);
+  }
+
+  // Sort: UTC datetimes first within each day; date-only (TBC) at end of day
+  const deduped = [...seen.values()].sort((a, b) => {
+    const da = a.date || '', db = b.date || '';
+    const a2 = da.length <= 10 ? da + 'T99:99:99Z' : da;
+    const b2 = db.length <= 10 ? db + 'T99:99:99Z' : db;
+    return a2 < b2 ? -1 : a2 > b2 ? 1 : 0;
+  });
+
+  res.json(deduped.map(m => ({
     id: m.id, date: m.date, stage: m.stage,
     teamA: m.team_a, teamB: m.team_b,
     scoreA: m.score_a, scoreB: m.score_b,
