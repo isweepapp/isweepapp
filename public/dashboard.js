@@ -471,8 +471,8 @@ async function loadGoalsLeaderboard() {
 
 // -- Tabs ----------------------------------------------------------------------
 // ── Stats: points history chart ───────────────────────────────────────────────
-const PODIUM_COLORS  = { 1: '#f59e0b', 2: '#94a3b8', 3: '#cd7f32' };
-const BOTTOM_COLORS  = ['#f87171', '#fb923c', '#fca5a5'];
+const PODIUM_COLORS  = { 1: '#22c55e', 2: '#eab308', 3: '#f97316' };
+const BOTTOM_COLORS  = ['#ef4444', '#f97316', '#fca5a5'];
 const SELECTED_COLOR = '#2dd4bf';
 const GREY_COLOR     = 'rgba(255,255,255,0.12)';
 
