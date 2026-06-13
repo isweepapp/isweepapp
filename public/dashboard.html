@@ -203,6 +203,7 @@
       <button class="tab-btn" data-tab="knockout">Knockout</button>
       <button class="tab-btn" data-tab="foul">🦆 Foul League</button>
       <button class="tab-btn" data-tab="goals">Goals</button>
+      <button class="tab-btn" data-tab="stats">Stats</button>
     </div>
 
     <!-- Leaderboard table (Overall / Group / Knockout) -->
@@ -279,7 +280,22 @@
       </div>
     </div>
 
+    <!-- Stats / Position history chart -->
+    <div id="stats-container" hidden>
+      <div style="margin-bottom:0.75rem;font-size:0.85rem;color:var(--text-muted)">
+        Leaderboard position after each match day — lower is better. Top 10 highlighted.
+      </div>
+      <div style="position:relative;height:480px;background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--radius);padding:1rem;">
+        <canvas id="pos-chart"></canvas>
+        <div id="pos-chart-empty" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;color:var(--text-muted);font-size:0.9rem">
+          No match data yet — check back after the first games are played.
+        </div>
+      </div>
+      <div id="pos-legend" style="margin-top:1rem;display:flex;flex-wrap:wrap;gap:0.4rem 0.75rem;font-size:0.78rem;"></div>
+    </div>
+
   </div>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <script src="flags.js"></script>
   <script src="dashboard.js"></script>
 </body>

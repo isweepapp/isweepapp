@@ -444,6 +444,64 @@ app.get('/api/entries', (_req, res) => {
   res.json(result);
 });
 
+// ── Public: Position history (for Stats chart) ────────────────────────────────
+app.get('/api/position-history', (_req, res) => {
+  const raw = db.prepare('SELECT * FROM matches WHERE score_a IS NOT NULL ORDER BY date, id').all();
+  const deduped = new Map();
+  for (const m of raw) {
+    const key = [m.team_a, m.team_b, (m.date||'').slice(0,10)].join('|');
+    const ex = deduped.get(key);
+    if (!ex || (m.date && ex.date && m.date.length > ex.date.length)) deduped.set(key, m);
+  }
+  const matches = [...deduped.values()].sort((a,b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
+
+  const finishMap = Object.fromEntries(
+    db.prepare('SELECT * FROM group_finishes').all().map(f => [f.team, f.position])
+  );
+  const FINISH_BONUS = {1:4,2:3,3:2,4:1};
+
+  const participants = db.prepare('SELECT id, name, known_by FROM participants').all();
+  const getEntries   = db.prepare('SELECT pot1_team,pot2_team,pot2_team_2,pot3_team,pot3_team_2,pot3_team_3 FROM entries WHERE participant_id=?');
+  const entryList = participants.flatMap(p =>
+    getEntries.all(p.id).map(e => ({
+      name: p.known_by || p.name,
+      teams: [e.pot1_team,e.pot2_team,e.pot2_team_2,e.pot3_team,e.pot3_team_2,e.pot3_team_3].filter(Boolean)
+    }))
+  );
+
+  const dates = [...new Set(matches.map(m => (m.date||'').slice(0,10)))].filter(Boolean).sort();
+  if (!dates.length) return res.json({ labels: [], series: [] });
+
+  const history = dates.map(limit => {
+    const tp = {};
+    for (const m of matches) {
+      if ((m.date||'').slice(0,10) > limit) break;
+      const ga=m.goals_a||0,gb=m.goals_b||0,ya=m.yellows_a||0,yb=m.yellows_b||0,ra=m.reds_a||0,rb=m.reds_b||0;
+      const w = m.score_a > m.score_b, d = m.score_a === m.score_b;
+      tp[m.team_a] = (tp[m.team_a]||0) + (w?3:d?1:0) + ga*2 - gb - ya - ra*3;
+      tp[m.team_b] = (tp[m.team_b]||0) + (!w&&!d?3:d?1:0) + gb*2 - ga - yb - rb*3;
+    }
+    for (const [t,p] of Object.entries(finishMap)) if (tp[t]!=null) tp[t]+=(FINISH_BONUS[p]||0);
+    const sorted = entryList.map(e=>({name:e.name,pts:e.teams.reduce((s,t)=>s+(tp[t]||0),0)}))
+                             .sort((a,b)=>b.pts-a.pts);
+    const pos={};
+    sorted.forEach((e,i)=>{pos[e.name]=i+1;});
+    return pos;
+  });
+
+  const names = [...new Set(entryList.map(e=>e.name))];
+  const series = names.map(name=>({
+    name,
+    positions: dates.map((_,i)=>history[i][name]??null),
+    finalPos:  history[history.length-1]?.[name]??999
+  })).sort((a,b)=>a.finalPos-b.finalPos);
+
+  res.json({
+    labels: dates.map(d=>new Date(d+'T12:00:00Z').toLocaleDateString('en-GB',{day:'numeric',month:'short'})),
+    series
+  });
+});
+
 // ── Public: Prize fund breakdown ──────────────────────────────────────────────
 app.get('/api/prizes', (_req, res) => {
   const rows         = db.prepare('SELECT (1 + extra_entries) AS total_entries FROM participants WHERE paid = 1').all();

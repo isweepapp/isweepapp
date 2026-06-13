@@ -470,15 +470,95 @@ async function loadGoalsLeaderboard() {
 }
 
 // -- Tabs ----------------------------------------------------------------------
+// ── Stats: position history chart ────────────────────────────────────────────
+const CHART_COLORS = [
+  '#f59e0b','#06d6a0','#60a5fa','#f87171','#a78bfa',
+  '#fb923c','#34d399','#38bdf8','#f472b6','#4ade80',
+];
+let posChartInstance = null;
+
+async function loadPositionHistory() {
+  const canvas   = document.getElementById('pos-chart');
+  const emptyEl  = document.getElementById('pos-chart-empty');
+  const legendEl = document.getElementById('pos-legend');
+  if (!canvas) return;
+  try {
+    const data = await fetch('/api/position-history').then(r => r.json());
+    if (!data.labels || !data.labels.length) {
+      canvas.style.display = 'none';
+      emptyEl.style.display = 'flex';
+      return;
+    }
+    const total = data.series.length;
+    const datasets = data.series.map((s, i) => {
+      const top = i < 10;
+      const color = top ? CHART_COLORS[i] : 'rgba(255,255,255,0.1)';
+      return {
+        label: s.name, data: s.positions,
+        borderColor: color, backgroundColor: 'transparent',
+        borderWidth: top ? 2.5 : 1,
+        pointRadius: top ? 3 : 0,
+        pointHoverRadius: 5,
+        tension: 0.3, spanGaps: true,
+      };
+    });
+    if (posChartInstance) posChartInstance.destroy();
+    posChartInstance = new Chart(canvas, {
+      type: 'line',
+      data: { labels: data.labels, datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        scales: {
+          y: {
+            reverse: true, min: 1, max: total,
+            ticks: { stepSize: Math.ceil(total / 10), color: 'rgba(255,255,255,0.4)', font: { size: 11 } },
+            grid: { color: 'rgba(255,255,255,0.06)' },
+            title: { display: true, text: 'Position', color: 'rgba(255,255,255,0.4)', font: { size: 11 } },
+          },
+          x: {
+            ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 11 }, maxRotation: 45 },
+            grid: { color: 'rgba(255,255,255,0.06)' },
+          },
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            mode: 'index', intersect: false,
+            callbacks: {
+              title: items => `After ${items[0].label}`,
+              label: item => ` ${item.dataset.label}: #${item.raw}`,
+            },
+            backgroundColor: 'rgba(10,14,26,0.95)',
+            borderColor: 'rgba(255,255,255,0.12)', borderWidth: 1,
+            titleColor: 'rgba(255,255,255,0.6)', bodyColor: '#fff',
+          },
+        },
+      },
+    });
+    legendEl.innerHTML = data.series.slice(0, 10).map((s, i) =>
+      `<span style="display:inline-flex;align-items:center;gap:0.3rem">
+        <span style="display:inline-block;width:18px;height:3px;border-radius:2px;background:${CHART_COLORS[i]}"></span>
+        <span style="color:var(--text)">${s.name.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</span>
+      </span>`
+    ).join('');
+  } catch(e) {
+    if (canvas) canvas.style.display = 'none';
+    if (emptyEl) emptyEl.style.display = 'flex';
+  }
+}
+
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     currentTab = btn.dataset.tab;
     const isGoals = currentTab === 'goals';
-    document.querySelector('.prem-table-wrap').hidden = isGoals;
+    const isStats = currentTab === 'stats';
+    document.querySelector('.prem-table-wrap').hidden = isGoals || isStats;
     document.getElementById('goals-container').hidden = !isGoals;
+    document.getElementById('stats-container').hidden = !isStats;
     if (isGoals) { document.getElementById('foul-desc').hidden = true; loadGoalsLeaderboard(); return; }
+    if (isStats) { loadPositionHistory(); return; }
     previousRanks = loadPrevRanks();
     loadLeaderboard();
   });
@@ -493,6 +573,7 @@ function tick() {
     loadStats();
     loadLiveMatch();
     if (currentTab === 'goals') loadGoalsLeaderboard();
+    else if (currentTab === 'stats') loadPositionHistory();
     else loadLeaderboard();
   }
 }
