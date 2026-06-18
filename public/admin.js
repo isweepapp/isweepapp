@@ -489,6 +489,52 @@ async function sendEmail(mode) {
 document.getElementById('email-test-btn').addEventListener('click', () => sendEmail('test'));
 document.getElementById('email-all-btn').addEventListener('click',  () => sendEmail('all'));
 
+// -- Send Round 1 Newsletter ---------------------------------------------------
+async function sendNewsletter(mode) {
+  const alertEl = document.getElementById('newsletter-alert');
+  const logEl   = document.getElementById('newsletter-log');
+  const testBtn = document.getElementById('newsletter-test-btn');
+  const allBtn  = document.getElementById('newsletter-all-btn');
+  hideAlert(alertEl);
+  logEl.classList.add('hidden');
+  logEl.textContent = '';
+
+  if (mode === 'all') {
+    if (!confirm('Send the Round 1 Newsletter to ALL participants with an email address?\n\nThis cannot be undone.')) return;
+  }
+
+  testBtn.disabled = true;
+  allBtn.disabled  = true;
+  const activeBtn  = mode === 'test' ? testBtn : allBtn;
+  const origText   = activeBtn.textContent;
+  activeBtn.textContent = 'Sending…';
+
+  try {
+    const r = await fetch('/api/admin/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ template: 'round1-newsletter', subject: 'iSweep — Round 1 Roundup ⚽🏆', mode }),
+      credentials: 'include',
+    });
+    const data = await r.json();
+    if (r.ok) {
+      showAlert(alertEl, data.message || `Sent to ${data.sent} recipient(s).`, 'success');
+      if (data.log) { logEl.textContent = data.log.join('\n'); logEl.classList.remove('hidden'); }
+    } else {
+      showAlert(alertEl, data.error || 'Unknown error', 'error');
+    }
+  } catch (e) {
+    showAlert(alertEl, 'Network error: ' + e.message, 'error');
+  } finally {
+    testBtn.disabled = false;
+    allBtn.disabled  = false;
+    activeBtn.textContent = origText;
+  }
+}
+
+document.getElementById('newsletter-test-btn').addEventListener('click', () => sendNewsletter('test'));
+document.getElementById('newsletter-all-btn').addEventListener('click',  () => sendNewsletter('all'));
+
 // -- Send tournament update email -----------------------------------------------
 async function sendUpdateEmail(mode) {
   const alertEl  = document.getElementById('update-email-alert');

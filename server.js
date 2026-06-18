@@ -773,7 +773,7 @@ app.delete('/api/admin/participants/:name', requireAdmin, (req, res) => {
 //                                   defaults to onboarding@resend.dev (test only)
 app.post('/api/admin/send-email', requireAdmin, async (req, res) => {
   try {
-    const { template = '1day-to-go', mode = 'test', to } = req.body || {};
+    const { template = '1day-to-go', mode = 'test', to, subject: bodySubject } = req.body || {};
 
     // Load email template from disk
     const templatePath = path.join(__dirname, 'emails', `${template}.html`);
@@ -789,7 +789,7 @@ app.post('/api/admin/send-email', requireAdmin, async (req, res) => {
     }
 
     const from    = process.env.RESEND_FROM || 'iSweep <onboarding@resend.dev>';
-    const subject = 'iSweep - 1 Day To Go! The World Cup Kicks Off Tomorrow!';
+    const subject = bodySubject || 'iSweep - 1 Day To Go! The World Cup Kicks Off Tomorrow!';
 
     // Determine recipient list
     let recipients;
