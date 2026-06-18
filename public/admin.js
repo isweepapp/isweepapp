@@ -518,13 +518,13 @@ async function sendNewsletter(mode) {
     });
     const data = await r.json();
     if (r.ok) {
-      showAlert(alertEl, data.message || `Sent to ${data.sent} recipient(s).`, 'success');
+      showAlert(alertEl, 'success', data.message || `Sent to ${data.sent} recipient(s).`);
       if (data.log) { logEl.textContent = data.log.join('\n'); logEl.classList.remove('hidden'); }
     } else {
-      showAlert(alertEl, data.error || 'Unknown error', 'error');
+      showAlert(alertEl, 'error', data.error || 'Unknown error');
     }
   } catch (e) {
-    showAlert(alertEl, 'Network error: ' + e.message, 'error');
+    showAlert(alertEl, 'error', 'Network error: ' + e.message);
   } finally {
     testBtn.disabled = false;
     allBtn.disabled  = false;
