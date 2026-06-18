@@ -518,7 +518,8 @@ async function sendNewsletter(mode) {
     });
     const data = await r.json();
     if (r.ok) {
-      showAlert(alertEl, 'success', data.message || `Sent to ${data.sent} recipient(s).`);
+      const addr = data.details?.sent?.[0] || '';
+      showAlert(alertEl, 'success', `Sent! ${addr ? 'Delivered to ' + addr : `${data.sent} recipient(s)`}.`);
       if (data.log) { logEl.textContent = data.log.join('\n'); logEl.classList.remove('hidden'); }
     } else {
       showAlert(alertEl, 'error', data.error || 'Unknown error');
