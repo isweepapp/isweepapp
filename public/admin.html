@@ -1,568 +1,245 @@
-'use strict';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>iSweep World Cup Sweepstake — Admin</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
+</head>
+<body>
+  <header>
+    <div class="flag" style="display:flex;gap:0.4rem;justify-content:center;align-items:center;">
+      <img src="/assets/icons/padlock.svg" alt="" style="width:42px;height:42px;">
+      <img src="/assets/icons/football.svg" alt="" style="width:40px;height:40px;">
+    </div>
+    <h1>Admin Panel</h1>
+    <p>World Cup 2026 Office Sweepstake</p>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/enter.html">Enter</a>
+      <a href="/prizes.html">Prizes</a>
+      <a href="/dashboard.html">Leaderboard</a>
+      <a href="/matches.html">Group Stage</a>
+      <a href="/knockout.html">Knockout</a>
+      <a href="/pots.html">Pots</a>
+      <a href="/admin.html" class="active">Admin</a>
+    </nav>
+  </header>
 
-const loginSection = document.getElementById('login-section');
-const adminPanel   = document.getElementById('admin-panel');
-const loginForm    = document.getElementById('login-form');
-const loginBtn     = document.getElementById('login-btn');
-const loginAlert   = document.getElementById('login-alert');
-const logoutBtn    = document.getElementById('logout-btn');
+  <div class="container">
 
-const drawBtn      = document.getElementById('draw-btn');
-const drawAlert    = document.getElementById('draw-alert');
-const drawResults  = document.getElementById('draw-results');
+    <!-- Login -->
+    <div id="login-section" class="card hidden">
+      <h2><img class="h2-icon" src="/assets/icons/key.svg" alt=""> Admin Login</h2>
+      <div id="login-alert" class="alert hidden"></div>
+      <form id="login-form" novalidate>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" placeholder="Enter admin password" required>
+        </div>
+        <button type="submit" class="btn btn-primary" id="login-btn">Log In</button>
+      </form>
+    </div>
 
-const csvForm      = document.getElementById('csv-form');
-const csvBtn       = document.getElementById('csv-btn');
-const csvAlert     = document.getElementById('csv-alert');
+    <!-- Admin panel (shown after login) -->
+    <div id="admin-panel" class="hidden">
 
-const gfForm       = document.getElementById('gf-form');
-const gfBtn        = document.getElementById('gf-btn');
-const gfAlert      = document.getElementById('gf-alert');
-const gfTbody      = document.getElementById('gf-tbody');
+      <div style="display:flex;justify-content:flex-end;margin-bottom:1rem;">
+        <button class="btn btn-outline btn-sm" id="logout-btn">Log Out</button>
+      </div>
 
-function esc(s) {
-  return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
+      <!-- Participants & Tiebreaks — one row per team name -->
+      <div class="card admin-section">
+        <h2><img class="h2-icon" src="/assets/icons/people.svg" alt=""> Entries by Team Name</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Team Name</th>
+                <th>Email</th>
+                <th>Draws</th>
+                <th>Amount Due</th>
+                <th>Tiebreak Guess</th>
+                <th>Known By</th>
+                <th>Club</th>
+                <th>Country</th>
+              </tr>
+            </thead>
+            <tbody id="admin-ptbody">
+              <tr><td colspan="9" class="text-muted" style="padding:0.75rem 0.9rem;">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-function showAlert(el, type, msg) {
-  el.className = `alert alert-${type}`;
-  el.textContent = msg;
-  el.classList.remove('hidden');
-}
-function hideAlert(el) { el.classList.add('hidden'); }
+      <!-- Money owed — one row per email address -->
+      <div class="card admin-section">
+        <h2><img class="h2-icon" src="/assets/icons/coins.svg" alt=""> Money Owed by Email</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Email</th>
+                <th>Known By</th>
+                <th>Team Names</th>
+                <th>Total Draws</th>
+                <th>Amount Due</th>
+                <th>Paid</th>
+              </tr>
+            </thead>
+            <tbody id="money-tbody">
+              <tr><td colspan="7" class="text-muted" style="padding:0.75rem 0.9rem;">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-// ── Auth ──────────────────────────────────────────────────────────────────────
-async function checkAuth() {
-  try {
-    const res = await fetch('/api/admin/check');
-    if (res.ok) {
-      showPanel();
-    } else {
-      showLogin();
-    }
-  } catch {
-    showLogin();
-  }
-}
-
-function showLogin() {
-  loginSection.classList.remove('hidden');
-  adminPanel.classList.add('hidden');
-}
-
-function showPanel() {
-  loginSection.classList.add('hidden');
-  adminPanel.classList.remove('hidden');
-  loadGroupFinishes();
-  loadAdminParticipants();
-  loadMoneyTable();
-  loadAdminMatches();
-}
-
-loginForm.addEventListener('submit', async e => {
-  e.preventDefault();
-  hideAlert(loginAlert);
-  const password = document.getElementById('password').value;
-  if (!password) { showAlert(loginAlert, 'error', 'Password required.'); return; }
-
-  loginBtn.disabled = true;
-  loginBtn.innerHTML = '<span class="spinner"></span> Logging in…';
-
-  try {
-    const res  = await fetch('/api/admin/login', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ password }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      showAlert(loginAlert, 'error', data.error || 'Login failed.');
-    } else {
-      showPanel();
-    }
-  } catch {
-    showAlert(loginAlert, 'error', 'Network error.');
-  } finally {
-    loginBtn.disabled = false;
-    loginBtn.textContent = 'Log In';
-  }
-});
-
-logoutBtn.addEventListener('click', async () => {
-  await fetch('/api/admin/logout', { method: 'POST' });
-  showLogin();
-});
-
-// ── Draw ──────────────────────────────────────────────────────────────────────
-drawBtn.addEventListener('click', async () => {
-  hideAlert(drawAlert);
-  drawResults.classList.add('hidden');
-  drawBtn.disabled = true;
-  drawBtn.innerHTML = '<span class="spinner"></span> Running draw…';
-
-  try {
-    const res  = await fetch('/api/admin/draw', { method: 'POST' });
-    const data = await res.json();
-
-    showAlert(drawAlert, data.ok ? 'success' : 'error', data.message || data.error);
-
-    if (data.details && data.details.length > 0) {
-      const rows = data.details.map(d => {
-        if (d.status === 'assigned') {
-          return `<div class="draw-result-entry">
-            <span class="ok">✓</span>
-            <span class="text-muted">Entry ${d.entryIndex}:</span>
-            <span class="badge badge-pot1">${esc(d.teams[0])}</span>
-            <span class="badge badge-pot2">${esc(d.teams[1])}</span>
-            <span class="badge badge-pot2">${esc(d.teams[2])}</span>
-            <span class="badge badge-pot3">${esc(d.teams[3])}</span>
-            <span class="badge badge-pot3">${esc(d.teams[4])}</span>
-            <span class="badge badge-pot3">${esc(d.teams[5])}</span>
-          </div>`;
-        }
-        return `<div class="draw-result-entry">
-          <span class="fail">✗</span>
-          <span class="text-muted">Entry ${d.entryIndex}: ${esc(d.message || 'Exhausted')}</span>
-        </div>`;
-      }).join('');
-
-      drawResults.innerHTML = `
-        <p class="text-muted" style="margin-bottom:0.5rem;font-size:0.82rem;">
-          ${data.assigned} assigned · ${data.remaining} of ${data.maxCombos} combos remaining
+      <!-- Match Results -->
+      <div class="card admin-section">
+        <h2><img class="h2-icon" src="/assets/icons/football.svg" alt=""> Match Results</h2>
+        <p class="text-muted" style="font-size:0.88rem;margin-bottom:1rem;">
+          Click any match to enter or update its score, goals and cards. Import fixtures via CSV first if none appear.
         </p>
-        ${rows}`;
-      drawResults.classList.remove('hidden');
-    }
-  } catch {
-    showAlert(drawAlert, 'error', 'Network error — could not run draw.');
-  } finally {
-    drawBtn.disabled = false;
-    drawBtn.textContent = 'Run Draw Now';
-  }
-});
-
-// ── CSV Import ────────────────────────────────────────────────────────────────
-csvForm.addEventListener('submit', async e => {
-  e.preventDefault();
-  hideAlert(csvAlert);
-
-  const fileInput = document.getElementById('csvFile');
-  if (!fileInput.files.length) {
-    showAlert(csvAlert, 'error', 'Please select a CSV file.');
-    return;
-  }
-
-  csvBtn.disabled = true;
-  csvBtn.innerHTML = '<span class="spinner"></span> Importing…';
-
-  const formData = new FormData();
-  formData.append('file', fileInput.files[0]);
-
-  try {
-    const res  = await fetch('/api/admin/matches/import', { method: 'POST', body: formData });
-    const data = await res.json();
-    showAlert(csvAlert, res.ok ? 'success' : 'error', data.message || data.error);
-    if (res.ok) csvForm.reset();
-  } catch {
-    showAlert(csvAlert, 'error', 'Network error — upload failed.');
-  } finally {
-    csvBtn.disabled = false;
-    csvBtn.textContent = 'Upload & Import';
-  }
-});
-
-// ── Group Finishes ────────────────────────────────────────────────────────────
-gfForm.addEventListener('submit', async e => {
-  e.preventDefault();
-  hideAlert(gfAlert);
-
-  const team     = document.getElementById('gf-team').value.trim();
-  const position = document.getElementById('gf-pos').value;
-
-  if (!team) { showAlert(gfAlert, 'error', 'Team name is required.'); return; }
-
-  gfBtn.disabled = true;
-  gfBtn.innerHTML = '<span class="spinner"></span> Saving…';
-
-  try {
-    const res  = await fetch('/api/admin/group-finish', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ team, position }),
-    });
-    const data = await res.json();
-    showAlert(gfAlert, res.ok ? 'success' : 'error', data.message || data.error);
-    if (res.ok) {
-      gfForm.reset();
-      loadGroupFinishes();
-    }
-  } catch {
-    showAlert(gfAlert, 'error', 'Network error.');
-  } finally {
-    gfBtn.disabled = false;
-    gfBtn.textContent = 'Save';
-  }
-});
-
-async function loadGroupFinishes() {
-  try {
-    const res  = await fetch('/api/admin/group-finish');
-    const rows = await res.json();
-    if (!Array.isArray(rows) || rows.length === 0) {
-      gfTbody.innerHTML = '<tr><td colspan="3" class="text-muted" style="padding:0.75rem 0.9rem;">None set yet.</td></tr>';
-      return;
-    }
-    const posLabel = { 1: '🥇 1st', 2: '🥈 2nd', 3: '🥉 3rd', 4: '4th' };
-    gfTbody.innerHTML = rows.map(r => `
-      <tr>
-        <td>${esc(r.team)}</td>
-        <td>${posLabel[r.position] || r.position}</td>
-        <td></td>
-      </tr>
-    `).join('');
-  } catch {
-    gfTbody.innerHTML = '<tr><td colspan="3" class="text-muted">Could not load.</td></tr>';
-  }
-}
-
-// ── Admin Participants ────────────────────────────────────────────────────────
-async function loadAdminParticipants() {
-  const tbody = document.getElementById('admin-ptbody');
-  try {
-    const rows = await fetch('/api/admin/participants').then(r => r.json());
-    if (!Array.isArray(rows) || rows.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" class="text-muted" style="padding:0.75rem 0.9rem;">No participants yet.</td></tr>';
-      return;
-    }
-    tbody.innerHTML = rows.map((r, i) => `
-      <tr>
-        <td class="text-muted">${i + 1}</td>
-        <td>${esc(r.name)}</td>
-        <td>${esc(r.email)}</td>
-        <td>${r.total_entries}</td>
-        <td style="color:var(--gold)">£${r.amount_due}</td>
-        <td>${r.tiebreak_guess !== null ? `<strong>${r.tiebreak_guess}</strong> goals` : '<span class="text-muted">—</span>'}</td>
-        <td>${r.known_by ? esc(r.known_by) : '<span class="text-muted">—</span>'}</td>
-        <td>${r.club_team ? esc(r.club_team) : '<span class="text-muted">—</span>'}</td>
-        <td>${r.country_team ? esc(r.country_team) : '<span class="text-muted">—</span>'}</td>
-      </tr>
-    `).join('');
-  } catch {
-    tbody.innerHTML = '<tr><td colspan="9" class="text-muted">Could not load.</td></tr>';
-  }
-}
-
-// ── Payment tracking (server-side) ───────────────────────────────────────────
-async function togglePaid(email, newState) {
-  try {
-    await fetch('/api/admin/money/paid', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ email, paid: newState }),
-    });
-  } catch {
-    console.error('Failed to update paid status for', email);
-  }
-  loadMoneyTable();
-}
-
-// ── Money by email ────────────────────────────────────────────────────────────
-async function loadMoneyTable() {
-  const tbody = document.getElementById('money-tbody');
-  try {
-    const rows = await fetch('/api/admin/money').then(r => r.json());
-    if (!Array.isArray(rows) || rows.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" class="text-muted" style="padding:0.75rem 0.9rem;">No entries yet.</td></tr>';
-      return;
-    }
-    tbody.innerHTML = rows.map((r, i) => {
-      const isPaid = !!r.paid;
-      return `
-        <tr class="${isPaid ? 'paid-row' : ''}">
-          <td class="text-muted">${i + 1}</td>
-          <td>${esc(r.email)}</td>
-          <td>${r.known_by ? esc(r.known_by) : '<span class="text-muted">—</span>'}</td>
-          <td>${r.teams.map(t => esc(t)).join(', ')}</td>
-          <td>${r.total_draws}</td>
-          <td class="paid-amount" style="color:${isPaid ? 'var(--teal)' : 'var(--gold)'}">£${r.total_due}</td>
-          <td>
-            <label class="paid-label">
-              <input type="checkbox" class="paid-check" data-email="${esc(r.email)}" ${isPaid ? 'checked' : ''}>
-              <span class="paid-status">${isPaid ? '✓ Paid' : 'Pending'}</span>
-            </label>
-          </td>
-        </tr>
-      `;
-    }).join('');
-    tbody.querySelectorAll('.paid-check').forEach(cb => {
-      cb.addEventListener('change', () => togglePaid(cb.dataset.email, cb.checked));
-    });
-  } catch {
-    tbody.innerHTML = '<tr><td colspan="7" class="text-muted">Could not load.</td></tr>';
-  }
-}
-
-// ── Clear entries ─────────────────────────────────────────────────────────────
-document.getElementById('clear-btn').addEventListener('click', async () => {
-  const clearAlert = document.getElementById('clear-alert');
-  hideAlert(clearAlert);
-  if (!confirm('Are you sure? This will permanently delete ALL participants and entries and cannot be undone.')) return;
-
-  const btn = document.getElementById('clear-btn');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> Deleting…';
-
-  try {
-    const res  = await fetch('/api/admin/clear-entries', { method: 'POST' });
-    const data = await res.json();
-    showAlert(clearAlert, res.ok ? 'success' : 'error', data.message || data.error);
-    if (res.ok) { loadAdminParticipants(); loadMoneyTable(); }
-  } catch {
-    showAlert(clearAlert, 'error', 'Network error.');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Delete All Entries';
-  }
-});
-
-// ── Match Results ─────────────────────────────────────────────────────────────
-const STAGE_ORDER = [
-  'Group A','Group B','Group C','Group D','Group E','Group F',
-  'Group G','Group H','Group I','Group J','Group K','Group L',
-  'Round of 32','Quarter-final','Semi-final','Third Place','Final',
-];
-
-async function loadAdminMatches() {
-  const container = document.getElementById('admin-matches-list');
-  try {
-    const matches = await fetch('/api/admin/matches').then(r => r.json());
-    if (!Array.isArray(matches) || matches.length === 0) {
-      container.innerHTML = '<p class="text-muted" style="padding:0.5rem 0;">No matches imported yet — use the CSV import below.</p>';
-      return;
-    }
-    const byStage = {};
-    for (const m of matches) {
-      const s = m.stage || 'Other';
-      if (!byStage[s]) byStage[s] = [];
-      byStage[s].push(m);
-    }
-    const stages = Object.keys(byStage).sort((a, b) => {
-      const ai = STAGE_ORDER.indexOf(a), bi = STAGE_ORDER.indexOf(b);
-      return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
-    });
-    container.innerHTML = stages.map(stage =>
-      `<div class="admin-stage-header">${esc(stage)}</div>` +
-      byStage[stage].map(m => renderAdminMatch(m)).join('')
-    ).join('');
-  } catch {
-    container.innerHTML = '<p class="text-muted">Could not load matches.</p>';
-  }
-}
-
-function renderAdminMatch(m) {
-  const played = m.score_a !== null && m.score_b !== null;
-  const result = played ? `${m.score_a} – ${m.score_b}` : '—';
-  const dateStr = m.date ? new Date(m.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '';
-  const v = (x) => (x !== null && x !== undefined) ? x : '';
-  return `
-    <div class="admin-match-item" id="amatch-${m.id}">
-      <div class="admin-match-row" onclick="toggleMatchEdit('${m.id}')">
-        <span class="admin-match-teams">${esc(m.team_a)} <span class="text-muted">vs</span> ${esc(m.team_b)}</span>
-        <span class="admin-match-date">${dateStr}</span>
-        <span class="admin-match-result${played ? ' played' : ''}">${result}</span>
-        <span class="admin-match-chevron">▾</span>
-      </div>
-      <div class="admin-match-form hidden" id="aform-${m.id}">
-        <div class="match-edit-grid">
-          <div class="match-edit-team">
-            <div class="match-edit-label">${esc(m.team_a)}</div>
-            <div class="match-edit-fields">
-              <label>Score<input type="number" id="sa-${m.id}" value="${v(m.score_a)}" min="0" max="99" placeholder="—"></label>
-              <label>Goals<input type="number" id="ga-${m.id}" value="${v(m.goals_a)}" min="0" placeholder="—"></label>
-              <label>Yellows<input type="number" id="ya-${m.id}" value="${v(m.yellows_a)}" min="0" placeholder="—"></label>
-              <label>Reds<input type="number" id="ra-${m.id}" value="${v(m.reds_a)}" min="0" placeholder="—"></label>
-            </div>
-          </div>
-          <div class="match-edit-team">
-            <div class="match-edit-label">${esc(m.team_b)}</div>
-            <div class="match-edit-fields">
-              <label>Score<input type="number" id="sb-${m.id}" value="${v(m.score_b)}" min="0" max="99" placeholder="—"></label>
-              <label>Goals<input type="number" id="gb-${m.id}" value="${v(m.goals_b)}" min="0" placeholder="—"></label>
-              <label>Yellows<input type="number" id="yb-${m.id}" value="${v(m.yellows_b)}" min="0" placeholder="—"></label>
-              <label>Reds<input type="number" id="rb-${m.id}" value="${v(m.reds_b)}" min="0" placeholder="—"></label>
-            </div>
-          </div>
-        </div>
-        <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
-          <button class="btn btn-teal btn-sm" onclick="saveMatchResult('${m.id}')">Save Result</button>
-          <button class="btn btn-outline btn-sm" onclick="clearMatchResult('${m.id}')">Clear</button>
-          <button class="btn btn-outline btn-sm" onclick="toggleMatchEdit('${m.id}')">Cancel</button>
-          <span id="alert-${m.id}" class="text-muted" style="font-size:0.8rem;"></span>
+        <div id="matches-admin-alert" class="alert hidden"></div>
+        <div id="admin-matches-list">
+          <p class="text-muted" style="padding:0.5rem 0;">Loading…</p>
         </div>
       </div>
-    </div>`;
-}
 
-function toggleMatchEdit(id) {
-  const form     = document.getElementById(`aform-${id}`);
-  const chevron  = document.querySelector(`#amatch-${id} .admin-match-chevron`);
-  const isHidden = form.classList.toggle('hidden');
-  if (chevron) chevron.textContent = isHidden ? '▾' : '▴';
-}
+      <!-- Draw -->
+      <div class="card admin-section">
+        <h2><img class="h2-icon" src="/assets/icons/dice.svg" alt=""> Run Team Draw</h2>
+        <p class="text-muted" style="font-size:0.88rem;margin-bottom:1rem;">
+          Assigns a unique set of teams to every unassigned entry. Safe to run at any time — already-assigned entries are always skipped, so new entries received after a previous draw are picked up automatically on the next run.
+        </p>
+        <div id="draw-alert" class="alert hidden"></div>
+        <button class="btn btn-teal" id="draw-btn">Run Draw Now</button>
+        <div id="draw-results" class="draw-results hidden"></div>
+      </div>
 
-async function saveMatchResult(id) {
-  const msgEl = document.getElementById(`alert-${id}`);
-  msgEl.textContent = '';
-  const body = {
-    score_a:   document.getElementById(`sa-${id}`).value,
-    score_b:   document.getElementById(`sb-${id}`).value,
-    goals_a:   document.getElementById(`ga-${id}`).value,
-    goals_b:   document.getElementById(`gb-${id}`).value,
-    yellows_a: document.getElementById(`ya-${id}`).value,
-    yellows_b: document.getElementById(`yb-${id}`).value,
-    reds_a:    document.getElementById(`ra-${id}`).value,
-    reds_b:    document.getElementById(`rb-${id}`).value,
-  };
-  try {
-    const res  = await fetch(`/api/admin/match/${id}`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
-    });
-    const data = await res.json();
-    msgEl.textContent = data.message || data.error;
-    msgEl.style.color = res.ok ? 'var(--teal)' : 'var(--red-dim)';
-    if (res.ok) {
-      const resultEl = document.querySelector(`#amatch-${id} .admin-match-result`);
-      if (resultEl && body.score_a !== '' && body.score_b !== '') {
-        resultEl.textContent = `${body.score_a} – ${body.score_b}`;
-        resultEl.classList.add('played');
-      }
-    }
-  } catch {
-    msgEl.textContent = 'Network error.';
-    msgEl.style.color = 'var(--red-dim)';
-  }
-}
+      <!-- Live Data Sync -->
+      <div class="card admin-section">
+        <h2><img class="h2-icon" src="/assets/icons/globe.svg" alt=""> Live Data Sync</h2>
+        <p class="text-muted" style="font-size:0.88rem;margin-bottom:0.5rem;">
+          Automatically pull fixtures, scores and group standings from
+          <a href="https://www.football-data.org/" target="_blank" style="color:var(--teal)">football-data.org</a>.
+          Requires a free API key — set the <code>FOOTBALL_DATA_API_KEY</code> environment variable before starting the server.
+        </p>
+        <p class="text-muted" style="font-size:0.82rem;margin-bottom:1rem;">
+          <strong style="color:var(--text)">Sync Fixtures &amp; Scores</strong> — instant, one API call, also auto-updates group positions after the group stage.<br>
+          <strong style="color:var(--text)">Sync Card Data</strong> — fetches yellow/red cards per match; takes ~7 s per finished match (free tier rate limit).
+        </p>
+        <div id="sync-alert" class="alert hidden"></div>
+        <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:1rem;">
+          <button class="btn btn-teal" id="sync-btn">⚡ Sync Fixtures &amp; Scores</button>
+          <button class="btn btn-outline" id="sync-cards-btn">🟨 Sync Card Data</button>
+        </div>
+        <div id="cards-progress" class="hidden">
+          <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.5rem;">
+            <div class="spinner" style="border-top-color:var(--teal)"></div>
+            <span id="cards-progress-text" class="text-muted" style="font-size:0.88rem;">Starting…</span>
+          </div>
+          <div style="background:rgba(255,255,255,0.07);border-radius:4px;height:6px;overflow:hidden;">
+            <div id="cards-progress-bar" style="background:var(--teal);height:100%;width:0%;transition:width 0.4s;"></div>
+          </div>
+        </div>
+      </div>
 
-async function clearMatchResult(id) {
-  if (!confirm('Clear this result?')) return;
-  const empty = { score_a:'', score_b:'', goals_a:'', goals_b:'', yellows_a:'', yellows_b:'', reds_a:'', reds_b:'' };
-  try {
-    const res = await fetch(`/api/admin/match/${id}`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(empty),
-    });
-    if (res.ok) {
-      ['sa','sb','ga','gb','ya','yb','ra','rb'].forEach(p => { const el = document.getElementById(`${p}-${id}`); if (el) el.value = ''; });
-      const resultEl = document.querySelector(`#amatch-${id} .admin-match-result`);
-      if (resultEl) { resultEl.textContent = '—'; resultEl.classList.remove('played'); }
-    }
-  } catch {}
-}
+      <!-- CSV Import -->
+      <div class="card admin-section">
+        <h2><img class="h2-icon" src="/assets/icons/folder.svg" alt=""> Import Matches CSV</h2>
+        <p class="text-muted" style="font-size:0.88rem;margin-bottom:1rem;">
+          Upload a CSV to add or update match data. Existing rows are updated on <code>id</code> conflict.
+        </p>
+        <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.75rem;">
+          Required columns: <code>id, team_a, team_b</code><br>
+          Optional: <code>date, score_a, score_b, goals_a, goals_b, yellows_a, yellows_b, reds_a, reds_b, stage</code>
+        </p>
+        <div id="csv-alert" class="alert hidden"></div>
+        <form id="csv-form" enctype="multipart/form-data">
+          <div class="form-group">
+            <label for="csvFile">CSV File</label>
+            <input type="file" id="csvFile" name="file" accept=".csv,text/csv" required
+              style="background:rgba(255,255,255,0.05);padding:0.5rem;">
+          </div>
+          <button type="submit" class="btn btn-teal" id="csv-btn">Upload &amp; Import</button>
+        </form>
+      </div>
 
-// ── Live Data Sync ────────────────────────────────────────────────────────────
-document.getElementById('sync-btn').addEventListener('click', async () => {
-  const syncAlert = document.getElementById('sync-alert');
-  const btn = document.getElementById('sync-btn');
-  hideAlert(syncAlert);
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> Syncing…';
-  try {
-    const res  = await fetch('/api/admin/sync', { method: 'POST' });
-    const data = await res.json();
-    showAlert(syncAlert, res.ok ? 'success' : 'error', data.message || data.error);
-    if (res.ok) loadAdminMatches();
-  } catch {
-    showAlert(syncAlert, 'error', 'Network error — sync failed.');
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = '⚡ Sync Fixtures &amp; Scores';
-  }
-});
+      <!-- Group Stage Newsletter -->
+      <div class="card admin-section">
+        <h2><img class="h2-icon" src="/assets/icons/email.svg" alt=""> Send Group Stage Newsletter</h2>
+        <p class="text-muted" style="font-size:0.88rem;margin-bottom:1rem;">
+          Sends the <strong style="color:var(--text)">Group Stage Roundup</strong> newsletter with final standings, podium, team-by-team knockout status, and prize info.<br>
+          <strong>Test mode</strong> sends only to <code>isweepapp@gmail.com</code> so you can check it looks right before sending to everyone.
+        </p>
+        <div id="gs-newsletter-alert" class="alert hidden"></div>
+        <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+          <button class="btn btn-teal" id="gs-newsletter-test-btn">📨 Send Test Newsletter</button>
+          <button class="btn btn-outline" id="gs-newsletter-all-btn">📣 Send to All Participants</button>
+        </div>
+      </div>
 
-document.getElementById('sync-cards-btn').addEventListener('click', () => {
-  const syncAlert   = document.getElementById('sync-alert');
-  const progress    = document.getElementById('cards-progress');
-  const progressBar = document.getElementById('cards-progress-bar');
-  const progressTxt = document.getElementById('cards-progress-text');
-  const btn         = document.getElementById('sync-cards-btn');
-  hideAlert(syncAlert);
-  btn.disabled = true;
-  progress.classList.remove('hidden');
-  progressBar.style.width = '0%';
-  progressTxt.textContent = 'Connecting…';
+      <!-- Danger Zone -->
+      <div class="card admin-section" style="border:1px solid rgba(220,53,69,0.4);">
+        <h2><img class="h2-icon" src="/assets/icons/warning.svg" alt=""> Danger Zone</h2>
+        <p class="text-muted" style="font-size:0.88rem;margin-bottom:1rem;">
+          Permanently deletes all participants and entries. This cannot be undone.
+        </p>
+        <div id="clear-alert" class="alert hidden"></div>
+        <button class="btn" id="clear-btn" style="background:#c0392b;color:#fff;">Delete All Entries</button>
+      </div>
 
-  const es = new EventSource('/api/admin/sync-cards');
-  es.onmessage = e => {
-    const d = JSON.parse(e.data);
-    if (d.type === 'start') {
-      const mins = Math.ceil(d.total * 6.5 / 60);
-      progressTxt.textContent = `Fetching cards for ${d.total} match${d.total !== 1 ? 'es' : ''} — approx ${mins} min…`;
-    } else if (d.type === 'progress') {
-      const pct = Math.round((d.processed / d.total) * 100);
-      progressBar.style.width = pct + '%';
-      progressTxt.textContent = `${d.processed} / ${d.total} matches done…`;
-    } else if (d.type === 'done') {
-      progressBar.style.width = '100%';
-      progress.classList.add('hidden');
-      showAlert(syncAlert, 'success', d.message);
-      loadAdminMatches();
-      es.close();
-      btn.disabled = false;
-    } else if (d.type === 'error') {
-      progressTxt.textContent = `⚠ Match ${d.matchId}: ${d.message}`;
-    } else if (d.type === 'fatal') {
-      progress.classList.add('hidden');
-      showAlert(syncAlert, 'error', d.message);
-      es.close();
-      btn.disabled = false;
-    }
-  };
-  es.onerror = () => {
-    progress.classList.add('hidden');
-    showAlert(syncAlert, 'error', 'Card sync connection lost.');
-    es.close();
-    btn.disabled = false;
-  };
-});
+      <!-- Group Finishes -->
+      <div class="card admin-section">
+        <h2><img class="h2-icon" src="/assets/icons/medal.svg" alt=""> Set Group Finish</h2>
+        <p class="text-muted" style="font-size:0.88rem;margin-bottom:1rem;">
+          Record where each team finished in their group (1st–4th). Submitting again updates the record.
+        </p>
+        <div id="gf-alert" class="alert hidden"></div>
+        <form id="gf-form" novalidate>
+          <div class="flex gap-1 items-center" style="flex-wrap:wrap;">
+            <div class="form-group" style="flex:1;min-width:160px;margin-bottom:0;">
+              <label for="gf-team">Team Name</label>
+              <input type="text" id="gf-team" name="team" placeholder="e.g. England" required>
+            </div>
+            <div class="form-group" style="width:120px;margin-bottom:0;">
+              <label for="gf-pos">Position</label>
+              <select id="gf-pos" name="position">
+                <option value="1">1st</option>
+                <option value="2">2nd</option>
+                <option value="3">3rd</option>
+                <option value="4">4th</option>
+              </select>
+            </div>
+            <div style="padding-top:1.4rem;">
+              <button type="submit" class="btn btn-teal" id="gf-btn">Save</button>
+            </div>
+          </div>
+        </form>
 
-// ── Group Stage Newsletter ────────────────────────────────────────────────────
-async function sendGsNewsletter(mode) {
-  const alert = document.getElementById('gs-newsletter-alert');
-  const testBtn = document.getElementById('gs-newsletter-test-btn');
-  const allBtn  = document.getElementById('gs-newsletter-all-btn');
-  hideAlert(alert);
+        <div id="gf-list" style="margin-top:1.25rem;">
+          <h3>Saved Group Finishes</h3>
+          <div class="table-wrap">
+            <table id="gf-table">
+              <thead>
+                <tr><th>Team</th><th>Position</th><th></th></tr>
+              </thead>
+              <tbody id="gf-tbody">
+                <tr><td colspan="3" class="text-muted" style="padding:0.75rem 0.9rem;">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
 
-  testBtn.disabled = true;
-  allBtn.disabled  = true;
-  const activeBtn  = mode === 'test' ? testBtn : allBtn;
-  activeBtn.innerHTML = '<span class="spinner"></span> Sending…';
+    </div><!-- /admin-panel -->
 
-  try {
-    const res  = await fetch('/api/admin/send-gs-newsletter', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ mode }),
-    });
-    const data = await res.json();
-    showAlert(alert, res.ok ? 'success' : 'error', data.message || data.error);
-  } catch {
-    showAlert(alert, 'error', 'Network error — could not send newsletter.');
-  } finally {
-    testBtn.disabled = false;
-    allBtn.disabled  = false;
-    testBtn.textContent = '📨 Send Test Newsletter';
-    allBtn.textContent  = '📣 Send to All Participants';
-  }
-}
-
-document.getElementById('gs-newsletter-test-btn')?.addEventListener('click', () => sendGsNewsletter('test'));
-document.getElementById('gs-newsletter-all-btn')?.addEventListener('click', () => {
-  if (!confirm('Send the Group Stage Newsletter to ALL participants? This cannot be undone.')) return;
-  sendGsNewsletter('all');
-});
-
-// ── Init ──────────────────────────────────────────────────────────────────────
-checkAuth();
+  </div><!-- /container -->
+  <script src="flags.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>
