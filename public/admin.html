@@ -3,46 +3,35 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="iSweep">
-  <link rel="apple-touch-icon" href="/assets/icon-180.png">
-  <title>iSweep — Admin</title>
+  <title>iSweep World Cup Sweepstake — Admin</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
-  <style>
-    .paid-badge { display:inline-block; padding:0.15rem 0.55rem; border-radius:20px; font-size:0.72rem; font-weight:700; }
-    .paid-yes  { background:rgba(6,214,160,0.15); color:var(--teal); border:1px solid rgba(6,214,160,0.3); }
-    .paid-no   { background:rgba(224,82,82,0.1);  color:var(--red-dim); border:1px solid rgba(224,82,82,0.25); }
-    .sync-log  { font-size:0.78rem; color:var(--text-muted); max-height:160px; overflow-y:auto;
-                 background:rgba(0,0,0,0.25); border-radius:var(--radius-sm); padding:0.6rem 0.8rem;
-                 margin-top:0.75rem; font-family:monospace; white-space:pre-wrap; }
-  </style>
 </head>
 <body>
   <header>
-    <div class="header-content">
-      <img src="/assets/logo.png" alt="iSweep World Cup Sweepstake" class="sweepstake-logo">
-      <nav>
-        <a href="/">Home</a>
-        <a href="/prizes.html">Prizes</a>
-        <a href="/teams.html">My Teams</a>
-        <a href="/fixtures.html">Fixtures</a>
-        <a href="/dashboard.html">Leaderboard</a>
-        <a href="/countries.html">Country Points</a>
-        <a href="/matches.html">Group Stage</a>
-        <a href="/knockout.html">Knockout</a>
-        <a href="/pots.html">Pots</a>
-        <a href="/admin.html" class="active">Admin 🔐</a>
-      </nav>
+    <div class="flag" style="display:flex;gap:0.4rem;justify-content:center;align-items:center;">
+      <img src="/assets/icons/padlock.svg" alt="" style="width:42px;height:42px;">
+      <img src="/assets/icons/football.svg" alt="" style="width:40px;height:40px;">
     </div>
+    <h1>Admin Panel</h1>
+    <p>World Cup 2026 Office Sweepstake</p>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/enter.html">Enter</a>
+      <a href="/prizes.html">Prizes</a>
+      <a href="/dashboard.html">Leaderboard</a>
+      <a href="/matches.html">Group Stage</a>
+      <a href="/knockout.html">Knockout</a>
+      <a href="/pots.html">Pots</a>
+      <a href="/admin.html" class="active">Admin</a>
+    </nav>
   </header>
 
   <div class="container">
 
     <!-- Login -->
     <div id="login-section" class="card hidden">
-      <h2>🔑 Admin Login</h2>
+      <h2><img class="h2-icon" src="/assets/icons/key.svg" alt=""> Admin Login</h2>
       <div id="login-alert" class="alert hidden"></div>
       <form id="login-form" novalidate>
         <div class="form-group">
@@ -53,43 +42,56 @@
       </form>
     </div>
 
-    <!-- Admin panel -->
+    <!-- Admin panel (shown after login) -->
     <div id="admin-panel" class="hidden">
 
       <div style="display:flex;justify-content:flex-end;margin-bottom:1rem;">
         <button class="btn btn-outline btn-sm" id="logout-btn">Log Out</button>
       </div>
 
-      <!-- Entries by team name -->
+      <!-- Participants & Tiebreaks — one row per team name -->
       <div class="card admin-section">
-        <h2>👥 Entries by Team Name</h2>
+        <h2><img class="h2-icon" src="/assets/icons/people.svg" alt=""> Entries by Team Name</h2>
         <div class="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>#</th><th>Team Name</th><th>Email</th><th>Known As</th>
-                <th>Draws</th><th>Amount Due</th><th>Tiebreak</th><th></th><th></th>
+                <th>#</th>
+                <th>Team Name</th>
+                <th>Email</th>
+                <th>Draws</th>
+                <th>Amount Due</th>
+                <th>Tiebreak Guess</th>
+                <th>Known By</th>
+                <th>Club</th>
+                <th>Country</th>
               </tr>
             </thead>
             <tbody id="admin-ptbody">
-              <tr><td colspan="7" class="text-muted" style="padding:0.75rem">Loading…</td></tr>
+              <tr><td colspan="9" class="text-muted" style="padding:0.75rem 0.9rem;">Loading…</td></tr>
             </tbody>
           </table>
         </div>
       </div>
 
-      <!-- Money owed -->
+      <!-- Money owed — one row per email address -->
       <div class="card admin-section">
-        <h2>💰 Money Owed by Email</h2>
+        <h2><img class="h2-icon" src="/assets/icons/coins.svg" alt=""> Money Owed by Email</h2>
         <div class="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>#</th><th>Email</th><th>Team Names</th><th>Total</th><th>Amount Due</th><th>Paid</th>
+                <th>#</th>
+                <th>Email</th>
+                <th>Known By</th>
+                <th>Team Names</th>
+                <th>Total Draws</th>
+                <th>Amount Due</th>
+                <th>Paid</th>
               </tr>
             </thead>
             <tbody id="money-tbody">
-              <tr><td colspan="6" class="text-muted" style="padding:0.75rem">Loading…</td></tr>
+              <tr><td colspan="7" class="text-muted" style="padding:0.75rem 0.9rem;">Loading…</td></tr>
             </tbody>
           </table>
         </div>
@@ -97,45 +99,62 @@
 
       <!-- Match Results -->
       <div class="card admin-section">
-        <h2>⚽ Match Results</h2>
+        <h2><img class="h2-icon" src="/assets/icons/football.svg" alt=""> Match Results</h2>
         <p class="text-muted" style="font-size:0.88rem;margin-bottom:1rem;">
-          Click any match to enter or update its score and card data.
+          Click any match to enter or update its score, goals and cards. Import fixtures via CSV first if none appear.
         </p>
         <div id="matches-admin-alert" class="alert hidden"></div>
-        <div id="admin-matches-list"><p class="text-muted">Loading…</p></div>
-      </div>
-
-      <!-- Sync from football-data.org -->
-      <div class="card admin-section">
-        <h2>🔄 Sync from football-data.org</h2>
-        <p class="text-muted" style="font-size:0.88rem;margin-bottom:1rem;">
-          Fetches all fixtures and scores automatically. Requires a free API key set in
-          <code>isweepapp.env</code> as <code>FOOTBALL_DATA_API_KEY</code>.
-        </p>
-        <div id="sync-alert" class="alert hidden"></div>
-        <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
-          <button class="btn btn-teal" id="sync-btn">Sync Fixtures &amp; Scores</button>
-          <button class="btn btn-outline" id="sync-cards-btn">Sync Card Data (slow)</button>
+        <div id="admin-matches-list">
+          <p class="text-muted" style="padding:0.5rem 0;">Loading…</p>
         </div>
-        <div id="sync-log" class="sync-log hidden"></div>
       </div>
 
       <!-- Draw -->
       <div class="card admin-section">
-        <h2>🎲 Run Team Draw</h2>
+        <h2><img class="h2-icon" src="/assets/icons/dice.svg" alt=""> Run Team Draw</h2>
         <p class="text-muted" style="font-size:0.88rem;margin-bottom:1rem;">
-          Assigns 6 teams per entry: 1 from Pot 1, 2 from Pot 2 and 3 from Pot 3.
-          Already-assigned entries are skipped.
+          Assigns a unique set of teams to every unassigned entry. Safe to run at any time — already-assigned entries are always skipped, so new entries received after a previous draw are picked up automatically on the next run.
         </p>
         <div id="draw-alert" class="alert hidden"></div>
         <button class="btn btn-teal" id="draw-btn">Run Draw Now</button>
         <div id="draw-results" class="draw-results hidden"></div>
       </div>
 
+      <!-- Live Data Sync -->
+      <div class="card admin-section">
+        <h2><img class="h2-icon" src="/assets/icons/globe.svg" alt=""> Live Data Sync</h2>
+        <p class="text-muted" style="font-size:0.88rem;margin-bottom:0.5rem;">
+          Automatically pull fixtures, scores and group standings from
+          <a href="https://www.football-data.org/" target="_blank" style="color:var(--teal)">football-data.org</a>.
+          Requires a free API key — set the <code>FOOTBALL_DATA_API_KEY</code> environment variable before starting the server.
+        </p>
+        <p class="text-muted" style="font-size:0.82rem;margin-bottom:1rem;">
+          <strong style="color:var(--text)">Sync Fixtures &amp; Scores</strong> — instant, one API call, also auto-updates group positions after the group stage.<br>
+          <strong style="color:var(--text)">Sync Card Data</strong> — fetches yellow/red cards per match; takes ~7 s per finished match (free tier rate limit).
+        </p>
+        <div id="sync-alert" class="alert hidden"></div>
+        <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:1rem;">
+          <button class="btn btn-teal" id="sync-btn">⚡ Sync Fixtures &amp; Scores</button>
+          <button class="btn btn-outline" id="sync-cards-btn">🟨 Sync Card Data</button>
+        </div>
+        <div id="cards-progress" class="hidden">
+          <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.5rem;">
+            <div class="spinner" style="border-top-color:var(--teal)"></div>
+            <span id="cards-progress-text" class="text-muted" style="font-size:0.88rem;">Starting…</span>
+          </div>
+          <div style="background:rgba(255,255,255,0.07);border-radius:4px;height:6px;overflow:hidden;">
+            <div id="cards-progress-bar" style="background:var(--teal);height:100%;width:0%;transition:width 0.4s;"></div>
+          </div>
+        </div>
+      </div>
+
       <!-- CSV Import -->
       <div class="card admin-section">
-        <h2>📂 Import Matches CSV</h2>
+        <h2><img class="h2-icon" src="/assets/icons/folder.svg" alt=""> Import Matches CSV</h2>
         <p class="text-muted" style="font-size:0.88rem;margin-bottom:1rem;">
+          Upload a CSV to add or update match data. Existing rows are updated on <code>id</code> conflict.
+        </p>
+        <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.75rem;">
           Required columns: <code>id, team_a, team_b</code><br>
           Optional: <code>date, score_a, score_b, goals_a, goals_b, yellows_a, yellows_b, reds_a, reds_b, stage</code>
         </p>
@@ -150,11 +169,35 @@
         </form>
       </div>
 
+      <!-- Group Stage Newsletter -->
+      <div class="card admin-section">
+        <h2><img class="h2-icon" src="/assets/icons/email.svg" alt=""> Send Group Stage Newsletter</h2>
+        <p class="text-muted" style="font-size:0.88rem;margin-bottom:1rem;">
+          Sends the <strong style="color:var(--text)">Group Stage Roundup</strong> newsletter with final standings, podium, team-by-team knockout status, and prize info.<br>
+          <strong>Test mode</strong> sends only to <code>isweepapp@gmail.com</code> so you can check it looks right before sending to everyone.
+        </p>
+        <div id="gs-newsletter-alert" class="alert hidden"></div>
+        <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+          <button class="btn btn-teal" id="gs-newsletter-test-btn">📨 Send Test Newsletter</button>
+          <button class="btn btn-outline" id="gs-newsletter-all-btn">📣 Send to All Participants</button>
+        </div>
+      </div>
+
+      <!-- Danger Zone -->
+      <div class="card admin-section" style="border:1px solid rgba(220,53,69,0.4);">
+        <h2><img class="h2-icon" src="/assets/icons/warning.svg" alt=""> Danger Zone</h2>
+        <p class="text-muted" style="font-size:0.88rem;margin-bottom:1rem;">
+          Permanently deletes all participants and entries. This cannot be undone.
+        </p>
+        <div id="clear-alert" class="alert hidden"></div>
+        <button class="btn" id="clear-btn" style="background:#c0392b;color:#fff;">Delete All Entries</button>
+      </div>
+
       <!-- Group Finishes -->
       <div class="card admin-section">
-        <h2>🏅 Set Group Finish</h2>
+        <h2><img class="h2-icon" src="/assets/icons/medal.svg" alt=""> Set Group Finish</h2>
         <p class="text-muted" style="font-size:0.88rem;margin-bottom:1rem;">
-          Record where each team finished in their group (1st–4th).
+          Record where each team finished in their group (1st–4th). Submitting again updates the record.
         </p>
         <div id="gf-alert" class="alert hidden"></div>
         <form id="gf-form" novalidate>
@@ -173,93 +216,29 @@
               </select>
             </div>
             <div style="padding-top:1.4rem;">
-              <button type="submit" class="btn btn-teal btn-sm" id="gf-btn">Save</button>
+              <button type="submit" class="btn btn-teal" id="gf-btn">Save</button>
             </div>
           </div>
         </form>
+
         <div id="gf-list" style="margin-top:1.25rem;">
           <h3>Saved Group Finishes</h3>
           <div class="table-wrap">
             <table id="gf-table">
-              <thead><tr><th>Team</th><th>Position</th><th></th></tr></thead>
-              <tbody id="gf-tbody"><tr><td colspan="3" class="text-muted" style="padding:0.75rem">Loading…</td></tr></tbody>
+              <thead>
+                <tr><th>Team</th><th>Position</th><th></th></tr>
+              </thead>
+              <tbody id="gf-tbody">
+                <tr><td colspan="3" class="text-muted" style="padding:0.75rem 0.9rem;">Loading…</td></tr>
+              </tbody>
             </table>
           </div>
         </div>
       </div>
 
-      <!-- Send Email -->
-      <div class="card admin-section">
-        <h2>📧 Send Email</h2>
-        <p class="text-muted" style="font-size:0.88rem;margin-bottom:1rem;">
-          Sends the <strong>1 Day To Go</strong> email via SMTP.<br>
-          <strong>Test mode</strong> sends only to <code>johnswaine@dolphind.com</code> so you can check it looks right before sending to everyone.
-        </p>
-        <div id="email-alert" class="alert hidden"></div>
-        <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;">
-          <button class="btn btn-teal" id="email-test-btn">📨 Send Test Email</button>
-          <button class="btn btn-outline" id="email-all-btn">📣 Send to All Participants</button>
-        </div>
-        <div id="email-log" class="sync-log hidden" style="margin-top:0.75rem;"></div>
-      </div>
-
-      <!-- Tournament Update Email -->
-      <div class="card admin-section">
-        <h2>📣 Send Tournament Update</h2>
-        <p class="text-muted" style="font-size:0.88rem;margin-bottom:1rem;">
-          Sends a live update email with the current <strong>leaderboard</strong>, <strong>recent results</strong>, <strong>upcoming fixtures</strong>, and <strong>feature highlights</strong> (My Teams, Fixtures, Foul League).<br>
-          Enter your email below to test it first, then send to all participants.
-        </p>
-        <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:1rem;flex-wrap:wrap;">
-          <label style="font-size:0.85rem;color:var(--text-muted);white-space:nowrap;">Test address:</label>
-          <input type="email" id="update-email-to" placeholder="your@email.com"
-            style="flex:1;min-width:200px;max-width:300px;padding:0.4rem 0.7rem;border-radius:6px;border:1px solid var(--card-border);background:var(--card-bg);color:var(--text);font-size:0.88rem;">
-        </div>
-        <div id="update-email-alert" class="alert hidden"></div>
-        <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;">
-          <button class="btn btn-teal" id="update-email-test-btn">📨 Send Test Update Email</button>
-          <button class="btn btn-outline" id="update-email-all-btn">📣 Send Update to All Participants</button>
-        </div>
-        <div id="update-email-log" class="sync-log hidden" style="margin-top:0.75rem;"></div>
-      </div>
-
-      <!-- Round 1 Newsletter -->
-      <div class="card admin-section">
-        <h2>📰 Send Round 1 Newsletter</h2>
-        <p class="text-muted" style="font-size:0.88rem;margin-bottom:1rem;">
-          Sends the <strong>Round 1 Roundup</strong> newsletter with current standings and match highlights.<br>
-          <strong>Test mode</strong> sends only to <code>johnswaine@dolphind.com</code> so you can check it looks right before sending to everyone.
-        </p>
-        <div id="newsletter-alert" class="alert hidden"></div>
-        <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;">
-          <button class="btn btn-teal" id="newsletter-test-btn">📨 Send Test Newsletter</button>
-          <button class="btn btn-outline" id="newsletter-all-btn">📣 Send to All Participants</button>
-        </div>
-        <div id="newsletter-log" class="sync-log hidden" style="margin-top:0.75rem;"></div>
-      </div>
-
-      <!-- Export -->
-      <div class="card admin-section">
-        <h2>📥 Download Backup</h2>
-        <p class="text-muted" style="font-size:0.88rem;margin-bottom:1rem;">
-          Download all entries with drawn teams, individual team points, and goal predictions as a CSV file (opens in Excel).
-        </p>
-        <a id="export-btn" href="/api/admin/export/entries" class="btn btn-teal" download>⬇ Download Entries (CSV)</a>
-      </div>
-
-      <!-- Danger Zone -->
-      <div class="card admin-section" style="border:1px solid rgba(220,53,69,0.4);">
-        <h2>⚠️ Danger Zone</h2>
-        <p class="text-muted" style="font-size:0.88rem;margin-bottom:1rem;">
-          Permanently deletes all participants and entries. Cannot be undone.
-        </p>
-        <div id="clear-alert" class="alert hidden"></div>
-        <button class="btn btn-danger" id="clear-btn">Delete All Entries</button>
-      </div>
-
     </div><!-- /admin-panel -->
-  </div>
 
+  </div><!-- /container -->
   <script src="flags.js"></script>
   <script src="admin.js"></script>
 </body>
