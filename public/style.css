@@ -485,6 +485,9 @@ tbody tr:last-child { border-bottom: none; }
 .team-eliminated .badge { text-decoration: line-through; }
 .team-eliminated .team-pts-val { color: var(--text-muted); }
 
+/* ── Eliminated flag in side strips ─────────────────────────────────────── */
+.flag-eliminated { opacity: 0.2; filter: grayscale(1); }
+
 .admin-section {
   margin-bottom: 2rem;
 }
