@@ -558,8 +558,8 @@ async function sendGsNewsletter(mode) {
   }
 }
 
-document.getElementById('gs-newsletter-test-btn').addEventListener('click', () => sendGsNewsletter('test'));
-document.getElementById('gs-newsletter-all-btn').addEventListener('click', () => {
+document.getElementById('gs-newsletter-test-btn')?.addEventListener('click', () => sendGsNewsletter('test'));
+document.getElementById('gs-newsletter-all-btn')?.addEventListener('click', () => {
   if (!confirm('Send the Group Stage Newsletter to ALL participants? This cannot be undone.')) return;
   sendGsNewsletter('all');
 });
