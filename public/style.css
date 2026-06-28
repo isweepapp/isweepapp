@@ -480,6 +480,11 @@ tbody tr:last-child { border-bottom: none; }
 .h2-icon { width: 22px; height: 22px; flex-shrink: 0; }
 .card h2 img { width: 22px; height: 22px; flex-shrink: 0; max-width: 22px; }
 
+/* ── Eliminated team badge (leaderboard & my teams) ─────────────────────── */
+.team-eliminated { opacity: 0.35; filter: grayscale(1); }
+.team-eliminated .badge { text-decoration: line-through; }
+.team-eliminated .team-pts-val { color: var(--text-muted); }
+
 .admin-section {
   margin-bottom: 2rem;
 }
