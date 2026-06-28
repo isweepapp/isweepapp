@@ -1,29 +1,29 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
+<!-- saved from url=(0048)file:///C:/Users/JohnSwaine/Downloads/admin.html -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>iSweep World Cup Sweepstake — Admin</title>
-  <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
+  <link rel="stylesheet" href="file:///C:/Users/JohnSwaine/Downloads/style.css">
+  <link rel="stylesheet" href="./admin_files/flag-icons.min.css">
 </head>
 <body>
   <header>
     <div class="flag" style="display:flex;gap:0.4rem;justify-content:center;align-items:center;">
-      <img src="/assets/icons/padlock.svg" alt="" style="width:42px;height:42px;">
-      <img src="/assets/icons/football.svg" alt="" style="width:40px;height:40px;">
+      <img src="file:///C:/assets/icons/padlock.svg" alt="" style="width:42px;height:42px;">
+      <img src="file:///C:/assets/icons/football.svg" alt="" style="width:40px;height:40px;">
     </div>
     <h1>Admin Panel</h1>
     <p>World Cup 2026 Office Sweepstake</p>
     <nav>
-      <a href="/">Home</a>
-      <a href="/enter.html">Enter</a>
-      <a href="/prizes.html">Prizes</a>
-      <a href="/dashboard.html">Leaderboard</a>
-      <a href="/matches.html">Group Stage</a>
-      <a href="/knockout.html">Knockout</a>
-      <a href="/pots.html">Pots</a>
-      <a href="/admin.html" class="active">Admin</a>
+      <a href="file:///C:/">Home</a>
+      <a href="file:///C:/enter.html">Enter</a>
+      <a href="file:///C:/prizes.html">Prizes</a>
+      <a href="file:///C:/dashboard.html">Leaderboard</a>
+      <a href="file:///C:/matches.html">Group Stage</a>
+      <a href="file:///C:/knockout.html">Knockout</a>
+      <a href="file:///C:/pots.html">Pots</a>
+      <a href="file:///C:/admin.html" class="active">Admin</a>
     </nav>
   </header>
 
@@ -31,12 +31,12 @@
 
     <!-- Login -->
     <div id="login-section" class="card hidden">
-      <h2><img class="h2-icon" src="/assets/icons/key.svg" alt=""> Admin Login</h2>
+      <h2><img class="h2-icon" src="file:///C:/assets/icons/key.svg" alt=""> Admin Login</h2>
       <div id="login-alert" class="alert hidden"></div>
-      <form id="login-form" novalidate>
+      <form id="login-form" novalidate="">
         <div class="form-group">
           <label for="password">Password</label>
-          <input type="password" id="password" name="password" placeholder="Enter admin password" required>
+          <input type="password" id="password" name="password" placeholder="Enter admin password" required="">
         </div>
         <button type="submit" class="btn btn-primary" id="login-btn">Log In</button>
       </form>
@@ -49,22 +49,15 @@
         <button class="btn btn-outline btn-sm" id="logout-btn">Log Out</button>
       </div>
 
-      <!-- Participants & Tiebreaks — one row per team name -->
+      <!-- Participants & Tiebreaks -->
       <div class="card admin-section">
-        <h2><img class="h2-icon" src="/assets/icons/people.svg" alt=""> Entries by Team Name</h2>
+        <h2><img class="h2-icon" src="file:///C:/assets/icons/people.svg" alt=""> Entries by Team Name</h2>
         <div class="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>#</th>
-                <th>Team Name</th>
-                <th>Email</th>
-                <th>Draws</th>
-                <th>Amount Due</th>
-                <th>Tiebreak Guess</th>
-                <th>Known By</th>
-                <th>Club</th>
-                <th>Country</th>
+                <th>#</th><th>Team Name</th><th>Email</th><th>Known By</th>
+                <th>Draws</th><th>Amount Due</th><th>Tiebreak Guess</th><th></th><th></th>
               </tr>
             </thead>
             <tbody id="admin-ptbody">
@@ -74,24 +67,19 @@
         </div>
       </div>
 
-      <!-- Money owed — one row per email address -->
+      <!-- Money owed -->
       <div class="card admin-section">
-        <h2><img class="h2-icon" src="/assets/icons/coins.svg" alt=""> Money Owed by Email</h2>
+        <h2><img class="h2-icon" src="file:///C:/assets/icons/coins.svg" alt=""> Money Owed by Email</h2>
         <div class="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>#</th>
-                <th>Email</th>
-                <th>Known By</th>
-                <th>Team Names</th>
-                <th>Total Draws</th>
-                <th>Amount Due</th>
-                <th>Paid</th>
+                <th>#</th><th>Email</th><th>Team Names</th>
+                <th>Total Draws</th><th>Amount Due</th><th>Paid</th>
               </tr>
             </thead>
             <tbody id="money-tbody">
-              <tr><td colspan="7" class="text-muted" style="padding:0.75rem 0.9rem;">Loading…</td></tr>
+              <tr><td colspan="6" class="text-muted" style="padding:0.75rem 0.9rem;">Loading…</td></tr>
             </tbody>
           </table>
         </div>
@@ -99,112 +87,77 @@
 
       <!-- Match Results -->
       <div class="card admin-section">
-        <h2><img class="h2-icon" src="/assets/icons/football.svg" alt=""> Match Results</h2>
+        <h2><img class="h2-icon" src="file:///C:/assets/icons/football.svg" alt=""> Match Results</h2>
         <p class="text-muted" style="font-size:0.88rem;margin-bottom:1rem;">
           Click any match to enter or update its score, goals and cards. Import fixtures via CSV first if none appear.
         </p>
-        <div id="matches-admin-alert" class="alert hidden"></div>
         <div id="admin-matches-list">
           <p class="text-muted" style="padding:0.5rem 0;">Loading…</p>
         </div>
       </div>
 
+      <!-- Live Data Sync -->
+      <div class="card admin-section">
+        <h2><img class="h2-icon" src="file:///C:/assets/icons/globe.svg" alt=""> Live Data Sync</h2>
+        <p class="text-muted" style="font-size:0.88rem;margin-bottom:0.5rem;">
+          Automatically pull fixtures, scores and group standings from
+          <a href="https://www.football-data.org/" target="_blank" style="color:var(--teal)">football-data.org</a>.
+        </p>
+        <p class="text-muted" style="font-size:0.82rem;margin-bottom:1rem;">
+          <strong style="color:var(--text)">Sync Fixtures &amp; Scores</strong> — instant, one API call.<br>
+          <strong style="color:var(--text)">Sync Card Data</strong> — fetches yellow/red cards; slow on free tier.
+        </p>
+        <div id="sync-alert" class="alert hidden"></div>
+        <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:1rem;">
+          <button class="btn btn-teal" id="sync-btn">⚡ Sync Fixtures &amp; Scores</button>
+          <button class="btn btn-outline" id="sync-cards-btn">🟨 Sync Card Data (slow)</button>
+        </div>
+        <pre id="sync-log" class="hidden" style="background:rgba(0,0,0,0.3);padding:0.75rem;border-radius:6px;font-size:0.8rem;max-height:200px;overflow-y:auto;white-space:pre-wrap;"></pre>
+      </div>
+
       <!-- Draw -->
       <div class="card admin-section">
-        <h2><img class="h2-icon" src="/assets/icons/dice.svg" alt=""> Run Team Draw</h2>
+        <h2><img class="h2-icon" src="file:///C:/assets/icons/dice.svg" alt=""> Run Team Draw</h2>
         <p class="text-muted" style="font-size:0.88rem;margin-bottom:1rem;">
-          Assigns a unique set of teams to every unassigned entry. Safe to run at any time — already-assigned entries are always skipped, so new entries received after a previous draw are picked up automatically on the next run.
+          Assigns a unique set of teams to every unassigned entry. Already-assigned entries are skipped.
         </p>
         <div id="draw-alert" class="alert hidden"></div>
         <button class="btn btn-teal" id="draw-btn">Run Draw Now</button>
         <div id="draw-results" class="draw-results hidden"></div>
       </div>
 
-      <!-- Live Data Sync -->
-      <div class="card admin-section">
-        <h2><img class="h2-icon" src="/assets/icons/globe.svg" alt=""> Live Data Sync</h2>
-        <p class="text-muted" style="font-size:0.88rem;margin-bottom:0.5rem;">
-          Automatically pull fixtures, scores and group standings from
-          <a href="https://www.football-data.org/" target="_blank" style="color:var(--teal)">football-data.org</a>.
-          Requires a free API key — set the <code>FOOTBALL_DATA_API_KEY</code> environment variable before starting the server.
-        </p>
-        <p class="text-muted" style="font-size:0.82rem;margin-bottom:1rem;">
-          <strong style="color:var(--text)">Sync Fixtures &amp; Scores</strong> — instant, one API call, also auto-updates group positions after the group stage.<br>
-          <strong style="color:var(--text)">Sync Card Data</strong> — fetches yellow/red cards per match; takes ~7 s per finished match (free tier rate limit).
-        </p>
-        <div id="sync-alert" class="alert hidden"></div>
-        <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:1rem;">
-          <button class="btn btn-teal" id="sync-btn">⚡ Sync Fixtures &amp; Scores</button>
-          <button class="btn btn-outline" id="sync-cards-btn">🟨 Sync Card Data</button>
-        </div>
-        <div id="cards-progress" class="hidden">
-          <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.5rem;">
-            <div class="spinner" style="border-top-color:var(--teal)"></div>
-            <span id="cards-progress-text" class="text-muted" style="font-size:0.88rem;">Starting…</span>
-          </div>
-          <div style="background:rgba(255,255,255,0.07);border-radius:4px;height:6px;overflow:hidden;">
-            <div id="cards-progress-bar" style="background:var(--teal);height:100%;width:0%;transition:width 0.4s;"></div>
-          </div>
-        </div>
-      </div>
-
       <!-- CSV Import -->
       <div class="card admin-section">
-        <h2><img class="h2-icon" src="/assets/icons/folder.svg" alt=""> Import Matches CSV</h2>
+        <h2><img class="h2-icon" src="file:///C:/assets/icons/folder.svg" alt=""> Import Matches CSV</h2>
         <p class="text-muted" style="font-size:0.88rem;margin-bottom:1rem;">
           Upload a CSV to add or update match data. Existing rows are updated on <code>id</code> conflict.
         </p>
         <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.75rem;">
-          Required columns: <code>id, team_a, team_b</code><br>
+          Required: <code>id, team_a, team_b</code> &nbsp;·&nbsp;
           Optional: <code>date, score_a, score_b, goals_a, goals_b, yellows_a, yellows_b, reds_a, reds_b, stage</code>
         </p>
         <div id="csv-alert" class="alert hidden"></div>
         <form id="csv-form" enctype="multipart/form-data">
           <div class="form-group">
             <label for="csvFile">CSV File</label>
-            <input type="file" id="csvFile" name="file" accept=".csv,text/csv" required
-              style="background:rgba(255,255,255,0.05);padding:0.5rem;">
+            <input type="file" id="csvFile" name="file" accept=".csv,text/csv" required="" style="background:rgba(255,255,255,0.05);padding:0.5rem;">
           </div>
           <button type="submit" class="btn btn-teal" id="csv-btn">Upload &amp; Import</button>
         </form>
       </div>
 
-      <!-- Group Stage Newsletter -->
-      <div class="card admin-section">
-        <h2><img class="h2-icon" src="/assets/icons/email.svg" alt=""> Send Group Stage Newsletter</h2>
-        <p class="text-muted" style="font-size:0.88rem;margin-bottom:1rem;">
-          Sends the <strong style="color:var(--text)">Group Stage Roundup</strong> newsletter with final standings, podium, team-by-team knockout status, and prize info.<br>
-          <strong>Test mode</strong> sends only to <code>isweepapp@gmail.com</code> so you can check it looks right before sending to everyone.
-        </p>
-        <div id="gs-newsletter-alert" class="alert hidden"></div>
-        <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
-          <button class="btn btn-teal" id="gs-newsletter-test-btn">📨 Send Test Newsletter</button>
-          <button class="btn btn-outline" id="gs-newsletter-all-btn">📣 Send to All Participants</button>
-        </div>
-      </div>
-
-      <!-- Danger Zone -->
-      <div class="card admin-section" style="border:1px solid rgba(220,53,69,0.4);">
-        <h2><img class="h2-icon" src="/assets/icons/warning.svg" alt=""> Danger Zone</h2>
-        <p class="text-muted" style="font-size:0.88rem;margin-bottom:1rem;">
-          Permanently deletes all participants and entries. This cannot be undone.
-        </p>
-        <div id="clear-alert" class="alert hidden"></div>
-        <button class="btn" id="clear-btn" style="background:#c0392b;color:#fff;">Delete All Entries</button>
-      </div>
-
       <!-- Group Finishes -->
       <div class="card admin-section">
-        <h2><img class="h2-icon" src="/assets/icons/medal.svg" alt=""> Set Group Finish</h2>
+        <h2><img class="h2-icon" src="file:///C:/assets/icons/medal.svg" alt=""> Set Group Finish</h2>
         <p class="text-muted" style="font-size:0.88rem;margin-bottom:1rem;">
           Record where each team finished in their group (1st–4th). Submitting again updates the record.
         </p>
         <div id="gf-alert" class="alert hidden"></div>
-        <form id="gf-form" novalidate>
+        <form id="gf-form" novalidate="">
           <div class="flex gap-1 items-center" style="flex-wrap:wrap;">
             <div class="form-group" style="flex:1;min-width:160px;margin-bottom:0;">
               <label for="gf-team">Team Name</label>
-              <input type="text" id="gf-team" name="team" placeholder="e.g. England" required>
+              <input type="text" id="gf-team" name="team" placeholder="e.g. England" required="">
             </div>
             <div class="form-group" style="width:120px;margin-bottom:0;">
               <label for="gf-pos">Position</label>
@@ -220,14 +173,11 @@
             </div>
           </div>
         </form>
-
         <div id="gf-list" style="margin-top:1.25rem;">
           <h3>Saved Group Finishes</h3>
           <div class="table-wrap">
             <table id="gf-table">
-              <thead>
-                <tr><th>Team</th><th>Position</th><th></th></tr>
-              </thead>
+              <thead><tr><th>Team</th><th>Position</th><th></th></tr></thead>
               <tbody id="gf-tbody">
                 <tr><td colspan="3" class="text-muted" style="padding:0.75rem 0.9rem;">Loading…</td></tr>
               </tbody>
@@ -236,10 +186,84 @@
         </div>
       </div>
 
+      <!-- Send 1 Day To Go Email -->
+      <div class="card admin-section">
+        <h2><img class="h2-icon" src="file:///C:/assets/icons/email.svg" alt=""> Send Email</h2>
+        <p class="text-muted" style="font-size:0.88rem;margin-bottom:1rem;">
+          Sends the <strong style="color:var(--text)">1 Day To Go</strong> email via SMTP.<br>
+          <strong>Test mode</strong> sends only to <code>isweepapp@gmail.com</code>.
+        </p>
+        <div id="email-alert" class="alert hidden"></div>
+        <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:0.75rem;">
+          <button class="btn btn-teal" id="email-test-btn">📨 Send Test Email</button>
+          <button class="btn btn-outline" id="email-all-btn">📣 Send to All Participants</button>
+        </div>
+        <pre id="email-log" class="hidden" style="background:rgba(0,0,0,0.3);padding:0.75rem;border-radius:6px;font-size:0.8rem;max-height:200px;overflow-y:auto;white-space:pre-wrap;"></pre>
+      </div>
+
+      <!-- Send Tournament Update -->
+      <div class="card admin-section">
+        <h2><img class="h2-icon" src="file:///C:/assets/icons/email.svg" alt=""> Send Tournament Update</h2>
+        <p class="text-muted" style="font-size:0.88rem;margin-bottom:1rem;">
+          Sends a live update email with the current leaderboard, recent results, upcoming fixtures, and feature highlights.<br>
+          Enter your email below to test it first, then send to all participants.
+        </p>
+        <div id="update-email-alert" class="alert hidden"></div>
+        <div class="form-group" style="max-width:320px;margin-bottom:0.75rem;">
+          <label for="update-email-to">Test address</label>
+          <input type="email" id="update-email-to" placeholder="your@email.com" style="width:100%;">
+        </div>
+        <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:0.75rem;">
+          <button class="btn btn-teal" id="update-email-test-btn">📨 Send Test Update Email</button>
+          <button class="btn btn-outline" id="update-email-all-btn">📣 Send Update to All Participants</button>
+        </div>
+        <pre id="update-email-log" class="hidden" style="background:rgba(0,0,0,0.3);padding:0.75rem;border-radius:6px;font-size:0.8rem;max-height:200px;overflow-y:auto;white-space:pre-wrap;"></pre>
+      </div>
+
+      <!-- Send Round 1 Newsletter -->
+      <div class="card admin-section">
+        <h2><img class="h2-icon" src="file:///C:/assets/icons/email.svg" alt=""> Send Round 1 Newsletter</h2>
+        <p class="text-muted" style="font-size:0.88rem;margin-bottom:1rem;">
+          Sends the <strong style="color:var(--text)">Round 1 Roundup</strong> newsletter.<br>
+          <strong>Test mode</strong> sends only to <code>isweepapp@gmail.com</code>.
+        </p>
+        <div id="newsletter-alert" class="alert hidden"></div>
+        <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:0.75rem;">
+          <button class="btn btn-teal" id="newsletter-test-btn">📨 Send Test Newsletter</button>
+          <button class="btn btn-outline" id="newsletter-all-btn">📣 Send to All Participants</button>
+        </div>
+        <pre id="newsletter-log" class="hidden" style="background:rgba(0,0,0,0.3);padding:0.75rem;border-radius:6px;font-size:0.8rem;max-height:200px;overflow-y:auto;white-space:pre-wrap;"></pre>
+      </div>
+
+      <!-- Send Group Stage Newsletter -->
+      <div class="card admin-section">
+        <h2><img class="h2-icon" src="file:///C:/assets/icons/email.svg" alt=""> Send Group Stage Newsletter</h2>
+        <p class="text-muted" style="font-size:0.88rem;margin-bottom:1rem;">
+          Sends the <strong style="color:var(--text)">Group Stage Roundup</strong> newsletter with final standings, podium, team-by-team knockout status, and prize info.<br>
+          <strong>Test mode</strong> sends only to <code>isweepapp@gmail.com</code>.
+        </p>
+        <div id="gs-newsletter-alert" class="alert hidden"></div>
+        <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+          <button class="btn btn-teal" id="gs-newsletter-test-btn">📨 Send Test Newsletter</button>
+          <button class="btn btn-outline" id="gs-newsletter-all-btn">📣 Send to All Participants</button>
+        </div>
+      </div>
+
+      <!-- Danger Zone -->
+      <div class="card admin-section" style="border:1px solid rgba(220,53,69,0.4);">
+        <h2><img class="h2-icon" src="file:///C:/assets/icons/warning.svg" alt=""> Danger Zone</h2>
+        <p class="text-muted" style="font-size:0.88rem;margin-bottom:1rem;">
+          Permanently deletes all participants and entries. This cannot be undone.
+        </p>
+        <div id="clear-alert" class="alert hidden"></div>
+        <button class="btn" id="clear-btn" style="background:#c0392b;color:#fff;">Delete All Entries</button>
+      </div>
+
     </div><!-- /admin-panel -->
 
   </div><!-- /container -->
-  <script src="flags.js"></script>
-  <script src="admin.js"></script>
-</body>
-</html>
+  <script src="file:///C:/Users/JohnSwaine/Downloads/flags.js"></script>
+  <script src="./admin_files/admin.js"></script>
+
+
+</body></html>
