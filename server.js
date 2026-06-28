@@ -152,6 +152,23 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
+// ── Temp debug: fetch raw match data from football-data.org ─────────────────
+app.get('/api/debug/match/:id', requireAdmin, async (req, res) => {
+  try {
+    const data = await ftdbGet(`/v4/matches/${req.params.id}`);
+    res.json({
+      id: data.id,
+      homeTeam: data.homeTeam?.name,
+      awayTeam: data.awayTeam?.name,
+      bookings: data.bookings,
+      bookingsCount: (data.bookings || []).length,
+      allKeys: Object.keys(data),
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── Temp debug: show match IDs and card data ─────────────────────────────────
 app.get('/api/debug/cards', requireAdmin, (_req, res) => {
   const rows = db.prepare(
