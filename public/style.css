@@ -477,6 +477,8 @@ tbody tr:last-child { border-bottom: none; }
 .rule-pts.neg { color: var(--red-dim); }
 
 /* ── Admin ────────────────────────────────────────────────────────────────── */
+.h2-icon { width: 22px; height: 22px; flex-shrink: 0; }
+
 .admin-section {
   margin-bottom: 2rem;
 }
