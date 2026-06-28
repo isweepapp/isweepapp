@@ -1684,7 +1684,7 @@ app.post('/api/admin/send-gs-newsletter', requireAdmin, async (req, res) => {
 
     let recipients;
     if (mode === 'test') {
-      const testAddr = process.env.EMAIL_TEST_TO || 'isweepapp@gmail.com';
+      const testAddr = process.env.EMAIL_TEST_TO || 'johnswaine@dolphind.com';
       recipients = [{ email: testAddr }];
     } else {
       recipients = db.prepare(
