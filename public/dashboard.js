@@ -74,7 +74,7 @@ const CLUB_ABBR = {
   'Inter Miami':'MIA','Monterrey':'MTY','Tigres UANL':'TIG',
 };
 
-let currentTab = 'overall';
+let currentTab = 'knockout';
 let statsData  = {};
 
 // Persist ranks across page refreshes via localStorage
