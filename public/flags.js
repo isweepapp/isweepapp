@@ -77,6 +77,15 @@ const GROUPS = [
   ]},
 ];
 
+const KNOCKOUT_TEAMS = new Set([
+  'Mexico','South Africa','Switzerland','Canada','Brazil','Morocco',
+  'United States','Australia','Germany','Ivory Coast','Netherlands','Japan',
+  'Belgium','Egypt','Spain','Cape Verde','France','Norway',
+  'Argentina','Austria','Colombia','Portugal','England','Croatia',
+  'Ecuador','Bosnia & Herzegovina','Sweden','Algeria',
+  'DR Congo','Paraguay','Senegal','Ghana'
+]);
+
 function buildGroupBlock(group) {
   const frag = document.createDocumentFragment();
 
@@ -87,8 +96,9 @@ function buildGroupBlock(group) {
 
   group.teams.forEach(({ code, name }) => {
     const el = document.createElement('span');
-    el.className = `fi fi-${code} flag-item`;
-    el.title = name;
+    const isOut = !KNOCKOUT_TEAMS.has(name);
+    el.className = `fi fi-${code} flag-item${isOut ? ' flag-eliminated' : ''}`;
+    el.title = name + (isOut ? ' (eliminated)' : '');
     frag.appendChild(el);
   });
 
