@@ -120,6 +120,23 @@
     .team-flag { font-size: 2.2rem; line-height: 1; }
     .team-name { font-size: 0.88rem; font-weight: 700; color: var(--text); line-height: 1.2; }
 
+    .team-card.eliminated {
+      opacity: 0.35;
+      filter: grayscale(1);
+    }
+    .team-card.eliminated .team-name {
+      color: var(--text-muted);
+      text-decoration: line-through;
+    }
+    .team-card .team-status {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .team-card.eliminated .team-status { color: #c0392b; }
+    .team-card.alive .team-status    { color: var(--teal); }
+
     .prompt {
       text-align: center;
       padding: 2.5rem 1rem;
@@ -173,6 +190,15 @@
     if (typeof GROUPS !== 'undefined') {
       GROUPS.forEach(g => g.teams.forEach(t => { FLAG_CODES[t.name] = t.code; }));
     }
+
+    const KNOCKOUT_TEAMS = new Set([
+      'Mexico','South Africa','Switzerland','Canada','Brazil','Morocco',
+      'United States','Australia','Germany','Ivory Coast','Netherlands','Japan',
+      'Belgium','Egypt','Spain','Cape Verde','France','Norway',
+      'Argentina','Austria','Colombia','Portugal','England','Croatia',
+      'Ecuador','Bosnia & Herzegovina','Sweden','Algeria',
+      'DR Congo','Paraguay','Senegal','Ghana'
+    ]);
 
     function flagHtml(team) {
       const code = FLAG_CODES[team];
@@ -228,18 +254,23 @@
         return;
       }
 
-      const cards = person.teams.map(team => `
-        <div class="team-card">
+      const alive  = person.teams.filter(t => KNOCKOUT_TEAMS.has(t)).length;
+      const cards = person.teams.map(team => {
+        const isAlive = KNOCKOUT_TEAMS.has(team);
+        return `
+        <div class="team-card ${isAlive ? 'alive' : 'eliminated'}">
           ${flagHtml(team)}
           <div class="team-name">${team}</div>
-        </div>
-      `).join('');
+          <div class="team-status">${isAlive ? '✅ Alive' : '❌ Out'}</div>
+        </div>`;
+      }).join('');
+
 
       out.innerHTML = `
         <div class="teams-panel">
           <div class="teams-panel-hd">
             <span class="teams-panel-name">${person.knownBy}</span>
-            <span class="teams-panel-count">${person.teams.length} team${person.teams.length !== 1 ? 's' : ''}</span>
+            <span class="teams-panel-count">${alive} of ${person.teams.length} still alive</span>
           </div>
           <div class="teams-grid">${cards}</div>
         </div>`;
