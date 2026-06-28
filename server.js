@@ -1664,7 +1664,81 @@ function computeTeamScores() {
   return r;
 }
 
-// ── Scheduled auto-sync ───────────────────────────────────────────────────────
+// ── Admin: Send Group Stage Newsletter ───────────────────────────────────────
+// Sends the Group Stage Roundup newsletter from emails/group-stage-newsletter.html
+app.post('/api/admin/send-gs-newsletter', requireAdmin, async (req, res) => {
+  try {
+    const { mode = 'test' } = req.body || {};
+
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) return res.status(500).json({ error: 'RESEND_API_KEY not set in Railway Variables.' });
+
+    const templatePath = path.join(__dirname, 'emails', 'group-stage-newsletter.html');
+    if (!fs.existsSync(templatePath)) {
+      return res.status(404).json({ error: 'group-stage-newsletter.html not found in emails/ folder.' });
+    }
+    const html = fs.readFileSync(templatePath, 'utf8');
+
+    const from    = process.env.RESEND_FROM || 'iSweep <onboarding@resend.dev>';
+    const subject = '🏆 iSweep — Group Stage Results & Knockout Draw';
+
+    let recipients;
+    if (mode === 'test') {
+      const testAddr = process.env.EMAIL_TEST_TO || 'isweepapp@gmail.com';
+      recipients = [{ email: testAddr }];
+    } else {
+      recipients = db.prepare(
+        "SELECT DISTINCT email FROM participants WHERE email IS NOT NULL AND email != '' ORDER BY email"
+      ).all();
+    }
+
+    if (!recipients.length) return res.status(400).json({ error: 'No recipients found.' });
+
+    const sendOne = async (email) => {
+      const r = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from, to: [email], subject, html }),
+      });
+      const body = await r.json();
+      if (!r.ok) throw new Error(body.message || JSON.stringify(body));
+      return body;
+    };
+
+    if (mode === 'test') {
+      try {
+        await sendOne(recipients[0].email);
+        return res.json({ ok: true, message: `Test newsletter sent to ${recipients[0].email}.` });
+      } catch (err) {
+        return res.status(500).json({ error: err.message });
+      }
+    }
+
+    res.json({ ok: true, message: `Sending Group Stage Newsletter to ${recipients.length} recipients in the background. Check server logs.` });
+
+    (async () => {
+      let sent = 0; let failed = 0;
+      for (const r of recipients) {
+        try {
+          await sendOne(r.email);
+          sent++;
+          console.log(`[GS Newsletter] Sent to ${r.email} (${sent}/${recipients.length})`);
+        } catch (err) {
+          failed++;
+          console.error(`[GS Newsletter] Failed for ${r.email}: ${err.message}`);
+        }
+        await new Promise(resolve => setTimeout(resolve, 250));
+      }
+      console.log(`[GS Newsletter] Bulk send complete. Sent: ${sent}, Failed: ${failed}`);
+    })();
+
+  } catch (err) {
+    console.error('[GS Newsletter] Unexpected error:', err);
+    res.status(500).json({ error: err.message || 'Unexpected server error' });
+  }
+});
+
+
 // Runs every 30 minutes if FOOTBALL_DATA_API_KEY is set.
 // Syncs all match scores and group standings automatically.
 async function scheduledSync() {
