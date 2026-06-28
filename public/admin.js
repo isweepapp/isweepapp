@@ -486,8 +486,8 @@ async function sendEmail(mode) {
   }
 }
 
-document.getElementById('email-test-btn').addEventListener('click', () => sendEmail('test'));
-document.getElementById('email-all-btn').addEventListener('click',  () => sendEmail('all'));
+document.getElementById('email-test-btn')?.addEventListener('click', () => sendEmail('test'));
+document.getElementById('email-all-btn')?.addEventListener('click',  () => sendEmail('all'));
 
 // -- Send Round 1 Newsletter ---------------------------------------------------
 async function sendNewsletter(mode) {
