@@ -10,6 +10,16 @@ function flag(team) {
   return code ? `<span class="fi fi-${code}" title="${team}"></span> ` : '';
 }
 
+// -- Knockout stage qualified teams -------------------------------------------
+const KNOCKOUT_TEAMS = new Set([
+  'Mexico','South Africa','Switzerland','Canada','Brazil','Morocco',
+  'United States','Australia','Germany','Ivory Coast','Netherlands','Japan',
+  'Belgium','Egypt','Spain','Cape Verde','France','Norway',
+  'Argentina','Austria','Colombia','Portugal','England','Croatia',
+  'Ecuador','Bosnia & Herzegovina','Sweden','Algeria',
+  'DR Congo','Paraguay','Senegal','Ghana'
+]);
+
 // -- Country → ISO code (for favourite national team flags) -------------------
 const COUNTRY_FLAG = {
   'Afghanistan':'af','Albania':'al','Algeria':'dz','Angola':'ao',
@@ -209,7 +219,8 @@ function buildEntryRows(r, i, previousRanks, pos) {
 
   const teamItems = allTeams.map(({ team, pot }) => {
     const tp = (r.teamPts && r.teamPts[team] != null) ? r.teamPts[team] : 0;
-    return `<div class="team-pts-item">
+    const isOut = !KNOCKOUT_TEAMS.has(team);
+    return `<div class="team-pts-item${isOut ? ' team-eliminated' : ''}">
       <span class="badge badge-pot${pot}">${flag(team)}${team}</span>
       <span class="team-pts-val">${tp} pts</span>
     </div>`;
