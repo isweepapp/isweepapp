@@ -156,13 +156,24 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 *
 app.get('/api/debug/match/:id', requireAdmin, async (req, res) => {
   try {
     const data = await ftdbGet(`/v4/matches/${req.params.id}`);
+    const homeId = data.homeTeam?.id;
+    const bookings = data.bookings || [];
+    let ya=0, yb=0, ra=0, rb=0;
+    for (const b of bookings) {
+      const home = b.team?.id === homeId;
+      if (b.card === 'YELLOW' || b.card === 'YELLOW_CARD') { home ? ya++ : yb++; }
+      if (b.card === 'RED' || b.card === 'RED_CARD' || b.card === 'YELLOW_RED' || b.card === 'YELLOW_RED_CARD') { home ? ra++ : rb++; }
+    }
     res.json({
       id: data.id,
-      homeTeam: data.homeTeam?.name,
-      awayTeam: data.awayTeam?.name,
-      bookings: data.bookings,
-      bookingsCount: (data.bookings || []).length,
-      allKeys: Object.keys(data),
+      homeTeamObj: data.homeTeam,
+      awayTeamObj: data.awayTeam,
+      homeId,
+      bookings: bookings,
+      bookingsCount: bookings.length,
+      computed: { ya, yb, ra, rb },
+      firstBookingTeamId: bookings[0]?.team?.id,
+      homeIdMatchesFirstBooking: bookings[0]?.team?.id === homeId,
     });
   } catch (e) {
     res.status(500).json({ error: e.message });
