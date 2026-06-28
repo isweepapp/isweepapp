@@ -152,6 +152,14 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
+// ── Temp debug: show match IDs and card data ─────────────────────────────────
+app.get('/api/debug/cards', requireAdmin, (_req, res) => {
+  const rows = db.prepare(
+    "SELECT id, team_a, team_b, score_a, score_b, yellows_a, yellows_b, reds_a, reds_b FROM matches WHERE score_a IS NOT NULL ORDER BY date ASC"
+  ).all();
+  res.json(rows);
+});
+
 // ── Health check (Railway uses this to confirm the app is ready) ──────────────
 app.get('/health', (_req, res) => res.json({ ok: true }));
 
