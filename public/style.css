@@ -478,6 +478,7 @@ tbody tr:last-child { border-bottom: none; }
 
 /* ── Admin ────────────────────────────────────────────────────────────────── */
 .h2-icon { width: 22px; height: 22px; flex-shrink: 0; }
+.card h2 img { width: 22px; height: 22px; flex-shrink: 0; max-width: 22px; }
 
 .admin-section {
   margin-bottom: 2rem;
