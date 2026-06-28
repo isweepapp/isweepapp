@@ -38,12 +38,11 @@ if (db.prepare('SELECT COUNT(*) AS cnt FROM matches').get().cnt === 0) {
 // Startup cleanup: remove seeded rows already superseded by a prior API sync
 cleanupSeededMatches();
 
-// One-time migration: reset ALL card data to force clean re-sync
-// Previous syncs may have written 0 instead of NULL for matches with no bookings found
-if (!db.prepare("SELECT name FROM migrations WHERE name='card_full_reset_v1'").get()) {
+// One-time migration: reset ALL card data to force clean re-sync (v2 — resets all 72)
+if (!db.prepare("SELECT name FROM migrations WHERE name='card_full_reset_v2'").get()) {
   db.exec("UPDATE matches SET yellows_a=NULL, yellows_b=NULL, reds_a=NULL, reds_b=NULL WHERE score_a IS NOT NULL");
-  db.exec("INSERT INTO migrations (name) VALUES ('card_full_reset_v1')");
-  console.log('[Migration] card_full_reset_v1: all card data reset to NULL for clean re-sync');
+  db.exec("INSERT INTO migrations (name) VALUES ('card_full_reset_v2')");
+  console.log('[Migration] card_full_reset_v2: all card data reset to NULL for full re-sync');
 }
 
 // One-time migration: reset card data incorrectly written as 0 (was using b.card, should be b.type)
