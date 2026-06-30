@@ -1321,8 +1321,9 @@ function triggerBackgroundSync() {
           const teamA = normFtdbTeam(m.homeTeam.name);
           const teamB = normFtdbTeam(m.awayTeam.name);
           const live = m.status === 'FINISHED' || m.status === 'IN_PLAY' || m.status === 'PAUSED';
-          const sa  = live ? (m.score?.fullTime?.home ?? m.score?.regularTime?.home ?? null) : null;
-          const sb  = live ? (m.score?.fullTime?.away ?? m.score?.regularTime?.away ?? null) : null;
+          const _sc = getNonPenaltyScore(m);
+          const sa  = live ? _sc.home : null;
+          const sb  = live ? _sc.away : null;
           upsert.run(String(m.id), m.utcDate, teamA, teamB, sa, sb, sa, sb,
                      null, null, null, null, stage);
           synced++;
@@ -1463,6 +1464,24 @@ const FTDB_NAME_MAP = {
 
 function normFtdbTeam(n) { return FTDB_NAME_MAP[n] || n; }
 
+
+// Returns {home, away} score for the end of extra time, excluding penalty shootouts.
+// football-data.org's score.fullTime includes the shootout outcome baked into the
+// number for PENALTY_SHOOTOUT matches, so we must use regularTime + extraTime instead.
+function getNonPenaltyScore(m) {
+  const score = m.score;
+  if (!score) return { home: null, away: null };
+  const reg = score.regularTime;
+  const et  = score.extraTime;
+  if (reg && reg.home != null && reg.away != null) {
+    const etHome = (et && et.home != null) ? et.home : 0;
+    const etAway = (et && et.away != null) ? et.away : 0;
+    return { home: reg.home + etHome, away: reg.away + etAway };
+  }
+  // No regularTime/extraTime breakdown (e.g. group stage, no shootout) — fullTime is safe
+  return { home: score.fullTime?.home ?? null, away: score.fullTime?.away ?? null };
+}
+
 async function ftdbGet(path) {
   const r = await fetch(`https://api.football-data.org${path}`, {
     headers: { 'X-Auth-Token': process.env.FOOTBALL_DATA_API_KEY || '' },
@@ -1504,8 +1523,9 @@ app.post('/api/admin/sync', requireAdmin, async (req, res) => {
         if (!db.prepare('SELECT 1 FROM teams WHERE name=?').get(teamA)) unmapped.add(m.homeTeam.name);
         if (!db.prepare('SELECT 1 FROM teams WHERE name=?').get(teamB)) unmapped.add(m.awayTeam.name);
         const fin = m.status === 'FINISHED';
-        const sa  = fin ? (m.score?.fullTime?.home ?? m.score?.regularTime?.home ?? null) : null;
-        const sb  = fin ? (m.score?.fullTime?.away ?? m.score?.regularTime?.away ?? null) : null;
+        const _sc = getNonPenaltyScore(m);
+        const sa  = fin ? _sc.home : null;
+        const sb  = fin ? _sc.away : null;
         upsert.run(String(m.id), m.utcDate, teamA, teamB, sa, sb, sa, sb,
                    null, null, null, null, stage);
         synced++;
@@ -1808,8 +1828,9 @@ async function scheduledSync() {
         const teamA = normFtdbTeam(m.homeTeam.name);
         const teamB = normFtdbTeam(m.awayTeam.name);
         const fin = m.status === 'FINISHED';
-        const sa  = fin ? (m.score?.fullTime?.home ?? m.score?.regularTime?.home ?? null) : null;
-        const sb  = fin ? (m.score?.fullTime?.away ?? m.score?.regularTime?.away ?? null) : null;
+        const _sc = getNonPenaltyScore(m);
+        const sa  = fin ? _sc.home : null;
+        const sb  = fin ? _sc.away : null;
         upsert.run(String(m.id), m.utcDate, teamA, teamB, sa, sb, sa, sb,
                    null, null, null, null, stage);
         synced++;
