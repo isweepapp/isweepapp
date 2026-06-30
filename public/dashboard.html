@@ -1,318 +1,328 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="iSweep">
-  <link rel="apple-touch-icon" href="/assets/icon-180.png">
-  <title>iSweep — Leaderboard</title>
-  <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
-  <style>
-    .tab-bar { display:flex; gap:0.5rem; margin-bottom:1.25rem; flex-wrap:wrap; }
-    .tab-btn {
-      padding:0.4rem 1.1rem; border-radius:20px; border:1px solid var(--card-border);
-      background:transparent; color:var(--text-muted); font-size:0.87rem; font-weight:600;
-      cursor:pointer; transition:all 0.2s;
-    }
-    .tab-btn.active { color:var(--gold); border-color:var(--gold); background:rgba(212,167,44,0.08); }
-    .tab-btn:hover:not(.active) { border-color:var(--text-muted); color:var(--text); }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="iSweep">
+<link rel="apple-touch-icon" href="/assets/icon-180.png">
+<title>iSweep — Leaderboard</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
+<style>
+.tab-bar { display:flex; gap:0.5rem; margin-bottom:1.25rem; flex-wrap:wrap; }
+.tab-btn {
+  padding:0.4rem 1.1rem; border-radius:20px; border:1px solid var(--card-border);
+  background:transparent; color:var(--text-muted); font-size:0.87rem; font-weight:600;
+  cursor:pointer; transition:all 0.2s;
+}
+.tab-btn.active { color:var(--gold); border-color:var(--gold); background:rgba(212,167,44,0.08); }
+.tab-btn:hover:not(.active) { border-color:var(--text-muted); color:var(--text); }
 
-    /* -- Persona cells (Known As / Flag / Crest) - */
-    .td-persona { text-align:center; white-space:nowrap; font-size:0.82rem; color:var(--text-muted); }
+/* -- Persona cells (Known As / Flag / Crest) - */
+.td-persona { text-align:center; white-space:nowrap; font-size:0.82rem; color:var(--text-muted); }
 
-    /* -- Club badge -------------------------------- */
-    .club-badge {
-      display:inline-block;
-      font-size:0.65rem; font-weight:800; letter-spacing:0.04em;
-      background:rgba(255,255,255,0.1);
-      border:1px solid rgba(255,255,255,0.18);
-      border-radius:4px;
-      padding:0.15rem 0.35rem;
-      color:var(--text);
-    }
+/* -- Club badge -------------------------------- */
+.club-badge {
+  display:inline-block;
+  font-size:0.65rem; font-weight:800; letter-spacing:0.04em;
+  background:rgba(255,255,255,0.1);
+  border:1px solid rgba(255,255,255,0.18);
+  border-radius:4px;
+  padding:0.15rem 0.35rem;
+  color:var(--text);
+}
 
-    /* -- Expand button ----------------------------- */
-    .td-expand-btn { text-align:center; width:32px; }
-    .expand-btn {
-      background:none; border:1px solid var(--card-border); border-radius:4px;
-      color:var(--text-muted); font-size:0.8rem; padding:0.1rem 0.4rem;
-      cursor:pointer; transition:all 0.15s; line-height:1;
-    }
-    .expand-btn:hover { border-color:var(--gold); color:var(--gold); }
+/* -- Expand button ----------------------------- */
+.td-expand-btn { text-align:center; width:32px; }
+.expand-btn {
+  background:none; border:1px solid var(--card-border); border-radius:4px;
+  color:var(--text-muted); font-size:0.8rem; padding:0.1rem 0.4rem;
+  cursor:pointer; transition:all 0.15s; line-height:1;
+}
+.expand-btn:hover { border-color:var(--gold); color:var(--gold); }
 
-    /* -- Expanded detail row ----------------------- */
-    .expand-row td {
-      padding:0.75rem 1rem 1rem;
-      background:rgba(255,255,255,0.02);
-      border-top:none;
-    }
-    .exp-teams {
-      display:flex; flex-wrap:wrap; gap:0.5rem 0.75rem;
-      margin-bottom:0.75rem;
-    }
-    .team-pts-item {
-      display:flex; align-items:center; gap:0.4rem;
-    }
-    .team-pts-val {
-      font-size:0.78rem; font-weight:700; color:var(--teal);
-      white-space:nowrap;
-    }
-    .exp-stats {
-      display:flex; flex-wrap:wrap; gap:0.4rem 1rem;
-      font-size:0.78rem; color:var(--text-muted);
-      border-top:1px solid var(--card-border);
-      padding-top:0.6rem; margin-top:0.1rem;
-    }
-    .exp-stats em { font-style:normal; font-weight:700; color:var(--text); margin-right:0.2rem; }
-    .exp-stats .pos { color:var(--teal); }
-    .exp-stats .neg { color:#f87171; }
+/* -- Expanded detail row ----------------------- */
+.expand-row td {
+  padding:0.75rem 1rem 1rem;
+  background:rgba(255,255,255,0.02);
+  border-top:none;
+}
+.exp-teams {
+  display:flex; flex-wrap:wrap; gap:0.5rem 0.75rem;
+  margin-bottom:0.75rem;
+}
+.team-pts-item {
+  display:flex; align-items:center; gap:0.4rem;
+}
+.team-pts-val {
+  font-size:0.78rem; font-weight:700; color:var(--teal);
+  white-space:nowrap;
+}
+.exp-stats {
+  display:flex; flex-wrap:wrap; gap:0.4rem 1rem;
+  font-size:0.78rem; color:var(--text-muted);
+  border-top:1px solid var(--card-border);
+  padding-top:0.6rem; margin-top:0.1rem;
+}
+.exp-stats em { font-style:normal; font-weight:700; color:var(--text); margin-right:0.2rem; }
+.exp-stats .pos { color:var(--teal); }
+.exp-stats .neg { color:#f87171; }
 
-    /* Stats breakdown only visible when columns are hidden on mobile */
-    .exp-stats-mobile { display:none; }
-    @media (max-width: 860px) { .exp-stats-mobile { display:flex; } }
+/* Stats breakdown only visible when columns are hidden on mobile */
+.exp-stats-mobile { display:none; }
+@media (max-width: 860px) { .exp-stats-mobile { display:flex; } }
 
-    /* ── Spurs fixed row ─────────────────────────────────────────────── */
-    .spurs-fixed-row td {
-      background: rgba(26, 21, 48, 0.45);
-      border-top: 1px dashed rgba(255,255,255,0.08);
-      border-bottom: 1px dashed rgba(255,255,255,0.08);
-    }
-    .spurs-pos { color: var(--text-muted) !important; font-style: italic; }
-    .spurs-name { color: var(--text-muted) !important; font-style: italic; }
-    .spurs-zero { color: rgba(255,255,255,0.2) !important; }
+/* ── Spurs fixed row ─────────────────────────────────────────────── */
+.spurs-fixed-row td {
+  background: rgba(26, 21, 48, 0.45);
+  border-top: 1px dashed rgba(255,255,255,0.08);
+  border-bottom: 1px dashed rgba(255,255,255,0.08);
+}
+.spurs-pos { color: var(--text-muted) !important; font-style: italic; }
+.spurs-name { color: var(--text-muted) !important; font-style: italic; }
+.spurs-zero { color: rgba(255,255,255,0.2) !important; }
 
-    /* ── Section divider rows ─────────────────────────────────────────── */
-    .lb-section-row td {
-      padding: 0.55rem 0.9rem 0.4rem;
-      background: transparent;
-      border: none;
-    }
-    .lb-section-lbl {
-      font-size: 0.72rem; font-weight: 800; letter-spacing: 0.08em;
-      text-transform: uppercase; color: var(--gold);
-      opacity: 0.7;
-    }
-    .lb-section-rest .lb-section-lbl { color: var(--text-muted); }
+/* ── Section divider rows ─────────────────────────────────────────── */
+.lb-section-row td {
+  padding: 0.55rem 0.9rem 0.4rem;
+  background: transparent;
+  border: none;
+}
+.lb-section-lbl {
+  font-size: 0.72rem; font-weight: 800; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--gold);
+  opacity: 0.7;
+}
+.lb-section-rest .lb-section-lbl { color: var(--text-muted); }
 
-    /* ── News feed panel ──────────────────────────────────────────────── */
-    .news-feed-row td {
-      padding: 0.6rem 0.5rem;
-      background: rgba(255,255,255,0.015);
-      border-top: 1px solid var(--card-border);
-      border-bottom: 1px solid var(--card-border);
-    }
-    .news-feed-wrap {
-      display: flex; flex-direction: column; gap: 0.5rem;
-    }
-    .news-feed-hd {
-      display: flex; align-items: center; gap: 0.5rem;
-      font-size: 0.72rem; font-weight: 800; letter-spacing: 0.07em;
-      text-transform: uppercase; color: var(--gold);
-    }
-    .nf-pulse {
-      display: inline-block; width: 8px; height: 8px;
-      border-radius: 50%; background: var(--gold);
-      animation: nf-blink 1.6s ease-in-out infinite;
-    }
-    @keyframes nf-blink {
-      0%,100% { opacity:1; transform:scale(1); }
-      50%      { opacity:0.3; transform:scale(0.7); }
-    }
-    .news-feed-cards {
-      display: flex; flex-wrap: nowrap; gap: 0.5rem;
-      overflow-x: auto; padding-bottom: 0.2rem;
-      scrollbar-width: thin;
-    }
-    .news-feed-cards::-webkit-scrollbar { height: 4px; }
-    .news-feed-cards::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius:2px; }
-    .nf-card {
-      display: flex; align-items: center; gap: 0.55rem;
-      flex: 0 0 auto;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid var(--card-border);
-      border-radius: 10px;
-      padding: 0.45rem 0.75rem;
-      min-width: 120px;
-    }
-    .nf-icon { font-size: 1.4rem; line-height: 1; flex-shrink: 0; }
-    .nf-body { display: flex; flex-direction: column; gap: 0.05rem; }
-    .nf-label {
-      font-size: 0.62rem; font-weight: 700; letter-spacing: 0.05em;
-      text-transform: uppercase; color: var(--text-muted);
-    }
-    .nf-value {
-      font-size: 0.88rem; font-weight: 800; color: var(--text);
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      max-width: 130px;
-    }
-    .nf-sub {
-      font-size: 0.68rem; color: var(--teal); font-weight: 600;
-    }
-  </style>
+/* ── News feed panel ──────────────────────────────────────────────── */
+.news-feed-row td {
+  padding: 0.6rem 0.5rem;
+  background: rgba(255,255,255,0.015);
+  border-top: 1px solid var(--card-border);
+  border-bottom: 1px solid var(--card-border);
+}
+.news-feed-wrap {
+  display: flex; flex-direction: column; gap: 0.5rem;
+}
+.news-feed-hd {
+  display: flex; align-items: center; gap: 0.5rem;
+  font-size: 0.72rem; font-weight: 800; letter-spacing: 0.07em;
+  text-transform: uppercase; color: var(--gold);
+}
+.nf-pulse {
+  display: inline-block; width: 8px; height: 8px;
+  border-radius: 50%; background: var(--gold);
+  animation: nf-blink 1.6s ease-in-out infinite;
+}
+@keyframes nf-blink {
+  0%,100% { opacity:1; transform:scale(1); }
+  50% { opacity:0.3; transform:scale(0.7); }
+}
+.news-feed-cards {
+  display: flex; flex-wrap: nowrap; gap: 0.5rem;
+  overflow-x: auto; padding-bottom: 0.2rem;
+  scrollbar-width: thin;
+}
+.news-feed-cards::-webkit-scrollbar { height: 4px; }
+.news-feed-cards::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius:2px; }
+.nf-card {
+  display: flex; align-items: center; gap: 0.55rem;
+  flex: 0 0 auto;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 0.45rem 0.75rem;
+  min-width: 120px;
+}
+.nf-icon { font-size: 1.4rem; line-height: 1; flex-shrink: 0; }
+.nf-body { display: flex; flex-direction: column; gap: 0.05rem; }
+.nf-label {
+  font-size: 0.62rem; font-weight: 700; letter-spacing: 0.05em;
+  text-transform: uppercase; color: var(--text-muted);
+}
+.nf-value {
+  font-size: 0.88rem; font-weight: 800; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 130px;
+}
+.nf-sub {
+  font-size: 0.68rem; color: var(--teal); font-weight: 600;
+}
+
+/* ── Header celebration video ───────────────────────────────────── */
+.header-celebration-video {
+  height: 48px;
+  border-radius: 8px;
+  margin-left: 0.75rem;
+  border: 1px solid var(--card-border);
+}
+@media (max-width: 600px) {
+  .header-celebration-video { height: 36px; }
+}
+</style>
 </head>
 <body>
-  <header>
-    <div class="header-content">
-      <img src="/assets/logo.png" alt="iSweep World Cup Sweepstake" class="sweepstake-logo">
-      <nav>
-        <a href="/">Home</a>
-        <a href="/prizes.html">Prizes</a>
-        <a href="/teams.html">My Teams</a>
-        <a href="/fixtures.html">Fixtures</a>
-        <a href="/dashboard.html" class="active">Leaderboard</a>
-        <a href="/countries.html">Country Points</a>
-        <a href="/matches.html">Group Stage</a>
-        <a href="/knockout.html">Knockout</a>
-        <a href="/pots.html">Pots</a>
-      </nav>
-    </div>
-  </header>
+<header>
+<div class="header-content">
+<img src="/assets/logo.png" alt="iSweep World Cup Sweepstake" class="sweepstake-logo">
+<video class="header-celebration-video" src="/assets/isweep_celebration_30s.mp4" autoplay muted loop playsinline></video>
+<nav>
+<a href="/">Home</a>
+<a href="/prizes.html">Prizes</a>
+<a href="/teams.html">My Teams</a>
+<a href="/fixtures.html">Fixtures</a>
+<a href="/dashboard.html" class="active">Leaderboard</a>
+<a href="/countries.html">Country Points</a>
+<a href="/matches.html">Group Stage</a>
+<a href="/knockout.html">Knockout</a>
+<a href="/pots.html">Pots</a>
+</nav>
+</div>
+</header>
+<div class="container" style="max-width:1160px">
+<div id="refresh-countdown">Refreshing in <span id="countdown">60</span>s</div>
 
-  <div class="container" style="max-width:1160px">
+<!-- Stats -->
+<div class="stats-grid">
+<div class="stat-card">
+<div class="label">Matches Played</div>
+<div class="value gold" id="stat-matches">—</div>
+</div>
+<div class="stat-card">
+<div class="label">Total Goals</div>
+<div class="value" id="stat-goals">—</div>
+</div>
+<div class="stat-card">
+<div class="label">Top Team</div>
+<div class="value gold" id="stat-top" style="font-size:1rem;padding-top:0.4rem;">—</div>
+</div>
+<div class="stat-card" id="live-match-card">
+<div class="label" id="live-match-label">Live / Next</div>
+<div id="live-match-body" style="margin-top:0.35rem;line-height:1.35"></div>
+</div>
+</div>
 
-    <div id="refresh-countdown">Refreshing in <span id="countdown">60</span>s</div>
+<!-- Tab bar -->
+<div class="tab-bar">
+<button class="tab-btn active" data-tab="knockout">Knockout</button>
+<button class="tab-btn" data-tab="overall">Overall</button>
+<button class="tab-btn" data-tab="group">Group Stage</button>
+<button class="tab-btn" data-tab="foul">🦆 Foul League</button>
+<button class="tab-btn" data-tab="goals">Goals</button>
+<button class="tab-btn" data-tab="stats">Stats</button>
+</div>
 
-    <!-- Stats -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="label">Matches Played</div>
-        <div class="value gold" id="stat-matches">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="label">Total Goals</div>
-        <div class="value" id="stat-goals">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="label">Top Team</div>
-        <div class="value gold" id="stat-top" style="font-size:1rem;padding-top:0.4rem;">—</div>
-      </div>
-      <div class="stat-card" id="live-match-card">
-        <div class="label" id="live-match-label">Live / Next</div>
-        <div id="live-match-body" style="margin-top:0.35rem;line-height:1.35"></div>
-      </div>
-    </div>
+<!-- Leaderboard table (Overall / Group / Knockout) -->
+<div class="prem-table-wrap">
+<table class="prem-table">
+<thead>
+<tr>
+<th class="th-pos" title="Position">Pos</th>
+<th class="th-mov"></th>
+<th class="th-name">Entry</th>
+<th title="Known as"></th>
+<th title="Favourite country"></th>
+<th title="Favourite club"></th>
+<th title="Matches Played">P</th>
+<th title="Wins — +3 pts each">W</th>
+<th title="Draws — +1 pt each">D</th>
+<th title="Losses">L</th>
+<th title="Goals Scored — +2 pts each">GF</th>
+<th title="Goals Conceded — -1 pt each">GA</th>
+<th title="Yellow Cards — -1 pt each">YC</th>
+<th title="Red Cards — -3 pts each">RC</th>
+<th title="Group Finish Bonus">Bon</th>
+<th title="Total Points">Pts</th>
+<th title="Drawn teams"></th>
+</tr>
+</thead>
+<tbody id="standings-tbody">
+<tr><td colspan="17" class="prem-loading">Loading…</td></tr>
+</tbody>
+</table>
+<div class="col-key">
+<span>Click <strong>▾</strong> to see drawn teams &amp; points</span>
+<span><strong>P</strong> Played</span>
+<span><strong>W</strong> Wins <em>(+3)</em></span>
+<span><strong>D</strong> Draws <em>(+1)</em></span>
+<span><strong>L</strong> Losses</span>
+<span><strong>GF</strong> Goals For <em>(+2)</em></span>
+<span><strong>GA</strong> Goals Against <em>(-1)</em></span>
+<span><strong>YC</strong> Yellows <em>(-1)</em></span>
+<span><strong>RC</strong> Reds <em>(-3)</em></span>
+<span><strong>Bon</strong> Group Finish Bonus</span>
+<span><strong>Pts</strong> Total Points</span>
+</div>
+</div>
 
-    <!-- Tab bar -->
-    <div class="tab-bar">
-      <button class="tab-btn active" data-tab="knockout">Knockout</button>
-      <button class="tab-btn" data-tab="overall">Overall</button>
-      <button class="tab-btn" data-tab="group">Group Stage</button>
-      <button class="tab-btn" data-tab="foul">🦆 Foul League</button>
-      <button class="tab-btn" data-tab="goals">Goals</button>
-      <button class="tab-btn" data-tab="stats">Stats</button>
-    </div>
+<!-- Foul League description (shown only on foul tab) -->
+<div id="foul-desc" hidden style="margin-bottom:1rem;font-size:0.88rem;color:var(--text-muted);line-height:1.5;">
+🦆 Drakey's very own league table. Quack quack.
+</div>
 
-    <!-- Leaderboard table (Overall / Group / Knockout) -->
-    <div class="prem-table-wrap">
-      <table class="prem-table">
-        <thead>
-          <tr>
-            <th class="th-pos" title="Position">Pos</th>
-            <th class="th-mov"></th>
-            <th class="th-name">Entry</th>
-            <th title="Known as"></th>
-            <th title="Favourite country"></th>
-            <th title="Favourite club"></th>
-            <th title="Matches Played">P</th>
-            <th title="Wins — +3 pts each">W</th>
-            <th title="Draws — +1 pt each">D</th>
-            <th title="Losses">L</th>
-            <th title="Goals Scored — +2 pts each">GF</th>
-            <th title="Goals Conceded — -1 pt each">GA</th>
-            <th title="Yellow Cards — -1 pt each">YC</th>
-            <th title="Red Cards — -3 pts each">RC</th>
-            <th title="Group Finish Bonus">Bon</th>
-            <th title="Total Points">Pts</th>
-            <th title="Drawn teams"></th>
-          </tr>
-        </thead>
-        <tbody id="standings-tbody">
-          <tr><td colspan="17" class="prem-loading">Loading…</td></tr>
-        </tbody>
-      </table>
-      <div class="col-key">
-        <span>Click <strong>▾</strong> to see drawn teams &amp; points</span>
-        <span><strong>P</strong> Played</span>
-        <span><strong>W</strong> Wins <em>(+3)</em></span>
-        <span><strong>D</strong> Draws <em>(+1)</em></span>
-        <span><strong>L</strong> Losses</span>
-        <span><strong>GF</strong> Goals For <em>(+2)</em></span>
-        <span><strong>GA</strong> Goals Against <em>(-1)</em></span>
-        <span><strong>YC</strong> Yellows <em>(-1)</em></span>
-        <span><strong>RC</strong> Reds <em>(-3)</em></span>
-        <span><strong>Bon</strong> Group Finish Bonus</span>
-        <span><strong>Pts</strong> Total Points</span>
-      </div>
-    </div>
+<!-- Goals leaderboard -->
+<div id="goals-container" hidden>
+<div id="goals-projection" style="margin-bottom:1rem;padding:0.75rem 1rem;background:rgba(212,167,44,0.08);border:1px solid rgba(212,167,44,0.25);border-radius:8px;font-size:0.9rem;color:var(--text-muted);"></div>
+<div class="prem-table-wrap">
+<table class="prem-table">
+<thead>
+<tr>
+<th class="th-pos" title="Position">Pos</th>
+<th class="th-mov"></th>
+<th class="th-name">Entry</th>
+<th title="Known as"></th>
+<th title="Your predicted total goals">Guess</th>
+<th title="Difference from projected total">Diff</th>
+</tr>
+</thead>
+<tbody id="goals-tbody">
+<tr><td colspan="6" class="prem-loading">Loading…</td></tr>
+</tbody>
+</table>
+<div class="col-key">
+<span><strong>Guess</strong> Your predicted total goals for all 104 games</span>
+<span><strong>Diff</strong> Distance from the current projection — closest wins</span>
+</div>
+</div>
+</div>
 
-    <!-- Foul League description (shown only on foul tab) -->
-    <div id="foul-desc" hidden style="margin-bottom:1rem;font-size:0.88rem;color:var(--text-muted);line-height:1.5;">
-      🦆 Drakey's very own league table. Quack quack.
-    </div>
+<!-- Stats / Position history chart -->
+<div id="stats-container" hidden>
+<style>
+.pos-picker { display:flex; flex-wrap:wrap; gap:0.4rem 0.5rem; margin-bottom:1rem; }
+.pos-pill {
+  padding:0.3rem 0.85rem; border-radius:999px; border:1px solid rgba(255,255,255,0.15);
+  background:rgba(255,255,255,0.04); color:rgba(255,255,255,0.45);
+  font-size:0.78rem; font-weight:600; cursor:pointer; transition:all 0.18s;
+}
+.pos-pill:hover { border-color:rgba(255,255,255,0.35); color:rgba(255,255,255,0.8); }
+.pos-pill-top-1 { border-color:rgba(245,158,11,0.5); color:#f59e0b; background:rgba(245,158,11,0.08); }
+.pos-pill-top-2 { border-color:rgba(34,197,94,0.5); color:#22c55e; background:rgba(34,197,94,0.08); }
+.pos-pill-top-3 { border-color:rgba(239,68,68,0.5); color:#ef4444; background:rgba(239,68,68,0.08); }
+.pos-pill-bottom-1 { border-color:rgba(239,68,68,0.5); color:#ef4444; background:rgba(239,68,68,0.07); }
+.pos-pill-bottom-2 { border-color:rgba(34,197,94,0.5); color:#22c55e; background:rgba(34,197,94,0.07); }
+.pos-pill-bottom-3 { border-color:rgba(245,158,11,0.5); color:#f59e0b; background:rgba(245,158,11,0.07); }
+.pos-pill-active { border-color:#2dd4bf !important; color:#2dd4bf !important; background:rgba(45,212,191,0.12) !important; }
+</style>
+<div style="margin-bottom:0.6rem;font-size:0.85rem;color:var(--text-muted)">
+Points accumulation per match — top 3 and bottom 3 always highlighted. Click a name to track them.
+</div>
+<div id="pos-picker" class="pos-picker"></div>
+<div style="position:relative;height:480px;background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--radius);padding:1rem;">
+<canvas id="pos-chart"></canvas>
+<div id="pos-chart-empty" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;color:var(--text-muted);font-size:0.9rem">
+No match data yet — check back after the first games are played.
+</div>
+</div>
+<div id="pos-legend" style="margin-top:1rem;display:flex;flex-wrap:wrap;gap:0.4rem 0.75rem;font-size:0.78rem;"></div>
+</div>
+</div>
 
-    <!-- Goals leaderboard -->
-    <div id="goals-container" hidden>
-      <div id="goals-projection" style="margin-bottom:1rem;padding:0.75rem 1rem;background:rgba(212,167,44,0.08);border:1px solid rgba(212,167,44,0.25);border-radius:8px;font-size:0.9rem;color:var(--text-muted);"></div>
-      <div class="prem-table-wrap">
-        <table class="prem-table">
-          <thead>
-            <tr>
-              <th class="th-pos" title="Position">Pos</th>
-              <th class="th-mov"></th>
-              <th class="th-name">Entry</th>
-              <th title="Known as"></th>
-              <th title="Your predicted total goals">Guess</th>
-              <th title="Difference from projected total">Diff</th>
-            </tr>
-          </thead>
-          <tbody id="goals-tbody">
-            <tr><td colspan="6" class="prem-loading">Loading…</td></tr>
-          </tbody>
-        </table>
-        <div class="col-key">
-          <span><strong>Guess</strong> Your predicted total goals for all 104 games</span>
-          <span><strong>Diff</strong> Distance from the current projection — closest wins</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Stats / Position history chart -->
-    <div id="stats-container" hidden>
-      <style>
-        .pos-picker { display:flex; flex-wrap:wrap; gap:0.4rem 0.5rem; margin-bottom:1rem; }
-        .pos-pill {
-          padding:0.3rem 0.85rem; border-radius:999px; border:1px solid rgba(255,255,255,0.15);
-          background:rgba(255,255,255,0.04); color:rgba(255,255,255,0.45);
-          font-size:0.78rem; font-weight:600; cursor:pointer; transition:all 0.18s;
-        }
-        .pos-pill:hover { border-color:rgba(255,255,255,0.35); color:rgba(255,255,255,0.8); }
-        .pos-pill-top-1 { border-color:rgba(245,158,11,0.5); color:#f59e0b; background:rgba(245,158,11,0.08); }
-        .pos-pill-top-2 { border-color:rgba(34,197,94,0.5); color:#22c55e; background:rgba(34,197,94,0.08); }
-        .pos-pill-top-3 { border-color:rgba(239,68,68,0.5); color:#ef4444; background:rgba(239,68,68,0.08); }
-        .pos-pill-bottom-1 { border-color:rgba(239,68,68,0.5); color:#ef4444; background:rgba(239,68,68,0.07); }
-        .pos-pill-bottom-2 { border-color:rgba(34,197,94,0.5); color:#22c55e; background:rgba(34,197,94,0.07); }
-        .pos-pill-bottom-3 { border-color:rgba(245,158,11,0.5); color:#f59e0b; background:rgba(245,158,11,0.07); }
-        .pos-pill-active { border-color:#2dd4bf !important; color:#2dd4bf !important; background:rgba(45,212,191,0.12) !important; }
-      </style>
-      <div style="margin-bottom:0.6rem;font-size:0.85rem;color:var(--text-muted)">
-        Points accumulation per match — top 3 and bottom 3 always highlighted. Click a name to track them.
-      </div>
-      <div id="pos-picker" class="pos-picker"></div>
-      <div style="position:relative;height:480px;background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--radius);padding:1rem;">
-        <canvas id="pos-chart"></canvas>
-        <div id="pos-chart-empty" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;color:var(--text-muted);font-size:0.9rem">
-          No match data yet — check back after the first games are played.
-        </div>
-      </div>
-      <div id="pos-legend" style="margin-top:1rem;display:flex;flex-wrap:wrap;gap:0.4rem 0.75rem;font-size:0.78rem;"></div>
-    </div>
-
-  </div>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-  <script src="flags.js"></script>
-  <script src="dashboard.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="flags.js"></script>
+<script src="dashboard.js"></script>
 </body>
 </html>
