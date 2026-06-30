@@ -175,6 +175,7 @@ app.get('/api/debug/match/:id', requireAdmin, async (req, res) => {
       id: data.id,
       homeTeamObj: data.homeTeam,
       awayTeamObj: data.awayTeam,
+      score: data.score,
       homeId,
       bookings: bookings,
       bookingsCount: bookings.length,
