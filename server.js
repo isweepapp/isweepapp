@@ -1574,6 +1574,12 @@ app.get('/api/admin/sync-cards', requireAdmin, async (req, res) => {
   res.setHeader('Connection', 'keep-alive');
   const send = d => res.write(`data: ${JSON.stringify(d)}\n\n`);
 
+  const { force } = req.query;
+  if (force === 'true') {
+    db.prepare('UPDATE matches SET yellows_a=NULL, yellows_b=NULL, reds_a=NULL, reds_b=NULL WHERE score_a IS NOT NULL').run();
+    console.log('[CardSync] Force mode: all card data reset for full re-sync');
+  }
+
   const toSync = db.prepare(
     'SELECT id FROM matches WHERE score_a IS NOT NULL AND (yellows_a IS NULL OR reds_a IS NULL)'
   ).all();
@@ -1591,16 +1597,25 @@ app.get('/api/admin/sync-cards', requireAdmin, async (req, res) => {
   let processed = 0, errors = 0;
 
   for (const { id } of toSync) {
-    await new Promise(r => setTimeout(r, 2500));
+    await new Promise(r => setTimeout(r, 1100));
     try {
-      const data     = await ftdbGet(`/v4/matches/${id}`);
+      let data;
+      try {
+        data = await ftdbGet(`/v4/matches/${id}`);
+      } catch (e) {
+        if (e.message.includes('429')) {
+          send({ type: 'error', matchId: id, message: 'Rate limited — waiting 60s before retrying…' });
+          await new Promise(r => setTimeout(r, 60000));
+          data = await ftdbGet(`/v4/matches/${id}`);
+        } else throw e;
+      }
       const bookings = data.bookings || [];
       const homeId   = data.homeTeam?.id;
       let ya=0, yb=0, ra=0, rb=0;
       for (const b of bookings) {
         const home = b.team?.id === homeId;
-        if (b.card === 'YELLOW')                    { home ? ya++ : yb++; }
-        if (b.card === 'RED' || b.card === 'YELLOW_RED') { home ? ra++ : rb++; }
+        if (b.card === 'YELLOW' || b.card === 'YELLOW_CARD')                                              { home ? ya++ : yb++; }
+        if (b.card === 'RED' || b.card === 'RED_CARD' || b.card === 'YELLOW_RED' || b.card === 'YELLOW_RED_CARD') { home ? ra++ : rb++; }
       }
       updCards.run(ya, yb, ra, rb, id);
       processed++;
