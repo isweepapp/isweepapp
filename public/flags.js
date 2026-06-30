@@ -78,8 +78,9 @@ const GROUPS = [
 ];
 
 const KNOCKOUT_TEAMS = new Set([
-  'Mexico','South Africa','Switzerland','Canada','Brazil','Morocco',
-  'United States','Australia','Germany','Ivory Coast','Netherlands','Japan',
+  // Round of 16 (winners of Round of 32 so far; rest TBC as R32 completes)
+  'Mexico','Switzerland','Canada','Brazil','Morocco',
+  'United States','Australia','Ivory Coast',
   'Belgium','Egypt','Spain','Cape Verde','France','Norway',
   'Argentina','Austria','Colombia','Portugal','England','Croatia',
   'Ecuador','Bosnia & Herzegovina','Sweden','Algeria',
