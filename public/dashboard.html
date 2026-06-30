@@ -154,15 +154,41 @@
 
 /* ── Header celebration video (sizing/position set inline on the tag) ── */
 header { position: relative; }
+.isweep-celeb-wrap { position: relative; display: inline-block; }
+.isweep-celeb-play {
+  display: none;
+}
 @media (max-width: 1000px) {
+  .isweep-celeb-wrap {
+    display: block;
+    width: min(420px, 92vw);
+    aspect-ratio: 16/9;
+    margin: 1rem auto 0;
+  }
   .isweep-celeb-clip {
     position: static !important;
     transform: none !important;
     left: auto !important;
-    margin: 0 auto 1rem !important;
+    top: auto !important;
+    height: 100% !important;
+    width: 100% !important;
     display: block !important;
-    height: 110px !important;
-    width: 196px !important;
+    border-radius: 12px !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+  }
+  .isweep-celeb-play {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 56px; height: 56px;
+    background: rgba(20,20,20,0.75);
+    border-radius: 50%;
+    color: #fff;
+    font-size: 1.4rem;
+    pointer-events: none;
   }
 }
 </style>
@@ -170,9 +196,12 @@ header { position: relative; }
 <body>
 <header>
 <div class="header-content">
+<img src="/assets/logo.png" alt="iSweep World Cup Sweepstake" class="sweepstake-logo">
+<div class="isweep-celeb-wrap">
 <video class="isweep-celeb-clip" src="/assets/isweep_celebration_30s_widescreen.mp4" autoplay muted loop playsinline
        style="position:absolute !important; top:50% !important; left:calc(50% - 664px) !important; transform:translateY(-50%) !important; height:216px !important; width:384px !important; border-radius:14px; border:1px solid var(--card-border); object-fit:cover;"></video>
-<img src="/assets/logo.png" alt="iSweep World Cup Sweepstake" class="sweepstake-logo">
+<div class="isweep-celeb-play">▶</div>
+</div>
 <nav>
 <a href="/">Home</a>
 <a href="/prizes.html">Prizes</a>
