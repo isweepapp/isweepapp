@@ -159,6 +159,7 @@
   aspect-ratio: 16/9;
   margin: 1.25rem auto 0;
   position: relative;
+  transition: opacity 1s ease;
 }
 .isweep-celeb-clip {
   position: static !important;
@@ -194,7 +195,7 @@
 <div class="header-content">
 <img src="/assets/logo.png" alt="iSweep World Cup Sweepstake" class="sweepstake-logo">
 <div class="isweep-celeb-wrap">
-<video class="isweep-celeb-clip" src="/assets/isweep_celebration_30s_widescreen.mp4" autoplay muted loop playsinline></video>
+<video class="isweep-celeb-clip" src="/assets/isweep_celebration_30s_widescreen.mp4" autoplay muted playsinline></video>
 <div class="isweep-celeb-play">▶</div>
 </div>
 <nav>
@@ -352,5 +353,18 @@ No match data yet — check back after the first games are played.
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <script src="flags.js"></script>
 <script src="dashboard.js"></script>
+<script>
+(function () {
+  const wrap  = document.querySelector('.isweep-celeb-wrap');
+  const video = document.querySelector('.isweep-celeb-clip');
+  if (!video || !wrap) return;
+  video.addEventListener('ended', function () {
+    wrap.style.opacity = '0';
+    wrap.addEventListener('transitionend', function () {
+      wrap.style.display = 'none';
+    }, { once: true });
+  });
+})();
+</script>
 </body>
 </html>
