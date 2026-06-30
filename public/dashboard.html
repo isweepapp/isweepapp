@@ -153,35 +153,35 @@
 }
 
 /* ── Header celebration video ───────────────────────────────────── */
-.header-logo-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1.25rem;
-  flex-wrap: wrap;
-}
+header { position: relative; }
 .header-celebration-video {
-  height: 110px;
-  width: auto;
-  border-radius: 10px;
+  position: absolute !important;
+  top: 50%;
+  left: calc(50% - 636px);
+  transform: translateY(-50%);
+  height: 200px;
+  width: 356px;
+  border-radius: 14px;
   border: 1px solid var(--card-border);
+  object-fit: cover;
 }
-.header-logo-row .sweepstake-logo {
-  margin: 0 !important;
-}
-@media (max-width: 700px) {
-  .header-celebration-video { height: 70px; }
+@media (max-width: 1000px) {
+  .header-celebration-video {
+    position: static !important;
+    transform: none;
+    margin: 0 auto 1rem;
+    display: block;
+    height: 160px;
+    width: 284px;
+  }
 }
 </style>
 </head>
 <body>
 <header>
 <div class="header-content">
-<div class="header-logo-row">
-<video class="isweep-celeb-clip" src="/assets/isweep_celebration_30s_square.mp4" autoplay muted loop playsinline
-       style="position:static !important; display:inline-block !important; height:320px !important; width:320px !important; max-width:none !important; border-radius:16px; border:1px solid var(--card-border); object-fit:cover;"></video>
+<video class="isweep-celeb-clip" src="/assets/isweep_celebration_30s_widescreen.mp4" autoplay muted loop playsinline></video>
 <img src="/assets/logo.png" alt="iSweep World Cup Sweepstake" class="sweepstake-logo">
-</div>
 <nav>
 <a href="/">Home</a>
 <a href="/prizes.html">Prizes</a>
