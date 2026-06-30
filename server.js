@@ -1320,8 +1320,8 @@ function triggerBackgroundSync() {
           const teamA = normFtdbTeam(m.homeTeam.name);
           const teamB = normFtdbTeam(m.awayTeam.name);
           const live = m.status === 'FINISHED' || m.status === 'IN_PLAY' || m.status === 'PAUSED';
-          const sa  = live ? (m.score?.fullTime?.home ?? null) : null;
-          const sb  = live ? (m.score?.fullTime?.away ?? null) : null;
+          const sa  = live ? (m.score?.fullTime?.home ?? m.score?.regularTime?.home ?? null) : null;
+          const sb  = live ? (m.score?.fullTime?.away ?? m.score?.regularTime?.away ?? null) : null;
           upsert.run(String(m.id), m.utcDate, teamA, teamB, sa, sb, sa, sb,
                      null, null, null, null, stage);
           synced++;
@@ -1503,8 +1503,8 @@ app.post('/api/admin/sync', requireAdmin, async (req, res) => {
         if (!db.prepare('SELECT 1 FROM teams WHERE name=?').get(teamA)) unmapped.add(m.homeTeam.name);
         if (!db.prepare('SELECT 1 FROM teams WHERE name=?').get(teamB)) unmapped.add(m.awayTeam.name);
         const fin = m.status === 'FINISHED';
-        const sa  = fin ? (m.score?.fullTime?.home ?? null) : null;
-        const sb  = fin ? (m.score?.fullTime?.away ?? null) : null;
+        const sa  = fin ? (m.score?.fullTime?.home ?? m.score?.regularTime?.home ?? null) : null;
+        const sb  = fin ? (m.score?.fullTime?.away ?? m.score?.regularTime?.away ?? null) : null;
         upsert.run(String(m.id), m.utcDate, teamA, teamB, sa, sb, sa, sb,
                    null, null, null, null, stage);
         synced++;
@@ -1807,8 +1807,8 @@ async function scheduledSync() {
         const teamA = normFtdbTeam(m.homeTeam.name);
         const teamB = normFtdbTeam(m.awayTeam.name);
         const fin = m.status === 'FINISHED';
-        const sa  = fin ? (m.score?.fullTime?.home ?? null) : null;
-        const sb  = fin ? (m.score?.fullTime?.away ?? null) : null;
+        const sa  = fin ? (m.score?.fullTime?.home ?? m.score?.regularTime?.home ?? null) : null;
+        const sb  = fin ? (m.score?.fullTime?.away ?? m.score?.regularTime?.away ?? null) : null;
         upsert.run(String(m.id), m.utcDate, teamA, teamB, sa, sb, sa, sb,
                    null, null, null, null, stage);
         synced++;
