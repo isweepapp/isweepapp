@@ -305,15 +305,18 @@ document.getElementById('sync-btn').addEventListener('click', async () => {
   finally  { btn.disabled = false; btn.textContent = 'Sync Fixtures & Scores'; }
 });
 
-document.getElementById('sync-cards-btn').addEventListener('click', async () => {
+async function runCardSync(force = false) {
   hideAlert(syncAlert);
   syncLog.classList.remove('hidden');
   syncLog.textContent = 'Starting card sync…\n';
-  const btn = document.getElementById('sync-cards-btn');
-  btn.disabled = true; btn.textContent = 'Syncing cards…';
+  const btn      = force ? document.getElementById('sync-cards-force-btn') : document.getElementById('sync-cards-btn');
+  const otherBtn = force ? document.getElementById('sync-cards-btn') : document.getElementById('sync-cards-force-btn');
+  btn.disabled = true; btn.textContent = 'Syncing…';
+  if (otherBtn) otherBtn.disabled = true;
 
   try {
-    const r = await adminFetch('/api/admin/sync-cards');
+    const url = force ? '/api/admin/sync-cards?force=true' : '/api/admin/sync-cards';
+    const r = await adminFetch(url);
     if (!r.ok) {
       const d = await r.json();
       showAlert(syncAlert, 'error', d.error || 'Card sync failed.');
@@ -347,8 +350,16 @@ document.getElementById('sync-cards-btn').addEventListener('click', async () => 
   } catch (e) {
     showAlert(syncAlert, 'error', `Error: ${e.message}`);
   } finally {
-    btn.disabled = false; btn.textContent = 'Sync Card Data (slow)';
+    btn.disabled = false;
+    btn.textContent = force ? '🔄 Force Full Card Re-sync' : 'Sync Card Data';
+    if (otherBtn) otherBtn.disabled = false;
   }
+}
+
+document.getElementById('sync-cards-btn')?.addEventListener('click', () => runCardSync(false));
+document.getElementById('sync-cards-force-btn')?.addEventListener('click', () => {
+  if (!confirm('This will reset ALL card data and re-fetch from scratch. Continue?')) return;
+  runCardSync(true);
 });
 
 // -- Draw ----------------------------------------------------------------------
