@@ -153,22 +153,31 @@
 }
 
 /* ── Header celebration video ───────────────────────────────────── */
+.header-logo-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
 .header-celebration-video {
-  height: 48px;
-  border-radius: 8px;
-  margin-left: 0.75rem;
+  height: 110px;
+  width: auto;
+  border-radius: 10px;
   border: 1px solid var(--card-border);
 }
-@media (max-width: 600px) {
-  .header-celebration-video { height: 36px; }
+@media (max-width: 700px) {
+  .header-celebration-video { height: 70px; }
 }
 </style>
 </head>
 <body>
 <header>
 <div class="header-content">
-<img src="/assets/logo.png" alt="iSweep World Cup Sweepstake" class="sweepstake-logo">
+<div class="header-logo-row">
 <video class="header-celebration-video" src="/assets/isweep_celebration_30s.mp4" autoplay muted loop playsinline></video>
+<img src="/assets/logo.png" alt="iSweep World Cup Sweepstake" class="sweepstake-logo">
+</div>
 <nav>
 <a href="/">Home</a>
 <a href="/prizes.html">Prizes</a>
