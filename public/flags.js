@@ -78,8 +78,10 @@ const GROUPS = [
 ];
 
 const KNOCKOUT_TEAMS = new Set([
-  'Morocco','France','Brazil','England',
-  'Belgium','Spain','Argentina','Switzerland'
+  'Canada','Brazil','Paraguay','Morocco',
+  'Norway','France','Mexico','England',
+  'Belgium','United States','Spain','Portugal',
+  'Switzerland','Egypt','Argentina','Colombia'
 ]);
 
 function buildGroupBlock(group) {
