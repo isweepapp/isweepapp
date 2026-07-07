@@ -216,7 +216,9 @@ function buildEntryRows(r, i, previousRanks, pos) {
     </div>`;
   }).join('');
 
-  trs.push(`<tr class="${posClass} main-row" data-expand="${expandId}">
+  const allEliminated = allTeams.length > 0 && allTeams.every(({ team }) => !KNOCKOUT_TEAMS.has(team));
+
+  trs.push(`<tr class="${posClass} main-row${allEliminated ? ' entry-all-out' : ''}" data-expand="${expandId}">
     <td class="td-pos">${pos}</td>
     <td class="td-mov">${movHtml}</td>
     <td class="td-name">${r.name}${entryLabel}</td>
