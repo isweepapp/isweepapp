@@ -78,11 +78,9 @@ const GROUPS = [
 ];
 
 const KNOCKOUT_TEAMS = new Set([
-  // Round of 16 survivors confirmed
   'Morocco','France','Norway','England',
-  // Still to play R16
-  'Spain','Portugal','Belgium','United States',
-  'Argentina','Egypt','Switzerland','Colombia'
+  'Spain','Belgium','Argentina',
+  'Switzerland','Colombia'
 ]);
 
 function buildGroupBlock(group) {
