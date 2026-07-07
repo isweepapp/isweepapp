@@ -998,3 +998,7 @@ nav a, .btn, .tab-btn, .expand-btn {
   .match-row { grid-template-columns: 1fr 60px 1fr 60px; }
   .match-edit-grid { grid-template-columns: 1fr; }
 }
+
+/* ── Entries with all teams eliminated ───────────────────────────────────── */
+tr.entry-all-out td { opacity: 0.35; }
+tr.entry-all-out .td-name { text-decoration: line-through; color: var(--text-muted); }
