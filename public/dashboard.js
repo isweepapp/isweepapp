@@ -1,5 +1,15 @@
 ﻿'use strict';
 
+// Knockout-stage teams — kept in sync with flags.js
+// Only used for greying out eliminated entries on the leaderboard
+const _KO_TEAMS = new Set([
+  'Morocco','France','Norway','England',
+  'Spain','Belgium','Argentina',
+  'Switzerland','Colombia'
+]);
+const _koTeamsActive = () => (typeof KNOCKOUT_TEAMS !== 'undefined' ? KNOCKOUT_TEAMS : _KO_TEAMS);
+
+
 // -- Flag lookup for World Cup teams (from flags.js GROUPS) --------------------
 const FLAG_CODES = {};
 if (typeof GROUPS !== 'undefined') {
@@ -209,14 +219,14 @@ function buildEntryRows(r, i, previousRanks, pos) {
 
   const teamItems = allTeams.map(({ team, pot }) => {
     const tp = (r.teamPts && r.teamPts[team] != null) ? r.teamPts[team] : 0;
-    const isOut = !KNOCKOUT_TEAMS.has(team);
+    const isOut = !_koTeamsActive().has(team);
     return `<div class="team-pts-item${isOut ? ' team-eliminated' : ''}">
       <span class="badge badge-pot${pot}">${flag(team)}${team}</span>
       <span class="team-pts-val">${tp} pts</span>
     </div>`;
   }).join('');
 
-  const allEliminated = allTeams.length > 0 && allTeams.every(({ team }) => !KNOCKOUT_TEAMS.has(team));
+  const _ko = _koTeamsActive(); const allEliminated = allTeams.length > 0 && allTeams.every(({ team }) => !_ko.has(team));
 
   trs.push(`<tr class="${posClass} main-row${allEliminated ? ' entry-all-out' : ''}" data-expand="${expandId}">
     <td class="td-pos">${pos}</td>
