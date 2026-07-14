@@ -35,6 +35,26 @@ if (db.prepare('SELECT COUNT(*) AS cnt FROM matches').get().cnt === 0) {
   console.log('[DB] Matches seeded from seedMatches.sql');
 }
 
+if (db.prepare('SELECT COUNT(*) AS cnt FROM golf_players').get().cnt === 0) {
+  const golfDefaults = ['Scum', 'Gav', 'Bone', 'Pants', 'Crumble', 'Swanko'];
+  const insGolfPlayer = db.prepare('INSERT INTO golf_players (idx, name) VALUES (?, ?)');
+  golfDefaults.forEach((name, idx) => insGolfPlayer.run(idx, name));
+  console.log('[DB] Golf players seeded with defaults');
+}
+
+// Migrate: existing golf tables created before handicaps/shots/course-settings were added
+try { db.exec('ALTER TABLE golf_players ADD COLUMN handicap INTEGER NOT NULL DEFAULT 0'); } catch (_) {}
+try { db.exec('ALTER TABLE golf_group ADD COLUMN hshots INTEGER'); } catch (_) {}
+try { db.exec('ALTER TABLE golf_group ADD COLUMN ashots INTEGER'); } catch (_) {}
+try { db.exec('ALTER TABLE golf_knockout ADD COLUMN ashots INTEGER'); } catch (_) {}
+try { db.exec('ALTER TABLE golf_knockout ADD COLUMN bshots INTEGER'); } catch (_) {}
+
+if (db.prepare('SELECT COUNT(*) AS cnt FROM golf_course').get().cnt === 0) {
+  const insHole = db.prepare('INSERT INTO golf_course (hole_number, par, stroke_index) VALUES (?, ?, ?)');
+  for (let h = 1; h <= 18; h++) insHole.run(h, 4, h);
+  console.log('[DB] Golf course settings seeded with defaults (par 4, stroke index = hole number)');
+}
+
 // Startup cleanup: remove seeded rows already superseded by a prior API sync
 cleanupSeededMatches();
 
@@ -1956,6 +1976,122 @@ async function scheduledSync() {
     console.warn(`[ScheduledSync] Failed: ${e.message}`);
   }
 }
+
+// ── Golf Sweepstake ────────────────────────────────────────────────────────────
+// Match schedule: [hole, homePlayerIdx, awayPlayerIdx] — 0-based player indices.
+// Each of the 6 players plays every other player once at "home" and once "away"
+// across 10 holes (3 simultaneous matches per hole). "hole" here doubles as the
+// real course hole number (1–10). The semis play course holes 11–13 and the
+// final plays course holes 14–17, so par/stroke index carries straight through.
+const GOLF_SCHEDULE = [
+  [1,0,5],[1,1,4],[1,2,3],
+  [2,0,4],[2,5,3],[2,1,2],
+  [3,0,3],[3,4,2],[3,5,1],
+  [4,0,2],[4,3,1],[4,4,5],
+  [5,0,1],[5,2,5],[5,3,4],
+  [6,5,0],[6,4,1],[6,3,2],
+  [7,4,0],[7,3,5],[7,2,1],
+  [8,3,0],[8,2,4],[8,1,5],
+  [9,2,0],[9,1,3],[9,5,4],
+  [10,1,0],[10,5,2],[10,4,3],
+];
+
+app.get('/api/golf/schedule', (_req, res) => res.json(GOLF_SCHEDULE));
+
+app.get('/api/golf/state', (_req, res) => {
+  const players  = db.prepare('SELECT idx, name, handicap FROM golf_players ORDER BY idx').all();
+  const group    = db.prepare('SELECT * FROM golf_group').all();
+  const knockout = db.prepare('SELECT * FROM golf_knockout').all();
+  const course   = db.prepare('SELECT hole_number, par, stroke_index FROM golf_course ORDER BY hole_number').all();
+  res.json({ players, group, knockout, course });
+});
+
+app.post('/api/golf/players', (req, res) => {
+  const i = parseInt(req.body.idx, 10);
+  if (isNaN(i) || i < 0 || i > 5) return res.status(400).json({ error: 'Invalid player index.' });
+  if (req.body.name !== undefined) {
+    const name = String(req.body.name || '').slice(0, 40).trim();
+    if (!name) return res.status(400).json({ error: 'Name cannot be empty.' });
+    db.prepare('UPDATE golf_players SET name=? WHERE idx=?').run(name, i);
+  }
+  if (req.body.handicap !== undefined) {
+    const h = parseInt(req.body.handicap, 10);
+    if (isNaN(h) || h < 0 || h > 54) return res.status(400).json({ error: 'Handicap must be between 0 and 54.' });
+    db.prepare('UPDATE golf_players SET handicap=? WHERE idx=?').run(h, i);
+  }
+  res.json({ ok: true });
+});
+
+app.post('/api/golf/course', (req, res) => {
+  const hole = parseInt(req.body.holeNumber, 10);
+  const { field, value } = req.body;
+  if (isNaN(hole) || hole < 1 || hole > 18 || !['par', 'strokeIndex'].includes(field)) {
+    return res.status(400).json({ error: 'Invalid hole number or field.' });
+  }
+  if (field === 'par') {
+    const p = parseInt(value, 10);
+    if (isNaN(p) || p < 3 || p > 6) return res.status(400).json({ error: 'Par must be between 3 and 6.' });
+    db.prepare('UPDATE golf_course SET par=? WHERE hole_number=?').run(p, hole);
+  } else {
+    const si = parseInt(value, 10);
+    if (isNaN(si) || si < 1 || si > 18) return res.status(400).json({ error: 'Stroke index must be between 1 and 18.' });
+    db.prepare('UPDATE golf_course SET stroke_index=? WHERE hole_number=?').run(si, hole);
+  }
+  res.json({ ok: true });
+});
+
+const GOLF_GROUP_FIELDS    = ['hshots', 'ashots', 'hf', 'hg', 'hp', 'af', 'ag', 'ap'];
+const GOLF_KNOCKOUT_FIELDS = ['ashots', 'bshots', 'af', 'ag', 'ap', 'bf', 'bg', 'bp'];
+const GOLF_SHOTS_FIELDS    = ['hshots', 'ashots', 'bshots'];
+
+app.post('/api/golf/group', (req, res) => {
+  const i = parseInt(req.body.matchIdx, 10);
+  const { field, value } = req.body;
+  if (isNaN(i) || i < 0 || i >= GOLF_SCHEDULE.length || !GOLF_GROUP_FIELDS.includes(field)) {
+    return res.status(400).json({ error: 'Invalid field or match index.' });
+  }
+  db.prepare('INSERT INTO golf_group (match_idx) VALUES (?) ON CONFLICT(match_idx) DO NOTHING').run(i);
+  if (GOLF_SHOTS_FIELDS.includes(field)) {
+    const shots = (value === '' || value == null) ? null : parseInt(value, 10);
+    if (shots !== null && (isNaN(shots) || shots < 1 || shots > 20)) {
+      return res.status(400).json({ error: 'Shots must be between 1 and 20.' });
+    }
+    db.prepare(`UPDATE golf_group SET ${field}=? WHERE match_idx=?`).run(shots, i);
+  } else {
+    db.prepare(`UPDATE golf_group SET ${field}=? WHERE match_idx=?`).run(value ? 1 : 0, i);
+  }
+  res.json({ ok: true });
+});
+
+app.post('/api/golf/knockout', (req, res) => {
+  const { stage, field, value } = req.body;
+  const h = parseInt(req.body.holeIdx, 10);
+  if (!['sf1', 'sf2', 'final'].includes(stage) || isNaN(h) || h < 0 || h > 3 || !GOLF_KNOCKOUT_FIELDS.includes(field)) {
+    return res.status(400).json({ error: 'Invalid stage, hole, or field.' });
+  }
+  db.prepare('INSERT INTO golf_knockout (stage, hole_idx) VALUES (?, ?) ON CONFLICT(stage, hole_idx) DO NOTHING').run(stage, h);
+  if (GOLF_SHOTS_FIELDS.includes(field)) {
+    const shots = (value === '' || value == null) ? null : parseInt(value, 10);
+    if (shots !== null && (isNaN(shots) || shots < 1 || shots > 20)) {
+      return res.status(400).json({ error: 'Shots must be between 1 and 20.' });
+    }
+    db.prepare(`UPDATE golf_knockout SET ${field}=? WHERE stage=? AND hole_idx=?`).run(shots, stage, h);
+  } else {
+    db.prepare(`UPDATE golf_knockout SET ${field}=? WHERE stage=? AND hole_idx=?`).run(value ? 1 : 0, stage, h);
+  }
+  res.json({ ok: true });
+});
+
+app.post('/api/admin/golf/reset', requireAdmin, (_req, res) => {
+  db.exec('DELETE FROM golf_group');
+  db.exec('DELETE FROM golf_knockout');
+  const golfDefaults = ['Scum', 'Gav', 'Bone', 'Pants', 'Crumble', 'Swanko'];
+  const updGolfPlayer = db.prepare('UPDATE golf_players SET name=?, handicap=0 WHERE idx=?');
+  golfDefaults.forEach((name, idx) => updGolfPlayer.run(name, idx));
+  const updHole = db.prepare('UPDATE golf_course SET par=4, stroke_index=? WHERE hole_number=?');
+  for (let hn = 1; hn <= 18; hn++) updHole.run(hn, hn);
+  res.json({ ok: true, message: 'Golf sweepstake reset.' });
+});
 
 // ── Process-level error guards (prevent silent Railway crashes) ───────────────
 process.on('uncaughtException',        e => console.error('[CRASH] uncaughtException:', e));
