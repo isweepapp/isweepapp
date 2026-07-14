@@ -43,7 +43,7 @@ if (db.prepare('SELECT COUNT(*) AS cnt FROM golf_players').get().cnt === 0) {
 }
 
 // Migrate: existing golf tables created before handicaps/shots/course-settings were added
-try { db.exec('ALTER TABLE golf_players ADD COLUMN handicap INTEGER NOT NULL DEFAULT 0'); } catch (_) {}
+try { db.exec('ALTER TABLE golf_players ADD COLUMN handicap INTEGER NOT NULL DEFAULT 18'); } catch (_) {}
 try { db.exec('ALTER TABLE golf_group ADD COLUMN hshots INTEGER'); } catch (_) {}
 try { db.exec('ALTER TABLE golf_group ADD COLUMN ashots INTEGER'); } catch (_) {}
 try { db.exec('ALTER TABLE golf_knockout ADD COLUMN ashots INTEGER'); } catch (_) {}
@@ -2016,7 +2016,7 @@ app.post('/api/golf/players', (req, res) => {
   }
   if (req.body.handicap !== undefined) {
     const h = parseInt(req.body.handicap, 10);
-    if (isNaN(h) || h < 0 || h > 54) return res.status(400).json({ error: 'Handicap must be between 0 and 54.' });
+    if (isNaN(h) || h < 1 || h > 36) return res.status(400).json({ error: 'Handicap must be between 1 and 36.' });
     db.prepare('UPDATE golf_players SET handicap=? WHERE idx=?').run(h, i);
   }
   res.json({ ok: true });
@@ -2086,7 +2086,7 @@ app.post('/api/admin/golf/reset', requireAdmin, (_req, res) => {
   db.exec('DELETE FROM golf_group');
   db.exec('DELETE FROM golf_knockout');
   const golfDefaults = ['Scum', 'Gav', 'Bone', 'Pants', 'Crumble', 'Swanko'];
-  const updGolfPlayer = db.prepare('UPDATE golf_players SET name=?, handicap=0 WHERE idx=?');
+  const updGolfPlayer = db.prepare('UPDATE golf_players SET name=?, handicap=18 WHERE idx=?');
   golfDefaults.forEach((name, idx) => updGolfPlayer.run(name, idx));
   const updHole = db.prepare('UPDATE golf_course SET par=4, stroke_index=? WHERE hole_number=?');
   for (let hn = 1; hn <= 18; hn++) updHole.run(hn, hn);
