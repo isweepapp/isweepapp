@@ -237,6 +237,20 @@
         <pre id="newsletter-log" class="hidden" style="background:rgba(0,0,0,0.3);padding:0.75rem;border-radius:6px;font-size:0.8rem;max-height:200px;overflow-y:auto;white-space:pre-wrap;"></pre>
       </div>
 
+      <!-- Send Semi-Final Newsletter -->
+      <div class="card admin-section">
+        <h2><img class="h2-icon" src="/assets/icons/email.svg" alt=""> Send Semi-Final Newsletter</h2>
+        <p class="text-muted" style="font-size:0.88rem;margin-bottom:1rem;">
+          Sends the <strong style="color:var(--text)">Semi-Final Special</strong> newsletter — who's still alive, win probabilities, match previews and fun facts.<br>
+          <strong>Test mode</strong> sends only to <code>johnswaine@dolphind.com</code>.
+        </p>
+        <div id="sf-newsletter-alert" class="alert hidden"></div>
+        <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+          <button class="btn btn-teal" id="sf-newsletter-test-btn">📨 Send Test Newsletter</button>
+          <button class="btn btn-outline" id="sf-newsletter-all-btn">📣 Send to All Participants</button>
+        </div>
+      </div>
+
       <!-- Send Group Stage Newsletter -->
       <div class="card admin-section">
         <h2><img class="h2-icon" src="/assets/icons/email.svg" alt=""> Send Group Stage Newsletter</h2>
