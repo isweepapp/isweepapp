@@ -63,7 +63,7 @@ CREATE TABLE IF NOT EXISTS migrations (
 CREATE TABLE IF NOT EXISTS golf_players (
   idx       INTEGER PRIMARY KEY,
   name      TEXT    NOT NULL,
-  handicap  INTEGER NOT NULL DEFAULT 0
+  handicap  INTEGER NOT NULL DEFAULT 18
 );
 
 CREATE TABLE IF NOT EXISTS golf_course (
