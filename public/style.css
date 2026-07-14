@@ -1000,5 +1000,6 @@ nav a, .btn, .tab-btn, .expand-btn {
 }
 
 /* ── Entries with all teams eliminated ───────────────────────────────────── */
-tr.entry-all-out td { opacity: 0.35; }
-tr.entry-all-out .td-name { text-decoration: line-through; color: var(--text-muted); }
+tr.entry-all-out td { opacity: 0.35 !important; filter: grayscale(0.5); }
+tr.entry-all-out .td-name { text-decoration: line-through !important; color: var(--text-muted) !important; }
+tr.entry-all-out .td-pts  { color: var(--text-muted) !important; }
