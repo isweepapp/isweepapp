@@ -58,3 +58,42 @@ CREATE TABLE IF NOT EXISTS migrations (
   name TEXT PRIMARY KEY,
   applied_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+-- iSweep Golf Sweepstake — shared, live-updating golf competition
+CREATE TABLE IF NOT EXISTS golf_players (
+  idx       INTEGER PRIMARY KEY,
+  name      TEXT    NOT NULL,
+  handicap  INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS golf_course (
+  hole_number  INTEGER PRIMARY KEY,
+  par          INTEGER NOT NULL DEFAULT 4,
+  stroke_index INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS golf_group (
+  match_idx INTEGER PRIMARY KEY,
+  hshots INTEGER,
+  ashots INTEGER,
+  hf INTEGER NOT NULL DEFAULT 0,
+  hg INTEGER NOT NULL DEFAULT 0,
+  hp INTEGER NOT NULL DEFAULT 0,
+  af INTEGER NOT NULL DEFAULT 0,
+  ag INTEGER NOT NULL DEFAULT 0,
+  ap INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS golf_knockout (
+  stage    TEXT    NOT NULL,
+  hole_idx INTEGER NOT NULL,
+  ashots INTEGER,
+  bshots INTEGER,
+  af INTEGER NOT NULL DEFAULT 0,
+  ag INTEGER NOT NULL DEFAULT 0,
+  ap INTEGER NOT NULL DEFAULT 0,
+  bf INTEGER NOT NULL DEFAULT 0,
+  bg INTEGER NOT NULL DEFAULT 0,
+  bp INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (stage, hole_idx)
+);
