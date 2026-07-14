@@ -1743,6 +1743,64 @@ function computeTeamScores() {
   return r;
 }
 
+
+// ── Admin: Send Semi-Final Newsletter ────────────────────────────────────────
+app.post('/api/admin/send-semifinal-newsletter', requireAdmin, async (req, res) => {
+  try {
+    const { mode = 'test' } = req.body || {};
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) return res.status(500).json({ error: 'RESEND_API_KEY not set.' });
+
+    const templatePath = path.join(__dirname, 'emails', 'semifinal-newsletter.html');
+    if (!fs.existsSync(templatePath))
+      return res.status(404).json({ error: 'semifinal-newsletter.html not found in emails/ folder.' });
+
+    const html     = fs.readFileSync(templatePath, 'utf8');
+    const from     = process.env.RESEND_FROM || 'iSweep <onboarding@resend.dev>';
+    const subject  = '⚡ iSweep — Semi-Final Special: Who Can Still Win?';
+
+    let recipients;
+    if (mode === 'test') {
+      recipients = [{ email: process.env.EMAIL_TEST_TO || 'johnswaine@dolphind.com' }];
+    } else {
+      recipients = db.prepare(
+        "SELECT DISTINCT email FROM participants WHERE email IS NOT NULL AND email != '' ORDER BY email"
+      ).all();
+    }
+    if (!recipients.length) return res.status(400).json({ error: 'No recipients found.' });
+
+    const sendOne = async (email) => {
+      const r = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from, to: [email], subject, html }),
+      });
+      const body = await r.json();
+      if (!r.ok) throw new Error(body.message || JSON.stringify(body));
+      return body;
+    };
+
+    if (mode === 'test') {
+      await sendOne(recipients[0].email);
+      return res.json({ ok: true, message: `Test semi-final newsletter sent to ${recipients[0].email}.` });
+    }
+
+    res.json({ ok: true, message: `Sending semi-final newsletter to ${recipients.length} recipients in the background.` });
+    (async () => {
+      let sent = 0, failed = 0;
+      for (const r of recipients) {
+        try { await sendOne(r.email); sent++; console.log(`[SFNewsletter] Sent to ${r.email}`); }
+        catch (e) { failed++; console.error(`[SFNewsletter] Failed for ${r.email}: ${e.message}`); }
+        await new Promise(resolve => setTimeout(resolve, 250));
+      }
+      console.log(`[SFNewsletter] Complete. Sent: ${sent}, Failed: ${failed}`);
+    })();
+  } catch (err) {
+    console.error('[SFNewsletter] Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── Admin: Send Group Stage Newsletter ───────────────────────────────────────
 // Sends the Group Stage Roundup newsletter from emails/group-stage-newsletter.html
 app.post('/api/admin/send-gs-newsletter', requireAdmin, async (req, res) => {
