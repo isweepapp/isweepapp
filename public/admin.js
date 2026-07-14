@@ -651,5 +651,37 @@ function esc(s) {
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+
+// -- Send Semi-Final Newsletter -----------------------------------------------
+async function sendSfNewsletter(mode) {
+  const alertEl = document.getElementById('sf-newsletter-alert');
+  const testBtn = document.getElementById('sf-newsletter-test-btn');
+  const allBtn  = document.getElementById('sf-newsletter-all-btn');
+  hideAlert(alertEl);
+  if (mode === 'all') {
+    if (!confirm('Send the Semi-Final Newsletter to ALL participants?\n\nThis cannot be undone.')) return;
+  }
+  testBtn.disabled = true; allBtn.disabled = true;
+  const activeBtn = mode === 'test' ? testBtn : allBtn;
+  const origText  = activeBtn.textContent;
+  activeBtn.textContent = 'Sending…';
+  try {
+    const r = await adminFetch('/api/admin/send-semifinal-newsletter', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode }),
+    });
+    const d = await r.json();
+    showAlert(alertEl, r.ok ? 'success' : 'error', d.message || d.error || (r.ok ? 'Sent!' : 'Failed.'));
+  } catch (e) {
+    showAlert(alertEl, 'error', 'Network error: ' + e.message);
+  } finally {
+    testBtn.disabled = false; allBtn.disabled = false;
+    activeBtn.textContent = origText;
+  }
+}
+document.getElementById('sf-newsletter-test-btn')?.addEventListener('click', () => sendSfNewsletter('test'));
+document.getElementById('sf-newsletter-all-btn')?.addEventListener('click',  () => sendSfNewsletter('all'));
+
 // -- Init ----------------------------------------------------------------------
 checkAuth();
