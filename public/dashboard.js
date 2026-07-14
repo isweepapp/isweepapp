@@ -3,9 +3,7 @@
 // Knockout-stage teams — kept in sync with flags.js
 // Only used for greying out eliminated entries on the leaderboard
 const _KO_TEAMS = new Set([
-  'Morocco','France','Norway','England',
-  'Spain','Belgium','Argentina',
-  'Switzerland','Colombia'
+  'France','Spain','England','Argentina'
 ]);
 const _koTeamsActive = () => (typeof KNOCKOUT_TEAMS !== 'undefined' ? KNOCKOUT_TEAMS : _KO_TEAMS);
 
