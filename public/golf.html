@@ -108,6 +108,11 @@
   .save-tick { font-size:0.72rem; color:var(--teal); margin-left:0.4rem; opacity:0; transition:opacity 0.3s; }
   .save-tick.show { opacity:1; }
 
+  /* Number inputs: manual typing only, no spinner arrows covering the value */
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
+  input[type=number] { -moz-appearance:textfield; appearance:textfield; }
+
   .hcap-group { display:flex; align-items:center; gap:0.35rem; flex-shrink:0; }
   .hcap-group input { width:52px; text-align:center; }
   .hcap-label { font-size:0.7rem; color:var(--text-muted); white-space:nowrap; }
