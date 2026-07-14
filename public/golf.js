@@ -21,8 +21,8 @@ const SCHEDULE = [
 const POLL_MS = 5000;
 
 let players = [
-  {name:"Player 1",handicap:0},{name:"Player 2",handicap:0},{name:"Player 3",handicap:0},
-  {name:"Player 4",handicap:0},{name:"Player 5",handicap:0},{name:"Player 6",handicap:0},
+  {name:"Player 1",handicap:18},{name:"Player 2",handicap:18},{name:"Player 3",handicap:18},
+  {name:"Player 4",handicap:18},{name:"Player 5",handicap:18},{name:"Player 6",handicap:18},
 ];
 let course = {};    // holeNumber (1-18) -> {par, stroke_index}
 let group = {};      // matchIdx -> {hshots,ashots,hf,hg,hp,af,ag,ap}
@@ -44,7 +44,7 @@ async function loadState(){
     const data = await res.json();
     players = new Array(6).fill(0).map((_,i)=>{
       const row = data.players.find(p=>p.idx===i);
-      return row ? { name: row.name, handicap: row.handicap } : { name:`Player ${i+1}`, handicap:0 };
+      return row ? { name: row.name, handicap: row.handicap } : { name:`Player ${i+1}`, handicap:18 };
     });
     course = {};
     data.course.forEach(row=>{ course[row.hole_number] = { par: row.par, stroke_index: row.stroke_index }; });
@@ -215,7 +215,7 @@ function renderSetup(){
         <input type="text" data-player-idx="${i}" data-player-field="name" value="${escapeHtml(p.name)}" placeholder="Player ${i+1}">
       </div>
       <div class="form-group hcap-group" style="margin-bottom:0;">
-        <input type="number" min="0" max="54" data-player-idx="${i}" data-player-field="handicap" value="${p.handicap}">
+        <input type="number" min="1" max="36" data-player-idx="${i}" data-player-field="handicap" value="${p.handicap}">
         <span class="hcap-label">h'cap</span>
       </div>
       <span class="save-tick" data-tick="${i}">Saved</span>
@@ -234,6 +234,14 @@ function renderSetup(){
         <b class="text-gold">1 pt</b> — green in regulation<br>
         <b class="text-gold">1 pt</b> — hole out with the first putt
       </div>
+    </div>
+    <div class="card" style="border-color:rgba(224,82,82,0.3);">
+      <h2 style="color:var(--danger);">Danger zone</h2>
+      <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:0.9rem;">
+        Wipes every hole result, shot, and bonus point for the group stage, semis and final, and resets player names, handicaps and course settings back to defaults. Use this to clear out test data before the real thing starts.
+      </div>
+      <button class="btn btn-danger" id="resetAllBtn" style="width:100%;">Delete all golf data</button>
+      <div id="reset-msg"></div>
     </div>
   `;
 }
@@ -548,6 +556,33 @@ function attachHandlers(){
         }, 500);
       };
     });
+
+    const resetBtn = document.getElementById('resetAllBtn');
+    if(resetBtn){
+      resetBtn.onclick = async ()=>{
+        if(!confirm('Delete every golf result and reset players, handicaps and course settings to defaults? This can\'t be undone.')) return;
+        const msgEl = document.getElementById('reset-msg');
+        resetBtn.disabled = true;
+        try{
+          const res = await fetch('/api/admin/golf/reset', { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' });
+          if(res.status === 401){
+            msgEl.innerHTML = `<div class="alert alert-error" style="margin-top:0.9rem;">You need to be logged in as admin to do this. Log in at <a href="/admin.html" style="color:inherit;text-decoration:underline;">/admin.html</a>, then come back and try again.</div>`;
+          } else if(res.status === 403){
+            const data = await res.json().catch(()=>({}));
+            msgEl.innerHTML = `<div class="alert alert-error" style="margin-top:0.9rem;">${escapeHtml(data.error || 'Admin login is not set up on this site.')}</div>`;
+          } else if(res.ok){
+            msgEl.innerHTML = `<div class="alert alert-success" style="margin-top:0.9rem;">Golf sweepstake reset — all clear.</div>`;
+            await loadState();
+          } else {
+            msgEl.innerHTML = `<div class="alert alert-error" style="margin-top:0.9rem;">Something went wrong — try again.</div>`;
+          }
+        } catch(e){
+          msgEl.innerHTML = `<div class="alert alert-error" style="margin-top:0.9rem;">Couldn't reach the server — check your connection and try again.</div>`;
+        } finally {
+          resetBtn.disabled = false;
+        }
+      };
+    }
   }
 
   if(currentTab==='course'){
