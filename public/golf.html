@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="iSweep">
+<link rel="apple-touch-icon" href="/assets/icon-180.png">
+<title>iSweep — Golf Sweepstake</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .tab-bar { display:flex; gap:0.5rem; margin-bottom:1.25rem; flex-wrap:wrap; }
+  .tab-btn {
+    padding:0.4rem 1.1rem; border-radius:20px; border:1px solid var(--card-border);
+    background:transparent; color:var(--text-muted); font-size:0.87rem; font-weight:600;
+    cursor:pointer; transition:all 0.2s;
+  }
+  .tab-btn.active { color:var(--gold); border-color:var(--gold); background:rgba(212,167,44,0.08); }
+  .tab-btn:hover:not(.active) { border-color:var(--text-muted); color:var(--text); }
+
+  .rules-note {
+    font-size:0.82rem; color:var(--text-muted); background:rgba(255,255,255,0.03);
+    border:1px solid var(--card-border); border-radius:var(--radius-sm);
+    padding:0.75rem 0.9rem; margin-bottom:1rem; line-height:1.5;
+  }
+
+  .hole-picker { display:flex; gap:0.4rem; overflow-x:auto; padding:0.25rem 0 1rem; -webkit-overflow-scrolling:touch; }
+  .hole-chip {
+    flex-shrink:0; width:36px; height:36px; border-radius:50%;
+    border:1.5px solid var(--card-border); background:var(--card-bg); color:var(--text-muted);
+    font-weight:700; font-size:0.85rem; display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+  }
+  .hole-chip.active { background:linear-gradient(135deg, var(--gold-dim), var(--gold)); border-color:var(--gold); color:#0d0d1a; }
+  .hole-chip.done { box-shadow:0 0 0 2px var(--teal) inset; }
+
+  .match-players { display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem; }
+  .match-players .side { font-weight:700; font-size:0.95rem; flex:1; }
+  .match-players .side.away { text-align:right; }
+  .match-players .vs { font-size:0.72rem; color:var(--text-muted); padding:0 0.5rem; font-style:italic; white-space:nowrap; }
+
+  .seg { display:flex; border:1px solid var(--gold-dim); border-radius:var(--radius-sm); overflow:hidden; margin-bottom:0.75rem; }
+  .seg button {
+    flex:1; border:none; background:transparent; color:var(--gold);
+    padding:0.55rem 0.25rem; font-size:0.78rem; font-weight:600; cursor:pointer;
+    border-right:1px solid var(--gold-dim); font-family:inherit;
+  }
+  .seg button:last-child { border-right:none; }
+  .seg button.on { background:linear-gradient(135deg, var(--gold-dim), var(--gold)); color:#0d0d1a; }
+
+  .bonus-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.6rem; }
+  .bonus-col { display:flex; flex-direction:column; gap:0.4rem; }
+  .bonus-col .colname {
+    font-size:0.68rem; text-transform:uppercase; letter-spacing:0.06em;
+    color:var(--text-muted); text-align:center; font-weight:700; margin-bottom:0.1rem;
+  }
+  .chip {
+    border:1px solid var(--card-border); background:rgba(255,255,255,0.03);
+    border-radius:var(--radius-sm); padding:0.45rem 0.25rem; font-size:0.72rem;
+    text-align:center; color:var(--text-muted); cursor:pointer;
+  }
+  .chip.on { background:rgba(212,167,44,0.18); border-color:var(--gold); color:var(--gold); font-weight:700; }
+
+  .match-points {
+    display:flex; justify-content:space-between; margin-top:0.6rem;
+    font-size:0.78rem; color:var(--teal); font-family:ui-monospace, monospace;
+  }
+
+  table.standings { width:100%; border-collapse:collapse; font-size:0.9rem; }
+  table.standings th {
+    text-align:left; font-size:0.7rem; text-transform:uppercase; letter-spacing:0.06em;
+    color:var(--text-muted); padding:0.4rem 0.5rem; border-bottom:2px solid var(--gold-dim);
+  }
+  table.standings td { padding:0.6rem 0.5rem; border-bottom:1px solid var(--card-border); }
+  table.standings tr.qualify td { background:rgba(212,167,44,0.07); }
+  .rank-pill {
+    display:inline-flex; align-items:center; justify-content:center;
+    width:22px; height:22px; border-radius:50%; background:var(--gold-dim);
+    color:#0d0d1a; font-weight:700; font-size:0.72rem;
+  }
+  .pts-mono { font-family:ui-monospace, monospace; font-weight:700; color:var(--gold); }
+
+  .winner-banner {
+    margin-top:0.5rem; background:rgba(212,167,44,0.08); border:1px solid var(--gold);
+    border-radius:var(--radius); padding:1rem; text-align:center;
+  }
+  .winner-banner .label {
+    display:block; font-size:0.7rem; letter-spacing:0.08em; text-transform:uppercase;
+    color:var(--text-muted); margin-bottom:0.3rem;
+  }
+  .winner-banner .name { font-size:1.15rem; font-weight:800; color:var(--gold); }
+  .champion-banner {
+    background:linear-gradient(135deg, rgba(212,167,44,0.18), rgba(212,167,44,0.04));
+    border:2px solid var(--gold);
+  }
+  .champion-banner .trophy { font-size:2rem; display:block; margin-bottom:0.4rem; }
+  .tie-note { color:var(--danger); font-size:0.78rem; text-align:center; margin-top:0.5rem; }
+  .tbd { text-align:center; padding:2rem 1rem; color:var(--text-muted); font-size:0.85rem; }
+
+  .player-row { display:flex; align-items:center; gap:0.75rem; margin-bottom:0.75rem; }
+  .player-badge {
+    width:28px; height:28px; border-radius:50%;
+    background:linear-gradient(135deg, var(--gold-dim), var(--gold)); color:#0d0d1a;
+    display:flex; align-items:center; justify-content:center; font-weight:800; font-size:0.8rem;
+    flex-shrink:0;
+  }
+  .save-tick { font-size:0.72rem; color:var(--teal); margin-left:0.4rem; opacity:0; transition:opacity 0.3s; }
+  .save-tick.show { opacity:1; }
+
+  .hcap-group { display:flex; align-items:center; gap:0.35rem; flex-shrink:0; }
+  .hcap-group input { width:52px; text-align:center; }
+  .hcap-label { font-size:0.7rem; color:var(--text-muted); white-space:nowrap; }
+  .hcap-tag {
+    font-size:0.68rem; color:var(--text-muted); font-weight:500;
+    background:rgba(255,255,255,0.04); border-radius:8px; padding:0.1rem 0.4rem;
+    white-space:nowrap;
+  }
+
+  .shots-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.6rem; margin-bottom:0.75rem; }
+  .shots-col label {
+    display:block; font-size:0.7rem; text-transform:uppercase; letter-spacing:0.05em;
+    color:var(--text-muted); margin-bottom:0.3rem; text-align:center;
+  }
+  .shots-col input {
+    width:100%; text-align:center; font-size:1.1rem; font-weight:700;
+    background:rgba(255,255,255,0.07); border:1px solid var(--card-border);
+    border-radius:var(--radius-sm); color:var(--gold); padding:0.5rem;
+  }
+  .shots-col input:focus { outline:none; border-color:var(--gold); }
+
+  .stable-line { font-size:0.8rem; color:var(--text); margin-bottom:0.35rem; text-align:center; }
+  .match-points.pending { color:var(--text-muted); font-style:italic; text-align:center; }
+
+  .course-section {
+    font-size:0.72rem; text-transform:uppercase; letter-spacing:0.1em;
+    color:var(--gold); margin:1rem 0 0.5rem; padding-top:0.75rem;
+    border-top:1px solid var(--card-border);
+  }
+  .course-section:first-child { margin-top:0; padding-top:0; border-top:none; }
+  .course-row {
+    display:flex; align-items:center; gap:0.75rem; padding:0.5rem 0;
+    border-bottom:1px solid rgba(255,255,255,0.04);
+  }
+  .course-hole { flex:1; font-weight:700; font-size:0.9rem; }
+  .course-field { display:flex; align-items:center; gap:0.4rem; }
+  .course-field label { font-size:0.72rem; color:var(--text-muted); white-space:nowrap; }
+  .course-field input {
+    width:48px; text-align:center; background:rgba(255,255,255,0.07);
+    border:1px solid var(--card-border); border-radius:var(--radius-sm);
+    color:var(--text); padding:0.4rem 0.2rem;
+  }
+  .course-field input:focus { outline:none; border-color:var(--gold); }
+</style>
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <img src="/assets/logo.png" alt="iSweep World Cup Sweepstake" class="sweepstake-logo">
+      <nav>
+        <a href="/">Home</a>
+        <a href="/prizes.html">Prizes</a>
+        <a href="/teams.html">My Teams</a>
+        <a href="/fixtures.html">Fixtures</a>
+        <a href="/dashboard.html">Leaderboard</a>
+        <a href="/countries.html">Country Points</a>
+        <a href="/matches.html">Group Stage</a>
+        <a href="/knockout.html">Knockout</a>
+        <a href="/pots.html">Pots</a>
+        <a href="/golf.html" class="active">Golf</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="container" style="max-width:640px">
+    <div id="refresh-countdown">Live &middot; syncs with everyone's phone every few seconds</div>
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="setup">Players</button>
+      <button class="tab-btn" data-tab="course">Course</button>
+      <button class="tab-btn" data-tab="group">Holes</button>
+      <button class="tab-btn" data-tab="standings">Table</button>
+      <button class="tab-btn" data-tab="semis">Semis</button>
+      <button class="tab-btn" data-tab="final">Final</button>
+    </div>
+    <div id="golf-content"><p class="text-muted">Loading…</p></div>
+  </div>
+
+  <script src="golf.js"></script>
+</body>
+</html>
