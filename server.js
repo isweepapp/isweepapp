@@ -196,6 +196,15 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Never let mobile browsers cache API responses — without this, some phones
+// (especially iOS Safari in home-screen/PWA mode) can serve a stale cached
+// /api/golf/state response right after a reset or score update.
+app.use('/api', (_req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  next();
+});
+
 // Clean URL for the golf sweepstake — isweepapp.uk/golf (no .html)
 app.get('/golf', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'golf.html')));
 
