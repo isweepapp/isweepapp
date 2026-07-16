@@ -168,6 +168,14 @@
   .course-field { display:flex; align-items:center; gap:0.4rem; }
   .course-field label { font-size:0.72rem; color:var(--text-muted); white-space:nowrap; }
   .course-field input { width:48px; text-align:center; padding:0.4rem 0.2rem; }
+
+  .preset-row {
+    display:flex; align-items:center; gap:0.6rem; padding:0.55rem 0;
+    border-bottom:1px solid #EEE7D2;
+  }
+  .preset-row:last-child { border-bottom:none; }
+  .preset-name { flex:1; font-weight:600; font-size:0.9rem; }
+  .preset-delete { color:var(--danger); background:transparent; border:1px solid var(--card-border); }
 </style>
 </head>
 <body>

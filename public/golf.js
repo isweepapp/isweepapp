@@ -26,6 +26,7 @@ let players = [
   {name:"Player 4",handicap:18},{name:"Player 5",handicap:18},{name:"Player 6",handicap:18},
 ];
 let course = {};    // holeNumber (1-18) -> {par, stroke_index}
+let savedCourses = []; // [{id, name, created_at}]
 let scores = {};    // playerIdx -> { holeNumber -> {shots, fairway, gir, one_putt} }
 
 let currentTab = "scorecard";
@@ -66,6 +67,16 @@ async function postJson(url, body){
     await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
   }catch(e){
     console.error('Failed to save', url, body, e);
+  }
+}
+
+async function loadSavedCourses(){
+  try{
+    const res = await fetch('/api/golf/courses');
+    savedCourses = await res.json();
+    if(currentTab==='course') render();
+  }catch(e){
+    console.error('Failed to load saved courses', e);
   }
 }
 
@@ -296,9 +307,27 @@ function renderCourse(){
       </div>
     `;
   }
+  const presetRows = savedCourses.map(p=>`
+    <div class="preset-row">
+      <div class="preset-name">${escapeHtml(p.name)}</div>
+      <button class="btn btn-outline btn-sm" data-load-course="${p.id}" data-course-name="${escapeHtml(p.name)}">Load</button>
+      <button class="btn btn-sm preset-delete" data-delete-course="${p.id}" data-course-name="${escapeHtml(p.name)}">✕</button>
+    </div>
+  `).join('') || `<div class="tbd" style="padding:1rem;">No saved courses yet.</div>`;
+
   return `
     <div class="rules-note">Set the par and stroke index (1 = hardest, 18 = easiest) for each hole. This drives the automatic Stableford calculation everywhere else on this page.</div>
     <div class="card">${rows}</div>
+    <div class="card">
+      <h2>Saved courses</h2>
+      <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:0.9rem;">Save the par/stroke-index setup above under a name so you can reuse this course another time, or load one you've saved before.</div>
+      <div style="display:flex; gap:0.5rem; margin-bottom:1rem;">
+        <input type="text" id="course-name-input" placeholder="e.g. Members' Course" style="flex:1;">
+        <button class="btn btn-primary btn-sm" id="save-course-btn" style="width:auto; white-space:nowrap;">Save current</button>
+      </div>
+      <div id="course-list">${presetRows}</div>
+      <div id="course-msg"></div>
+    </div>
   `;
 }
 
@@ -423,13 +452,20 @@ function renderFinal(){
 --------------------------------------------------------- */
 function attachHandlers(){
   document.querySelectorAll('.tab-btn').forEach(b=>{
-    b.onclick = ()=>{ currentTab = b.dataset.tab; render(); };
+    b.onclick = ()=>{
+      currentTab = b.dataset.tab;
+      render();
+      if(currentTab==='course') loadSavedCourses();
+    };
   });
 
   if(currentTab==='scorecard'){
     document.querySelectorAll('.player-chip').forEach(chip=>{
       chip.onclick = ()=>{
-        selectedPlayerIdx = parseInt(chip.dataset.selectPlayer,10);
+        const newIdx = parseInt(chip.dataset.selectPlayer,10);
+        if(newIdx === selectedPlayerIdx) return;
+        if(!confirm(`Switch to entering scores for ${escapeHtml(players[newIdx].name)}?`)) return;
+        selectedPlayerIdx = newIdx;
         localStorage.setItem(MY_PLAYER_KEY, selectedPlayerIdx);
         render();
       };
@@ -457,6 +493,12 @@ function attachHandlers(){
       const input = row.querySelector('input[data-field="shots"]');
       if(input){
         let debounce;
+        input.onfocus = ()=>{
+          if(input.dataset.originalValue === undefined){
+            const existing = scoreFor(selectedPlayerIdx, holeNumber).shots;
+            input.dataset.originalValue = existing===null||existing===undefined ? '' : String(existing);
+          }
+        };
         input.oninput = ()=>{
           if(!scores[selectedPlayerIdx]) scores[selectedPlayerIdx] = {};
           if(!scores[selectedPlayerIdx][holeNumber]) scores[selectedPlayerIdx][holeNumber] = {};
@@ -464,9 +506,26 @@ function attachHandlers(){
           refreshRow();
           clearTimeout(debounce);
           debounce = setTimeout(()=>{
-            inFlight = true;
-            postJson('/api/golf/score', { playerIdx: selectedPlayerIdx, holeNumber, field:'shots', value: input.value })
-              .finally(()=>{ inFlight = false; });
+            const original = input.dataset.originalValue ?? '';
+            const changingExisting = original !== '' && original !== input.value;
+            const proceed = ()=>{
+              input.dataset.originalValue = input.value;
+              inFlight = true;
+              postJson('/api/golf/score', { playerIdx: selectedPlayerIdx, holeNumber, field:'shots', value: input.value })
+                .finally(()=>{ inFlight = false; });
+            };
+            if(changingExisting){
+              const label = input.value === '' ? `clear hole ${holeNumber}'s score of ${original}` : `change hole ${holeNumber} from ${original} to ${input.value}`;
+              if(confirm(`Are you sure you want to ${label}?`)){
+                proceed();
+              } else {
+                input.value = original;
+                scores[selectedPlayerIdx][holeNumber].shots = original === '' ? null : parseInt(original,10);
+                refreshRow();
+              }
+            } else {
+              proceed();
+            }
           }, 500);
         };
       }
@@ -476,6 +535,8 @@ function attachHandlers(){
           if(!scores[selectedPlayerIdx]) scores[selectedPlayerIdx] = {};
           if(!scores[selectedPlayerIdx][holeNumber]) scores[selectedPlayerIdx][holeNumber] = {};
           const cur = !!scores[selectedPlayerIdx][holeNumber][f];
+          const label = { fairway:'fairway', gir:'GIR', one_putt:'first putt' }[f] || f;
+          if(cur && !confirm(`Are you sure you want to change hole ${holeNumber}'s ${label} tick back off?`)) return;
           scores[selectedPlayerIdx][holeNumber][f] = !cur;
           btn.classList.toggle('on', !cur);
           inFlight = true;
@@ -549,6 +610,51 @@ function attachHandlers(){
           inFlight = true;
           postJson('/api/golf/course', { holeNumber:h, field, value: inp.value }).finally(()=>{ inFlight=false; });
         }, 500);
+      };
+    });
+
+    const saveBtn = document.getElementById('save-course-btn');
+    const nameInput = document.getElementById('course-name-input');
+    const msgEl = document.getElementById('course-msg');
+    if(saveBtn){
+      saveBtn.onclick = async ()=>{
+        const name = (nameInput.value || '').trim();
+        if(!name){ nameInput.focus(); return; }
+        saveBtn.disabled = true;
+        try{
+          const res = await fetch('/api/golf/courses', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name }) });
+          if(res.ok){
+            nameInput.value = '';
+            msgEl.innerHTML = `<div class="alert alert-success" style="margin-top:0.9rem;">Saved "${escapeHtml(name)}".</div>`;
+            await loadSavedCourses();
+          } else {
+            const data = await res.json().catch(()=>({}));
+            msgEl.innerHTML = `<div class="alert alert-error" style="margin-top:0.9rem;">${escapeHtml(data.error || 'Could not save the course.')}</div>`;
+          }
+        } finally {
+          saveBtn.disabled = false;
+        }
+      };
+    }
+
+    document.querySelectorAll('[data-load-course]').forEach(btn=>{
+      btn.onclick = async ()=>{
+        const id = btn.dataset.loadCourse;
+        const name = btn.dataset.courseName;
+        if(!confirm(`Load "${name}"? This will overwrite the current par and stroke index for every hole.`)) return;
+        await postJson('/api/golf/courses/load', { id });
+        if(msgEl) msgEl.innerHTML = `<div class="alert alert-success" style="margin-top:0.9rem;">Loaded "${escapeHtml(name)}".</div>`;
+        await loadState();
+      };
+    });
+
+    document.querySelectorAll('[data-delete-course]').forEach(btn=>{
+      btn.onclick = async ()=>{
+        const id = btn.dataset.deleteCourse;
+        const name = btn.dataset.courseName;
+        if(!confirm(`Delete the saved course "${name}"? This can't be undone.`)) return;
+        await fetch(`/api/golf/courses/${id}`, { method:'DELETE' });
+        await loadSavedCourses();
       };
     });
   }
