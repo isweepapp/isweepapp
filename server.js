@@ -2044,6 +2044,106 @@ app.post('/api/golf/course', (req, res) => {
   res.json({ ok: true });
 });
 
+app.get('/api/golf/course-presets', (_req, res) => {
+  const rows = db.prepare('SELECT id, name, data, created_at FROM golf_course_presets ORDER BY created_at DESC').all();
+  res.json(rows.map(r => ({ id: r.id, name: r.name, created_at: r.created_at, holes: JSON.parse(r.data) })));
+});
+
+app.post('/api/golf/course-presets', (req, res) => {
+  const name = String(req.body.name || '').slice(0, 60).trim();
+  if (!name) return res.status(400).json({ error: 'Name cannot be empty.' });
+  const holes = db.prepare('SELECT hole_number, par, stroke_index FROM golf_course ORDER BY hole_number').all();
+  const data = {};
+  holes.forEach(h => { data[h.hole_number] = { par: h.par, strokeIndex: h.stroke_index }; });
+  const id = uuidv4();
+  db.prepare('INSERT INTO golf_course_presets (id, name, data, created_at) VALUES (?, ?, ?, ?)')
+    .run(id, name, JSON.stringify(data), new Date().toISOString());
+  res.json({ ok: true, id });
+});
+
+app.post('/api/golf/course-presets/load', (req, res) => {
+  const id = String(req.body.id || '');
+  const row = db.prepare('SELECT data FROM golf_course_presets WHERE id=?').get(id);
+  if (!row) return res.status(404).json({ error: 'Preset not found.' });
+  const data = JSON.parse(row.data);
+  const upd = db.prepare('UPDATE golf_course SET par=?, stroke_index=? WHERE hole_number=?');
+  for (let h = 1; h <= 18; h++) {
+    const hole = data[h] || data[String(h)];
+    if (hole) upd.run(hole.par, hole.strokeIndex, h);
+  }
+  res.json({ ok: true });
+});
+
+app.post('/api/golf/course-presets/delete', (req, res) => {
+  const id = String(req.body.id || '');
+  db.prepare('DELETE FROM golf_course_presets WHERE id=?').run(id);
+  res.json({ ok: true });
+});
+
+// ── Named, reusable course presets ─────────────────────────────────────────────
+app.get('/api/golf/course-presets', (_req, res) => {
+  const rows = db.prepare('SELECT name, saved_at FROM golf_course_presets ORDER BY name COLLATE NOCASE').all();
+  res.json(rows);
+});
+
+app.post('/api/golf/course-presets', (req, res) => {
+  const name = String(req.body.name || '').slice(0, 60).trim();
+  if (!name) return res.status(400).json({ error: 'Give the course a name.' });
+  const course = db.prepare('SELECT hole_number, par, stroke_index FROM golf_course ORDER BY hole_number').all();
+  db.prepare('INSERT INTO golf_course_presets (name, data, saved_at) VALUES (?, ?, datetime(\'now\')) ON CONFLICT(name) DO UPDATE SET data=excluded.data, saved_at=excluded.saved_at')
+    .run(name, JSON.stringify(course));
+  res.json({ ok: true });
+});
+
+app.post('/api/golf/course-presets/load', (req, res) => {
+  const name = String(req.body.name || '').trim();
+  const row = db.prepare('SELECT data FROM golf_course_presets WHERE name=?').get(name);
+  if (!row) return res.status(404).json({ error: 'No saved course with that name.' });
+  let holes;
+  try { holes = JSON.parse(row.data); } catch (_) { return res.status(500).json({ error: 'Saved course data is corrupted.' }); }
+  const upd = db.prepare('UPDATE golf_course SET par=?, stroke_index=? WHERE hole_number=?');
+  holes.forEach(h => upd.run(h.par, h.stroke_index, h.hole_number));
+  res.json({ ok: true });
+});
+
+app.post('/api/golf/course-presets/delete', (req, res) => {
+  const name = String(req.body.name || '').trim();
+  db.prepare('DELETE FROM golf_course_presets WHERE name=?').run(name);
+  res.json({ ok: true });
+});
+
+app.get('/api/golf/courses', (_req, res) => {
+  const rows = db.prepare('SELECT id, name, created_at FROM golf_saved_courses ORDER BY created_at DESC').all();
+  res.json(rows);
+});
+
+app.post('/api/golf/courses', (req, res) => {
+  const name = String(req.body.name || '').slice(0, 60).trim();
+  if (!name) return res.status(400).json({ error: 'Please give the course a name.' });
+  const holes = db.prepare('SELECT hole_number, par, stroke_index FROM golf_course ORDER BY hole_number').all();
+  const id = uuidv4();
+  const createdAt = new Date().toISOString();
+  db.prepare('INSERT INTO golf_saved_courses (id, name, holes_json, created_at) VALUES (?, ?, ?, ?)')
+    .run(id, name, JSON.stringify(holes), createdAt);
+  res.json({ ok: true, id, name, created_at: createdAt });
+});
+
+app.post('/api/golf/courses/load', (req, res) => {
+  const id = String(req.body.id || '');
+  const row = db.prepare('SELECT holes_json FROM golf_saved_courses WHERE id = ?').get(id);
+  if (!row) return res.status(404).json({ error: 'Saved course not found.' });
+  let holes;
+  try { holes = JSON.parse(row.holes_json); } catch (_) { return res.status(500).json({ error: 'Saved course data is corrupt.' }); }
+  const upd = db.prepare('UPDATE golf_course SET par=?, stroke_index=? WHERE hole_number=?');
+  holes.forEach(h => upd.run(h.par, h.stroke_index, h.hole_number));
+  res.json({ ok: true });
+});
+
+app.delete('/api/golf/courses/:id', (req, res) => {
+  db.prepare('DELETE FROM golf_saved_courses WHERE id = ?').run(req.params.id);
+  res.json({ ok: true });
+});
+
 const GOLF_SCORE_FIELDS = ['shots', 'fairway', 'gir', 'one_putt'];
 
 app.post('/api/golf/score', (req, res) => {
