@@ -30,6 +30,8 @@ let players = [
 let course = {};    // holeNumber (1-18) -> {par, stroke_index}
 let savedCourses = []; // [{id, name, created_at}]
 let trophies = []; // [{id, competition, year, winner, created_at}]
+let trophySubPage = 'boards'; // 'boards' | 'shelf'
+const SHELF_PLAYERS = ['Kemble', 'Swanko', 'Gavin', 'Scum'];
 const TROPHY_COMPETITIONS = [
   'St Georges Day', 'Christmas Crumble', 'Easter Brighton',
   'Champions League Final', 'Flying Ants Day', 'World Cup',
@@ -1023,7 +1025,7 @@ function trophyBoardHtml(competition){
 
   return `
     <div class="trophy-board">
-      <div class="trophy-board-inner">
+      <div class="trophy-board-crest">
         <div class="trophy-title">${escapeHtml(competition)}</div>
         <div class="trophy-list">${rows}</div>
         <div class="trophy-add">
@@ -1038,8 +1040,65 @@ function trophyBoardHtml(competition){
   `;
 }
 
-function renderTrophyCabinet(){
+function competitionSlug(comp){
+  return comp.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+}
+
+function shelfWinsFor(name){
+  const wins = {};
+  trophies.forEach(t=>{
+    if((t.winner||'').trim().toLowerCase() === name.toLowerCase()){
+      wins[t.competition] = (wins[t.competition] || 0) + 1;
+    }
+  });
+  return wins;
+}
+
+function shelfCardHtml(name){
+  const wins = shelfWinsFor(name);
+  const comps = Object.keys(wins);
+  const items = comps.length === 0
+    ? `<div class="shelf-empty">No trophies yet &mdash; get winning.</div>`
+    : comps.map(comp=>{
+        const slug = competitionSlug(comp);
+        const count = wins[comp];
+        return `
+          <div class="shelf-item">
+            <img class="shelf-trophy-img" src="/assets/trophies/${slug}.png" alt="${escapeHtml(comp)}"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="shelf-trophy-fallback">&#127942;</div>
+            <div class="shelf-comp-name">${escapeHtml(comp)}</div>
+            <div class="shelf-stars">${'&#9733;'.repeat(count)}</div>
+          </div>
+        `;
+      }).join('');
   return `
+    <div class="shelf-card">
+      <div class="shelf-player-name">${escapeHtml(name)}</div>
+      <div class="shelf-row">${items}</div>
+      <div class="shelf-ledge"></div>
+    </div>
+  `;
+}
+
+function renderTrophyShelf(){
+  return `
+    <div class="rules-note">Send over the trophy images and I'll drop them in &mdash; each one appears on a player's shelf the moment they win it, with a star below for every time they've won it since.</div>
+    ${SHELF_PLAYERS.map(n=>shelfCardHtml(n)).join('')}
+  `;
+}
+
+function renderTrophyCabinet(){
+  const subnav = `
+    <div class="trophy-subnav">
+      <button class="trophy-subnav-btn ${trophySubPage==='boards'?'active':''}" data-trophy-sub="boards">Honours Boards</button>
+      <button class="trophy-subnav-btn ${trophySubPage==='shelf'?'active':''}" data-trophy-sub="shelf">Trophy Shelf</button>
+    </div>
+  `;
+  if(trophySubPage === 'shelf'){
+    return subnav + renderTrophyShelf();
+  }
+  return subnav + `
     <div class="rules-note">Every time one of these gets played, add the year and the winner's name to its board. Nothing here ever gets wiped by "Delete all golf data" &mdash; it's the permanent record.</div>
     ${TROPHY_COMPETITIONS.map(c => trophyBoardHtml(c)).join('')}
   `;
@@ -1424,6 +1483,13 @@ function attachHandlers(){
   }
 
   if(currentTab==='trophies'){
+    document.querySelectorAll('[data-trophy-sub]').forEach(btn=>{
+      btn.onclick = ()=>{
+        trophySubPage = btn.dataset.trophySub;
+        render();
+      };
+    });
+
     document.querySelectorAll('[data-fill-winner]').forEach(chip=>{
       chip.onclick = ()=>{
         let node = chip.parentElement;
