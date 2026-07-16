@@ -65,7 +65,7 @@ if (db.prepare('SELECT COUNT(*) AS cnt FROM golf_side_draw').get().cnt === 0) {
 
 if (db.prepare('SELECT COUNT(*) AS cnt FROM golf_settings').get().cnt === 0) {
   db.prepare("INSERT INTO golf_settings (id, stake, formats) VALUES (1, 0, ?)")
-    .run(JSON.stringify({ football: true, six66: true, pp: true }));
+    .run(JSON.stringify({ football: false, six66: false, pp: false }));
 }
 
 if (db.prepare('SELECT COUNT(*) AS cnt FROM golf_course').get().cnt === 0) {
@@ -2042,7 +2042,7 @@ app.get('/api/golf/state', (_req, res) => {
     },
     settings: {
       stake: settingsRow ? settingsRow.stake : 0,
-      formats: settingsRow ? JSON.parse(settingsRow.formats) : { football:true, six66:true, pp:true },
+      formats: settingsRow ? JSON.parse(settingsRow.formats) : { football:false, six66:false, pp:false },
     },
   });
 });
@@ -2197,7 +2197,7 @@ app.post('/api/golf/side-draw/reset', (_req, res) => {
   res.json({ ok: true });
 });
 
-app.post('/api/admin/golf/reset', requireAdmin, (_req, res) => {
+app.post('/api/golf/reset', (_req, res) => {
   db.exec('DELETE FROM golf_scores');
   db.prepare('UPDATE golf_side_draw SET front_six=NULL, middlesex_six=NULL WHERE id = 1').run();
   const updGolfPlayer = db.prepare('UPDATE golf_players SET name=?, handicap=18 WHERE idx=?');
@@ -2205,7 +2205,7 @@ app.post('/api/admin/golf/reset', requireAdmin, (_req, res) => {
   const updHole = db.prepare('UPDATE golf_course SET par=4, stroke_index=? WHERE hole_number=?');
   for (let hn = 1; hn <= 18; hn++) updHole.run(hn, hn);
   db.prepare('UPDATE golf_settings SET stake=0, formats=? WHERE id = 1')
-    .run(JSON.stringify({ football: true, six66: true, pp: true }));
+    .run(JSON.stringify({ football: false, six66: false, pp: false }));
   res.json({ ok: true, message: 'Golf sweepstake reset.' });
 });
 
