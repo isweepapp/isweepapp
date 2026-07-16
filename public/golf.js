@@ -27,7 +27,8 @@ let players = [
 ];
 let course = {};    // holeNumber (1-18) -> {par, stroke_index}
 let savedCourses = []; // [{id, name, created_at}]
-let scores = {};    // playerIdx -> { holeNumber -> {shots, fairway, gir, one_putt} }
+let scores = {};    // playerIdx -> { holeNumber -> {shots, fairway, gir, one_putt, putting_points} }
+let sideDraw = { frontSix: null, middlesexSix: null };
 
 let currentTab = "scorecard";
 let selectedPlayerIdx = parseInt(localStorage.getItem(MY_PLAYER_KEY), 10);
@@ -54,8 +55,10 @@ async function loadState(){
     data.scores.forEach(row=>{
       scores[row.player_idx][row.hole_number] = {
         shots: row.shots, fairway: !!row.fairway, gir: !!row.gir, one_putt: !!row.one_putt,
+        putting_points: row.putting_points || 0,
       };
     });
+    sideDraw = data.sideDraw || { frontSix: null, middlesexSix: null };
     render();
   }catch(e){
     console.error('Failed to load golf state', e);
@@ -161,6 +164,46 @@ function computeStandings(){
 }
 
 /* ---------------------------------------------------------
+   SIDE COMPETITIONS — personal Stableford across arbitrary hole
+   sets (Front Six / Middlesex / Back 6 / all 18), and Putting Points.
+--------------------------------------------------------- */
+function personalStablefordForHoles(playerIdx, holeNumbers){
+  let total = 0;
+  holeNumbers.forEach(hn=>{
+    const s = scoreFor(playerIdx, hn);
+    const info = courseInfo(hn);
+    const p = stablefordPoints(s.shots, players[playerIdx].handicap, info.par, info.stroke_index);
+    if(p!==null) total += p;
+  });
+  return total;
+}
+function personalPuttingPointsForHoles(playerIdx, holeNumbers){
+  let total = 0;
+  holeNumbers.forEach(hn=>{ total += scoreFor(playerIdx, hn).putting_points || 0; });
+  return total;
+}
+function rankPlayers(scoreFn){
+  const rows = players.map((p,i)=>({idx:i, name:p.name, pts:scoreFn(i)}));
+  rows.sort((a,b)=> b.pts - a.pts);
+  let rank=0, prevPts=null, seen=0;
+  rows.forEach(r=>{
+    seen++;
+    if(r.pts !== prevPts){ rank = seen; prevPts = r.pts; }
+    r.rank = rank;
+  });
+  return rows;
+}
+const ALL_18 = Array.from({length:18}, (_,i)=>i+1);
+function overallStandings(){ return rankPlayers(i => personalStablefordForHoles(i, ALL_18)); }
+function puttingStandings(){ return rankPlayers(i => personalPuttingPointsForHoles(i, ALL_18)); }
+function sixHoleStandings(holeNumbers){ return rankPlayers(i => personalStablefordForHoles(i, holeNumbers)); }
+function backSixHoles(){
+  if(!sideDraw.frontSix || !sideDraw.middlesexSix) return null;
+  const used = new Set([...sideDraw.frontSix, ...sideDraw.middlesexSix]);
+  return ALL_18.filter(h => !used.has(h));
+}
+
+/* ---------------------------------------------------------
    RENDER HELPERS
 --------------------------------------------------------- */
 function escapeHtml(s){
@@ -179,6 +222,7 @@ function render(){
   else if(currentTab==='standings') el.innerHTML = renderStandings();
   else if(currentTab==='semis') el.innerHTML = renderSemis();
   else if(currentTab==='final') el.innerHTML = renderFinal();
+  else if(currentTab==='sidebets') el.innerHTML = renderSideBets();
   attachHandlers();
 }
 
@@ -191,17 +235,25 @@ function scRowHtml(playerIdx, holeNumber){
   const pts = stablefordPoints(s.shots, players[playerIdx].handicap, info.par, info.stroke_index);
   return `
     <div class="sc-row" data-hole="${holeNumber}">
-      <div>
-        <div class="sc-hole">${holeNumber}</div>
-        <div class="sc-muted">Par ${info.par} · SI ${info.stroke_index}</div>
+      <div class="sc-line1">
+        <div>
+          <div class="sc-hole">${holeNumber}</div>
+          <div class="sc-muted">Par ${info.par} · SI ${info.stroke_index}</div>
+        </div>
+        <div class="sc-shots"><input type="number" min="1" max="20" inputmode="numeric" data-field="shots" value="${s.shots ?? ''}"></div>
+        <div class="sc-pts" id="sc-pts-${holeNumber}">${pts===null?'–':pts}</div>
       </div>
-      <div class="sc-bonus">
-        <button data-field="fairway" class="${s.fairway?'on':''}">F</button>
-        <button data-field="gir" class="${s.gir?'on':''}">GIR</button>
-        <button data-field="one_putt" class="${s.one_putt?'on':''}">1P</button>
+      <div class="sc-line2">
+        <div class="sc-bonus">
+          <button data-field="fairway" class="${s.fairway?'on':''}">F</button>
+          <button data-field="gir" class="${s.gir?'on':''}">GIR</button>
+          <button data-field="one_putt" class="${s.one_putt?'on':''}">1P</button>
+        </div>
+        <div class="sc-putt">
+          <label>Putt pts</label>
+          <input type="number" min="0" max="6" inputmode="numeric" data-field="putting_points" value="${s.putting_points || 0}">
+        </div>
       </div>
-      <div class="sc-shots"><input type="number" min="1" max="20" inputmode="numeric" data-field="shots" value="${s.shots ?? ''}"></div>
-      <div class="sc-pts" id="sc-pts-${holeNumber}">${pts===null?'–':pts}</div>
     </div>
   `;
 }
@@ -217,10 +269,11 @@ function scSubtotalHtml(label, playerIdx, holeNumbers, cls){
   });
   return `
     <div class="sc-row ${cls}">
-      <div class="sc-hole" style="font-size:0.85rem;">${label}</div>
-      <div class="sc-muted"></div>
-      <div class="sc-muted" style="text-align:center;">${anyShots ? shotsSum+' shots' : ''}</div>
-      <div class="sc-pts">${ptsSum}</div>
+      <div class="sc-line1">
+        <div class="sc-hole" style="font-size:0.85rem;">${label}</div>
+        <div class="sc-muted" style="text-align:center;">${anyShots ? shotsSum+' shots' : ''}</div>
+        <div class="sc-pts">${ptsSum}</div>
+      </div>
     </div>
   `;
 }
@@ -234,7 +287,7 @@ function renderScorecard(){
   return `
     <div class="player-picker">${chips}</div>
     <div class="rules-note">
-      <b>${escapeHtml(p.name)}</b> · handicap ${p.handicap} — enter your gross shots for each hole and the Stableford points work themselves out. Keep going through all 18 even after your bracket matches are decided.
+      <b>${escapeHtml(p.name)}</b> · handicap ${p.handicap} — enter your gross shots for each hole and the Stableford points work themselves out. Keep going through all 18 even after your bracket matches are decided. "Putt pts" is your score for the separate Putting Points competition (0–6, your call).
     </div>
     <div class="scorecard" id="scorecard-body">
       ${out.map(h=>scRowHtml(selectedPlayerIdx,h)).join('')}
@@ -448,8 +501,105 @@ function renderFinal(){
 }
 
 /* ---------------------------------------------------------
-   EVENT HANDLERS
+   SIDE BETS TAB — Front Six / Middlesex / Back 6 / Overall / Putting Points
 --------------------------------------------------------- */
+function miniLeaderboardHtml(rows){
+  const body = rows.map(r=>`
+    <tr class="${r.rank===1?'qualify':''}">
+      <td><span class="rank-pill">${r.rank}</span></td>
+      <td>${escapeHtml(r.name)}</td>
+      <td style="text-align:right" class="pts-mono">${r.pts}</td>
+    </tr>
+  `).join('');
+  return `<table class="standings"><thead><tr><th>Rank</th><th>Player</th><th style="text-align:right">Points</th></tr></thead><tbody>${body}</tbody></table>`;
+}
+
+function ballsInnerHtml(holeNumbers){
+  return holeNumbers.slice().sort((a,b)=>a-b).map(h=>`<span class="hole-ball">${h}</span>`).join('');
+}
+function ballsHtml(holeNumbers){
+  return `<div class="hole-balls">${ballsInnerHtml(holeNumbers)}</div>`;
+}
+
+function sixHoleSectionHtml(title, holeNumbers){
+  const rows = sixHoleStandings(holeNumbers);
+  const winner = rows[0];
+  const tie = rows[1] && rows[1].pts === winner.pts;
+  return `
+    <div class="card">
+      <h2>${title}</h2>
+      ${ballsHtml(holeNumbers)}
+      ${miniLeaderboardHtml(rows)}
+      <div class="winner-banner" style="margin-top:0.9rem;">
+        <span class="label">${tie ? 'Tied on top' : 'Winner'}</span>
+        <span class="name">${tie ? rows.filter(r=>r.pts===winner.pts).map(r=>escapeHtml(r.name)).join(' & ') : escapeHtml(winner.name)}</span>
+      </div>
+    </div>
+  `;
+}
+
+function spinPlaceholderHtml(id, label, buttonLabel, disabled, disabledNote){
+  return `
+    <div class="card">
+      <h2>${label}</h2>
+      <div class="hole-balls spin-display" id="${id}">${'<span class="hole-ball">?</span>'.repeat(6)}</div>
+      ${disabled
+        ? `<div class="tbd" style="padding:0.5rem 0 0;">${disabledNote}</div>`
+        : `<button class="btn btn-primary" data-spin="${id}" style="width:100%; margin-top:0.9rem;">Spin the ${label}</button>`
+      }
+    </div>
+  `;
+}
+
+function renderSideBets(){
+  const frontSix = sideDraw.frontSix;
+  const middlesexSix = sideDraw.middlesexSix;
+  const backSix = backSixHoles();
+
+  const overall = overallStandings();
+  const putting = puttingStandings();
+
+  const anyDrawn = frontSix || middlesexSix;
+
+  return `
+    <div class="card">
+      <h2>Overall Winner (18 Holes)</h2>
+      <div class="rules-note">Total Stableford points across all 18 holes &mdash; the main personal-scoring competition, separate from the group/knockout bracket.</div>
+      ${miniLeaderboardHtml(overall)}
+      <div class="winner-banner champion-banner" style="margin-top:0.9rem;">
+        <span class="trophy">🏆</span>
+        <span class="label">Overall Champion</span>
+        <span class="name">${escapeHtml(overall[0].name)}</span>
+      </div>
+    </div>
+
+    ${frontSix ? sixHoleSectionHtml('Front Six', frontSix) : spinPlaceholderHtml('spin-front', 'Front Six', 'Front Six', false, '')}
+
+    ${middlesexSix ? sixHoleSectionHtml('Middlesex', middlesexSix)
+      : spinPlaceholderHtml('spin-middlesex', 'Middlesex', 'Middlesex', !frontSix, 'Spin the Front Six first.')}
+
+    ${backSix ? sixHoleSectionHtml('Back 6', backSix)
+      : `<div class="card"><h2>Back 6</h2><div class="tbd">Whatever's left once the Front Six and Middlesex are drawn.</div></div>`}
+
+    <div class="card">
+      <h2>Putting Points</h2>
+      <div class="rules-note">Each player's own 0&ndash;6 putting score, added up across all 18 holes &mdash; entered on the My Scorecard tab.</div>
+      ${miniLeaderboardHtml(putting)}
+      <div class="winner-banner" style="margin-top:0.9rem;">
+        <span class="label">Winner</span>
+        <span class="name">${escapeHtml(putting[0].name)}</span>
+      </div>
+    </div>
+
+    ${anyDrawn ? `
+      <div style="text-align:center; margin-top:0.5rem;">
+        <button class="btn btn-outline btn-sm" id="redraw-btn">Redraw Front Six &amp; Middlesex</button>
+      </div>
+    ` : ''}
+  `;
+}
+
+
 function attachHandlers(){
   document.querySelectorAll('.tab-btn').forEach(b=>{
     b.onclick = ()=>{
@@ -544,7 +694,86 @@ function attachHandlers(){
             .finally(()=>{ inFlight = false; });
         };
       });
+
+      const puttInput = row.querySelector('input[data-field="putting_points"]');
+      if(puttInput){
+        let debounce;
+        puttInput.onfocus = ()=>{
+          if(puttInput.dataset.originalValue === undefined){
+            const existing = scoreFor(selectedPlayerIdx, holeNumber).putting_points || 0;
+            puttInput.dataset.originalValue = String(existing);
+          }
+        };
+        puttInput.oninput = ()=>{
+          if(!scores[selectedPlayerIdx]) scores[selectedPlayerIdx] = {};
+          if(!scores[selectedPlayerIdx][holeNumber]) scores[selectedPlayerIdx][holeNumber] = {};
+          let v = puttInput.value === '' ? 0 : parseInt(puttInput.value,10);
+          if(isNaN(v)) v = 0;
+          if(v < 0) v = 0; if(v > 6) v = 6;
+          scores[selectedPlayerIdx][holeNumber].putting_points = v;
+          clearTimeout(debounce);
+          debounce = setTimeout(()=>{
+            const original = puttInput.dataset.originalValue ?? '0';
+            const changingExisting = original !== '0' && original !== String(v);
+            const proceed = ()=>{
+              puttInput.dataset.originalValue = String(v);
+              inFlight = true;
+              postJson('/api/golf/score', { playerIdx: selectedPlayerIdx, holeNumber, field:'putting_points', value: v })
+                .finally(()=>{ inFlight = false; });
+            };
+            if(changingExisting){
+              if(confirm(`Are you sure you want to change hole ${holeNumber}'s putting points from ${original} to ${v}?`)){
+                proceed();
+              } else {
+                puttInput.value = original;
+                scores[selectedPlayerIdx][holeNumber].putting_points = parseInt(original,10);
+              }
+            } else {
+              proceed();
+            }
+          }, 500);
+        };
+      }
     });
+  }
+
+  if(currentTab==='sidebets'){
+    function runSpin(displayId, stage, btn){
+      btn.disabled = true;
+      const displayEl = document.getElementById(displayId);
+      let ticks = 0;
+      const spinTimer = setInterval(()=>{
+        const randomSix = [];
+        while(randomSix.length < 6){
+          const n = 1 + Math.floor(Math.random()*18);
+          if(!randomSix.includes(n)) randomSix.push(n);
+        }
+        if(displayEl) displayEl.innerHTML = ballsInnerHtml(randomSix);
+        ticks++;
+      }, 90);
+
+      postJson('/api/golf/side-draw', { stage }).then(async ()=>{
+        // postJson swallows the response; refetch state to get the real result
+        await loadState();
+      }).finally(()=>{
+        setTimeout(()=>{ clearInterval(spinTimer); render(); }, 1100);
+      });
+    }
+
+    const frontBtn = document.querySelector('[data-spin="spin-front"]');
+    if(frontBtn) frontBtn.onclick = ()=> runSpin('spin-front', 'front', frontBtn);
+
+    const midBtn = document.querySelector('[data-spin="spin-middlesex"]');
+    if(midBtn) midBtn.onclick = ()=> runSpin('spin-middlesex', 'middlesex', midBtn);
+
+    const redrawBtn = document.getElementById('redraw-btn');
+    if(redrawBtn){
+      redrawBtn.onclick = async ()=>{
+        if(!confirm('Redraw the Front Six and Middlesex? This clears the current draw so you can spin again.')) return;
+        await postJson('/api/golf/side-draw/reset', {});
+        await loadState();
+      };
+    }
   }
 
   if(currentTab==='setup'){

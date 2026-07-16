@@ -50,7 +50,7 @@
     line-height:1;
   }
   .wordmark img.logo-letter{
-    width:1em; height:1em; display:block;
+    width:1.4em; height:1.4em; display:block; margin-right:-0.02em;
   }
   .wordmark .rest{
     font-size:1em; font-weight:900; letter-spacing:0.02em; color:var(--white);
@@ -91,8 +91,8 @@
   input[type=number]::-webkit-outer-spin-button{ -webkit-appearance:none; margin:0; }
   input[type=number]{ -moz-appearance:textfield; appearance:textfield; }
   input[type=text], input[type=number]{
-    background:var(--bg-card-2); border:1px solid var(--border); border-radius:var(--radius-sm);
-    color:var(--white); padding:0.55rem 0.6rem; font-family:inherit; font-size:0.95rem;
+    background:#FBF7EA; border:1px solid var(--border); border-radius:var(--radius-sm);
+    color:#1A1A22; padding:0.55rem 0.6rem; font-family:inherit; font-size:0.95rem;
   }
   input:focus{ outline:none; border-color:var(--gold); }
 
@@ -125,11 +125,21 @@
   /* ── Scorecard ───────────────────────────────────────────────────────── */
   .scorecard{ border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; background:var(--bg-card); }
   .sc-row{
-    display:grid; grid-template-columns: 62px 1fr 108px 52px;
-    align-items:center; gap:0.5rem; padding:0.55rem 0.7rem;
+    padding:0.55rem 0.7rem;
     border-bottom:1px solid rgba(255,255,255,0.07);
   }
   .sc-row:last-child{ border-bottom:none; }
+  .sc-line1{
+    display:grid; grid-template-columns: 62px 1fr 52px;
+    align-items:center; gap:0.5rem;
+  }
+  .sc-line2{
+    display:flex; align-items:center; gap:0.6rem; margin-top:0.5rem;
+  }
+  .sc-putt{ display:flex; align-items:center; gap:0.4rem; }
+  .sc-putt label{ font-size:0.66rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.04em; white-space:nowrap; }
+  .sc-putt input{ width:46px; text-align:center; padding:0.35rem; }
+  .sc-row.total .sc-putt label{ color:rgba(5,5,28,0.65); }
   .sc-row.subtotal{ background:rgba(255,186,0,0.06); font-weight:800; }
   .sc-row.total{ background:var(--gold); color:#05051C; font-weight:900; }
   .sc-row.total .sc-muted{ color:rgba(5,5,28,0.65); }
@@ -223,6 +233,16 @@
   .preset-row:last-child{ border-bottom:none; }
   .preset-name{ flex:1; font-weight:700; font-size:0.9rem; }
   .preset-delete{ color:var(--danger); background:transparent; border:1px solid var(--border); }
+
+  /* ── Side Bets ───────────────────────────────────────────────────────── */
+  .hole-balls{ display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:1rem; }
+  .hole-ball{
+    width:38px; height:38px; border-radius:50%; background:var(--gold); color:#05051C;
+    display:flex; align-items:center; justify-content:center; font-weight:900; font-size:0.95rem;
+    flex-shrink:0;
+  }
+  .spin-display{ display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.3rem; }
+  .spin-display .hole-ball{ background:var(--bg-card-2); color:var(--muted); border:1px solid var(--border); }
 </style>
 </head>
 <body>
@@ -244,6 +264,7 @@
       <button class="tab-btn" data-tab="standings">Table</button>
       <button class="tab-btn" data-tab="semis">Semis</button>
       <button class="tab-btn" data-tab="final">Final</button>
+      <button class="tab-btn" data-tab="sidebets">Side Bets</button>
     </div>
     <div id="golf-content"><p style="color:var(--muted)">Loading&hellip;</p></div>
   </main>
