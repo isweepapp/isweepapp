@@ -118,6 +118,7 @@ CREATE TABLE IF NOT EXISTS golf_scores (
   gir             INTEGER NOT NULL DEFAULT 0,
   one_putt        INTEGER NOT NULL DEFAULT 0,
   putting_points  INTEGER NOT NULL DEFAULT 0,
+  lost_balls      INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (player_idx, hole_number)
 );
 
