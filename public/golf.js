@@ -1095,10 +1095,9 @@ function shelfCardHtml(name){
           <div class="shelf-item">
             <div class="shelf-trophy-stage">
               <img class="shelf-trophy-img" src="/assets/trophies/${slug}.png" alt="${escapeHtml(comp)}"
-                   onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'; this.parentElement.querySelectorAll('.shelf-trophy-reflection,.shelf-contact-shadow').forEach(function(el){el.style.display='none';});">
+                   onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'; this.parentElement.querySelector('.shelf-contact-shadow').style.display='none';">
               <div class="shelf-trophy-fallback">&#127942;</div>
               <div class="shelf-contact-shadow"></div>
-              <img class="shelf-trophy-reflection" src="/assets/trophies/${slug}.png" alt="" aria-hidden="true">
             </div>
             <div class="shelf-comp-name">${escapeHtml(comp)}</div>
             <div class="shelf-stars">${'&#9733;'.repeat(count)}</div>
@@ -1107,14 +1106,9 @@ function shelfCardHtml(name){
       }).join('');
   return `
     <div class="shelf-card">
-      <div class="shelf-cabinet-top"></div>
-      <div class="shelf-card-inner">
-        <div class="shelf-player-name">${escapeHtml(name)}</div>
-        <div class="shelf-row">${items}</div>
-        ${comps.length > 0 ? '<div class="shelf-glass-shelf"></div>' : ''}
-        <div class="shelf-ledge"></div>
-      </div>
-      <div class="shelf-drawer"><span class="shelf-drawer-handle"></span></div>
+      <div class="shelf-player-name">${escapeHtml(name)}</div>
+      <div class="shelf-row">${items}</div>
+      <div class="shelf-plank"></div>
     </div>
   `;
 }
