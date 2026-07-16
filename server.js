@@ -177,6 +177,9 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Clean URL for the golf sweepstake — isweepapp.uk/golf (no .html)
+app.get('/golf', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'golf.html')));
+
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
 // ── Temp debug: fetch raw match data from football-data.org ─────────────────
