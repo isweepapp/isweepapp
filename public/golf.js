@@ -1,9 +1,9 @@
 'use strict';
 
 /* ---------------------------------------------------------
-   SCHEDULE — [hole, homePlayerIdx, awayPlayerIdx], 0-based.
-   "hole" doubles as the real course hole number (1–10).
-   Semis play course holes 11–13, the final plays 14–17.
+   SCHEDULE — [holeNumber(1–10), playerAIdx, playerBIdx], 0-based.
+   Every player also plays holes 11–18 on their own scorecard;
+   only 11–13 (semis) and 14–17 (final) feed into the bracket.
 --------------------------------------------------------- */
 const SCHEDULE = [
   [1,0,5],[1,1,4],[1,2,3],
@@ -19,19 +19,19 @@ const SCHEDULE = [
 ];
 
 const POLL_MS = 5000;
+const MY_PLAYER_KEY = 'golf_my_player_idx';
 
 let players = [
   {name:"Player 1",handicap:18},{name:"Player 2",handicap:18},{name:"Player 3",handicap:18},
   {name:"Player 4",handicap:18},{name:"Player 5",handicap:18},{name:"Player 6",handicap:18},
 ];
 let course = {};    // holeNumber (1-18) -> {par, stroke_index}
-let group = {};      // matchIdx -> {hshots,ashots,hf,hg,hp,af,ag,ap}
-let sf1 = {};        // holeIdx -> {ashots,bshots,af,ag,ap,bf,bg,bp}
-let sf2 = {};
-let final = {};
+let scores = {};    // playerIdx -> { holeNumber -> {shots, fairway, gir, one_putt} }
 
-let currentTab = "setup";
-let currentHole = 1;
+let currentTab = "scorecard";
+let selectedPlayerIdx = parseInt(localStorage.getItem(MY_PLAYER_KEY), 10);
+if(isNaN(selectedPlayerIdx) || selectedPlayerIdx < 0 || selectedPlayerIdx > 5) selectedPlayerIdx = 0;
+
 let pollTimer = null;
 let inFlight = false;
 
@@ -48,12 +48,12 @@ async function loadState(){
     });
     course = {};
     data.course.forEach(row=>{ course[row.hole_number] = { par: row.par, stroke_index: row.stroke_index }; });
-    group = {};
-    data.group.forEach(row=>{ group[row.match_idx] = row; });
-    sf1 = {}; sf2 = {}; final = {};
-    data.knockout.forEach(row=>{
-      const target = row.stage === 'sf1' ? sf1 : row.stage === 'sf2' ? sf2 : final;
-      target[row.hole_idx] = row;
+    scores = {};
+    for(let i=0;i<6;i++) scores[i] = {};
+    data.scores.forEach(row=>{
+      scores[row.player_idx][row.hole_number] = {
+        shots: row.shots, fairway: !!row.fairway, gir: !!row.gir, one_putt: !!row.one_putt,
+      };
     });
     render();
   }catch(e){
@@ -63,11 +63,7 @@ async function loadState(){
 
 async function postJson(url, body){
   try{
-    await fetch(url, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(body),
-    });
+    await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
   }catch(e){
     console.error('Failed to save', url, body, e);
   }
@@ -82,71 +78,65 @@ function startPolling(){
 }
 
 /* ---------------------------------------------------------
-   COURSE HOLE MAPPING
+   COURSE / SCORE HELPERS
 --------------------------------------------------------- */
-function courseHoleForGroup(holeNum){ return holeNum; }                    // 1–10
-function courseHoleForKnockout(stage, holeIdx){
-  return stage === 'final' ? 13 + holeIdx + 1 : 10 + holeIdx + 1;          // sf: 11–13, final: 14–17
-}
-function courseInfo(holeNumber){
-  return course[holeNumber] || { par:4, stroke_index: holeNumber };
-}
+function courseInfo(holeNumber){ return course[holeNumber] || { par:4, stroke_index: holeNumber }; }
+function scoreFor(playerIdx, holeNumber){ return (scores[playerIdx] && scores[playerIdx][holeNumber]) || {}; }
 
-/* ---------------------------------------------------------
-   STABLEFORD SCORING
---------------------------------------------------------- */
-// Strokes a player receives on a hole, from their handicap and the hole's stroke index.
 function strokesReceived(handicap, strokeIndex){
   const h = Math.max(0, parseInt(handicap,10) || 0);
   return Math.floor(h/18) + (strokeIndex <= (h % 18) ? 1 : 0);
 }
-// Stableford points for a single hole; null if shots not yet entered.
+// Standard Stableford points for one hole; null if no score entered yet.
 function stablefordPoints(shots, handicap, par, strokeIndex){
   if(shots===null || shots===undefined || shots==='') return null;
   const rec = strokesReceived(handicap, strokeIndex);
   const net = shots - rec;
   return Math.max(0, 2 - (net - par));
 }
-// Combine hole-win points (2/1/0, from comparing Stableford points) with bonus points.
-function holeResult(shotsA, hcpA, bonusA, shotsB, hcpB, bonusB, holeNumber){
+
+// Sweepstake hole result: compares two players' Stableford points on a hole,
+// awards 2/1/0 match points, and stacks each player's own bonus points on top.
+function matchResultForHole(idxA, idxB, holeNumber){
   const { par, stroke_index } = courseInfo(holeNumber);
-  const ptsA = stablefordPoints(shotsA, hcpA, par, stroke_index);
-  const ptsB = stablefordPoints(shotsB, hcpB, par, stroke_index);
-  const bonusPtsA = (bonusA.f?1:0)+(bonusA.g?1:0)+(bonusA.p?1:0);
-  const bonusPtsB = (bonusB.f?1:0)+(bonusB.g?1:0)+(bonusB.p?1:0);
+  const sA = scoreFor(idxA, holeNumber), sB = scoreFor(idxB, holeNumber);
+  const ptsA = stablefordPoints(sA.shots, players[idxA].handicap, par, stroke_index);
+  const ptsB = stablefordPoints(sB.shots, players[idxB].handicap, par, stroke_index);
+  const bonusA = (sA.fairway?1:0)+(sA.gir?1:0)+(sA.one_putt?1:0);
+  const bonusB = (sB.fairway?1:0)+(sB.gir?1:0)+(sB.one_putt?1:0);
   if(ptsA===null || ptsB===null){
-    return { stableA:ptsA, stableB:ptsB, totalA: bonusPtsA, totalB: bonusPtsB, pending:true };
+    return { stableA:ptsA, stableB:ptsB, totalA:bonusA, totalB:bonusB, pending:true };
   }
   let matchA=0, matchB=0;
   if(ptsA>ptsB) matchA=2;
   else if(ptsB>ptsA) matchB=2;
   else { matchA=1; matchB=1; }
-  return { stableA:ptsA, stableB:ptsB, totalA: matchA+bonusPtsA, totalB: matchB+bonusPtsB, pending:false };
+  return { stableA:ptsA, stableB:ptsB, totalA:matchA+bonusA, totalB:matchB+bonusB, pending:false };
 }
 
-function groupHoleResult(rec, homeIdx, awayIdx, holeNumber){
-  rec = rec || {};
-  return holeResult(
-    rec.hshots, players[homeIdx].handicap, {f:rec.hf,g:rec.hg,p:rec.hp},
-    rec.ashots, players[awayIdx].handicap, {f:rec.af,g:rec.ag,p:rec.ap},
-    holeNumber
-  );
+function stageTotals(idxA, idxB, holeNumbers){
+  let a=0, b=0, complete=true;
+  holeNumbers.forEach(hn=>{
+    const r = matchResultForHole(idxA, idxB, hn);
+    if(r.pending) complete=false;
+    a+=r.totalA; b+=r.totalB;
+  });
+  return { a, b, complete };
 }
-function koHoleResult(rec, hcpA, hcpB, holeNumber){
-  rec = rec || {};
-  return holeResult(
-    rec.ashots, hcpA, {f:rec.af,g:rec.ag,p:rec.ap},
-    rec.bshots, hcpB, {f:rec.bf,g:rec.bg,p:rec.bp},
-    holeNumber
-  );
+function stageWinner(idxA, idxB, holeNumbers, nameA, nameB){
+  const t = stageTotals(idxA, idxB, holeNumbers);
+  if(!t.complete) return null;
+  if(t.a>t.b) return nameA;
+  if(t.b>t.a) return nameB;
+  return "TIE";
 }
 
 function computeStandings(){
   const pts = new Array(6).fill(0);
-  SCHEDULE.forEach((m, idx)=>{
-    const r = groupHoleResult(group[idx], m[1], m[2], courseHoleForGroup(m[0]));
-    pts[m[1]] += r.totalA;
-    pts[m[2]] += r.totalB;
+  SCHEDULE.forEach(([holeNumber, aIdx, bIdx])=>{
+    const r = matchResultForHole(aIdx, bIdx, holeNumber);
+    pts[aIdx] += r.totalA;
+    pts[bIdx] += r.totalB;
   });
   const rows = players.map((p,i)=>({idx:i, name:p.name, pts:pts[i]}));
   rows.sort((a,b)=> b.pts - a.pts);
@@ -157,29 +147,6 @@ function computeStandings(){
     r.rank = rank;
   });
   return rows;
-}
-
-function koTotals(records, numHoles, stage, hcpA, hcpB){
-  let a=0,b=0;
-  for(let i=0;i<numHoles;i++){
-    const r = koHoleResult(records[i], hcpA, hcpB, courseHoleForKnockout(stage, i));
-    a+=r.totalA; b+=r.totalB;
-  }
-  return {a,b};
-}
-function koComplete(records, numHoles){
-  for(let i=0;i<numHoles;i++){
-    const rec = records[i];
-    if(!rec || rec.ashots==null || rec.bshots==null) return false;
-  }
-  return true;
-}
-function koWinnerName(records, numHoles, stage, hcpA, hcpB, nameA, nameB){
-  if(!koComplete(records, numHoles)) return null;
-  const t = koTotals(records, numHoles, stage, hcpA, hcpB);
-  if(t.a>t.b) return nameA;
-  if(t.b>t.a) return nameB;
-  return "TIE";
 }
 
 /* ---------------------------------------------------------
@@ -195,13 +162,77 @@ function render(){
     b.classList.toggle('active', b.dataset.tab === currentTab);
   });
   const el = document.getElementById('golf-content');
-  if(currentTab==='setup') el.innerHTML = renderSetup();
+  if(currentTab==='scorecard') el.innerHTML = renderScorecard();
+  else if(currentTab==='setup') el.innerHTML = renderSetup();
   else if(currentTab==='course') el.innerHTML = renderCourse();
-  else if(currentTab==='group') el.innerHTML = renderGroup();
   else if(currentTab==='standings') el.innerHTML = renderStandings();
   else if(currentTab==='semis') el.innerHTML = renderSemis();
   else if(currentTab==='final') el.innerHTML = renderFinal();
   attachHandlers();
+}
+
+/* ---------------------------------------------------------
+   MY SCORECARD TAB — each player enters their own round, 18 holes
+--------------------------------------------------------- */
+function scRowHtml(playerIdx, holeNumber){
+  const info = courseInfo(holeNumber);
+  const s = scoreFor(playerIdx, holeNumber);
+  const pts = stablefordPoints(s.shots, players[playerIdx].handicap, info.par, info.stroke_index);
+  return `
+    <div class="sc-row" data-hole="${holeNumber}">
+      <div>
+        <div class="sc-hole">${holeNumber}</div>
+        <div class="sc-muted">Par ${info.par} · SI ${info.stroke_index}</div>
+      </div>
+      <div class="sc-bonus">
+        <button data-field="fairway" class="${s.fairway?'on':''}">F</button>
+        <button data-field="gir" class="${s.gir?'on':''}">GIR</button>
+        <button data-field="one_putt" class="${s.one_putt?'on':''}">1P</button>
+      </div>
+      <div class="sc-shots"><input type="number" min="1" max="20" inputmode="numeric" data-field="shots" value="${s.shots ?? ''}"></div>
+      <div class="sc-pts" id="sc-pts-${holeNumber}">${pts===null?'–':pts}</div>
+    </div>
+  `;
+}
+
+function scSubtotalHtml(label, playerIdx, holeNumbers, cls){
+  let shotsSum = 0, ptsSum = 0, anyShots = false;
+  holeNumbers.forEach(hn=>{
+    const s = scoreFor(playerIdx, hn);
+    if(s.shots!=null){ shotsSum += s.shots; anyShots = true; }
+    const info = courseInfo(hn);
+    const p = stablefordPoints(s.shots, players[playerIdx].handicap, info.par, info.stroke_index);
+    if(p!==null) ptsSum += p;
+  });
+  return `
+    <div class="sc-row ${cls}">
+      <div class="sc-hole" style="font-size:0.85rem;">${label}</div>
+      <div class="sc-muted"></div>
+      <div class="sc-muted" style="text-align:center;">${anyShots ? shotsSum+' shots' : ''}</div>
+      <div class="sc-pts">${ptsSum}</div>
+    </div>
+  `;
+}
+
+function renderScorecard(){
+  const chips = players.map((p,i)=>`<button class="player-chip ${i===selectedPlayerIdx?'selected':''}" data-select-player="${i}">${escapeHtml(p.name)}</button>`).join('');
+  const out = []; for(let h=1;h<=9;h++) out.push(h);
+  const inn = []; for(let h=10;h<=18;h++) inn.push(h);
+  const p = players[selectedPlayerIdx];
+
+  return `
+    <div class="player-picker">${chips}</div>
+    <div class="rules-note">
+      <b>${escapeHtml(p.name)}</b> · handicap ${p.handicap} — enter your gross shots for each hole and the Stableford points work themselves out. Keep going through all 18 even after your bracket matches are decided.
+    </div>
+    <div class="scorecard" id="scorecard-body">
+      ${out.map(h=>scRowHtml(selectedPlayerIdx,h)).join('')}
+      ${scSubtotalHtml('OUT', selectedPlayerIdx, out, 'subtotal')}
+      ${inn.map(h=>scRowHtml(selectedPlayerIdx,h)).join('')}
+      ${scSubtotalHtml('IN', selectedPlayerIdx, inn, 'subtotal')}
+      ${scSubtotalHtml('TOTAL', selectedPlayerIdx, out.concat(inn), 'total')}
+    </div>
+  `;
 }
 
 /* ---------------------------------------------------------
@@ -222,23 +253,21 @@ function renderSetup(){
     </div>
   `).join('');
   return `
-    <div class="rules-note">Type a name or handicap and it saves automatically for everyone. Set each player's course handicap here — it's used to work out Stableford points on the Holes tab.</div>
+    <div class="rules-note">Type a name or handicap and it saves automatically for everyone. Each player enters their own scores on the My Scorecard tab.</div>
     <div class="card">${rows}</div>
     <div class="card">
       <h2>Scoring</h2>
       <div style="font-size:0.88rem; line-height:1.8; color:var(--text-muted);">
-        Each hole is scored on <b class="text-gold">Stableford points</b> (net score vs. par, using each player's handicap). Whoever scores more Stableford points on a hole wins it:<br>
-        <b class="text-gold">2 pts</b> — win the hole<br>
-        <b class="text-gold">1 pt</b> — halve (draw) the hole<br>
-        <b class="text-gold">1 pt</b> — drive on the fairway<br>
-        <b class="text-gold">1 pt</b> — green in regulation<br>
-        <b class="text-gold">1 pt</b> — hole out with the first putt
+        Your <b style="color:var(--gold)">Scorecard</b> tab shows standard Stableford points (net score vs. par, using your handicap) for your own round.<br><br>
+        For the group stage, semis and final, whoever scores more Stableford points on a shared hole wins it:<br>
+        <b style="color:var(--gold)">2 pts</b> — win the hole · <b style="color:var(--gold)">1 pt</b> — halve it<br>
+        plus <b style="color:var(--gold)">1 pt each</b> for fairway, GIR, and first-putt hole-outs.
       </div>
     </div>
-    <div class="card" style="border-color:rgba(224,82,82,0.3);">
+    <div class="card" style="border-color:rgba(168,64,47,0.35);">
       <h2 style="color:var(--danger);">Danger zone</h2>
       <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:0.9rem;">
-        Wipes every hole result, shot, and bonus point for the group stage, semis and final, and resets player names, handicaps and course settings back to defaults. Use this to clear out test data before the real thing starts.
+        Wipes every score, and resets player names, handicaps and course settings back to defaults. Use this to clear out test data before the real thing starts.
       </div>
       <button class="btn btn-danger" id="resetAllBtn" style="width:100%;">Delete all golf data</button>
       <div id="reset-msg"></div>
@@ -254,102 +283,22 @@ function renderCourse(){
   for(let h=1; h<=18; h++){
     const info = courseInfo(h);
     let section = '';
-    if(h===1) section = 'Group stage';
-    if(h===11) section = 'Semi-finals';
-    if(h===14) section = 'Final';
+    if(h===1) section = 'Group stage · holes 1–10';
+    if(h===11) section = 'Semi-finals · holes 11–13';
+    if(h===14) section = 'Final · holes 14–17';
+    if(h===18) section = 'Extra hole (personal scorecard only)';
     rows += `
-      ${section ? `<div class="course-section">${section} · holes ${h===1?'1–10':h===11?'11–13':'14–17'}</div>` : ''}
+      ${section ? `<div class="course-section">${section}</div>` : ''}
       <div class="course-row">
         <div class="course-hole">Hole ${h}</div>
-        <div class="course-field">
-          <label>Par</label>
-          <input type="number" min="3" max="6" data-hole="${h}" data-course-field="par" value="${info.par}">
-        </div>
-        <div class="course-field">
-          <label>Stroke index</label>
-          <input type="number" min="1" max="18" data-hole="${h}" data-course-field="strokeIndex" value="${info.stroke_index}">
-        </div>
+        <div class="course-field"><label>Par</label><input type="number" min="3" max="6" data-hole="${h}" data-course-field="par" value="${info.par}"></div>
+        <div class="course-field"><label>Stroke index</label><input type="number" min="1" max="18" data-hole="${h}" data-course-field="strokeIndex" value="${info.stroke_index}"></div>
       </div>
     `;
   }
   return `
-    <div class="rules-note">Set the par and stroke index (1 = hardest hole, 18 = easiest) for each hole your group plays. This is what drives the automatic Stableford calculation — holes 1–10 are the group stage, 11–13 the semis, 14–17 the final.</div>
+    <div class="rules-note">Set the par and stroke index (1 = hardest, 18 = easiest) for each hole. This drives the automatic Stableford calculation everywhere else on this page.</div>
     <div class="card">${rows}</div>
-  `;
-}
-
-/* ---------------------------------------------------------
-   GROUP STAGE TAB
---------------------------------------------------------- */
-function computedGroupHtml(i, m){
-  const rec = group[i] || {};
-  const holeNumber = courseHoleForGroup(m[0]);
-  const r = groupHoleResult(rec, m[1], m[2], holeNumber);
-  const homeName = players[m[1]].name, awayName = players[m[2]].name;
-  if(r.pending){
-    return `<div class="match-points pending">Enter both scores to work out Stableford points</div>`;
-  }
-  return `
-    <div class="stable-line">Stableford: ${escapeHtml(homeName)} ${r.stableA} – ${r.stableB} ${escapeHtml(awayName)}</div>
-    <div class="match-points">
-      <span>${escapeHtml(homeName)}: ${ptsLabel(r.totalA)}</span>
-      <span>${escapeHtml(awayName)}: ${ptsLabel(r.totalB)}</span>
-    </div>
-  `;
-}
-
-function renderGroup(){
-  const chips = [];
-  for(let h=1; h<=10; h++){
-    const idxs = SCHEDULE.map((m,i)=>({m,i})).filter(x=>x.m[0]===h);
-    const done = idxs.every(x=> group[x.i] && group[x.i].hshots!=null && group[x.i].ashots!=null);
-    chips.push(`<button class="hole-chip ${h===currentHole?'active':''} ${done?'done':''}" data-hole="${h}">${h}</button>`);
-  }
-  const holeInfo = courseInfo(currentHole);
-  const matches = SCHEDULE.map((m,i)=>({m,i})).filter(x=>x.m[0]===currentHole);
-  const cards = matches.map(({m,i})=>{
-    const rec = group[i] || {};
-    const homeName = players[m[1]].name, awayName = players[m[2]].name;
-    return `
-      <div class="card match-card" data-match="${i}">
-        <div class="match-players">
-          <div class="side home">${escapeHtml(homeName)} <span class="hcap-tag">h'cap ${players[m[1]].handicap}</span></div>
-          <div class="vs">vs</div>
-          <div class="side away"><span class="hcap-tag">h'cap ${players[m[2]].handicap}</span> ${escapeHtml(awayName)}</div>
-        </div>
-        <div class="shots-grid">
-          <div class="shots-col">
-            <label>${escapeHtml(homeName)} shots</label>
-            <input type="number" min="1" max="20" inputmode="numeric" data-shots-field="hshots" value="${rec.hshots ?? ''}">
-          </div>
-          <div class="shots-col">
-            <label>${escapeHtml(awayName)} shots</label>
-            <input type="number" min="1" max="20" inputmode="numeric" data-shots-field="ashots" value="${rec.ashots ?? ''}">
-          </div>
-        </div>
-        <div class="bonus-grid">
-          <div class="bonus-col">
-            <div class="colname">${escapeHtml(homeName)}</div>
-            <div class="chip ${rec.hf?'on':''}" data-field="hf">Fairway</div>
-            <div class="chip ${rec.hg?'on':''}" data-field="hg">GIR</div>
-            <div class="chip ${rec.hp?'on':''}" data-field="hp">1-Putt</div>
-          </div>
-          <div class="bonus-col">
-            <div class="colname">${escapeHtml(awayName)}</div>
-            <div class="chip ${rec.af?'on':''}" data-field="af">Fairway</div>
-            <div class="chip ${rec.ag?'on':''}" data-field="ag">GIR</div>
-            <div class="chip ${rec.ap?'on':''}" data-field="ap">1-Putt</div>
-          </div>
-        </div>
-        <div class="computed" id="computed-group-${i}">${computedGroupHtml(i, m)}</div>
-      </div>
-    `;
-  }).join('');
-  return `
-    <div class="hole-picker">${chips.join('')}</div>
-    <h2 style="color:var(--gold); margin-bottom:0.25rem;">Hole ${currentHole}</h2>
-    <div class="rules-note" style="margin-bottom:0.75rem;">Par ${holeInfo.par} · Stroke index ${holeInfo.stroke_index}</div>
-    ${cards}
   `;
 }
 
@@ -374,94 +323,36 @@ function renderStandings(){
       </table>
     </div>
     <div class="rules-note">
-      Highlighted rows qualify for the semi-finals: 1st plays 4th, 2nd plays 3rd.
-      ${tie ? '<br><b>Note:</b> there is a tie around 4th place — agree a tie-break (holes won, or a play-off hole) before confirming the semi-final line-up.' : ''}
+      Highlighted rows qualify for the semi-finals: 1st plays 4th, 2nd plays 3rd. Scores come straight from everyone's own Scorecard tab.
+      ${tie ? '<br><b>Note:</b> there is a tie around 4th place — agree a tie-break before confirming the semi-final line-up.' : ''}
     </div>
   `;
 }
 
 /* ---------------------------------------------------------
-   KNOCKOUT (shared for SF1 / SF2 / Final)
+   KNOCKOUT SUMMARY (read-only) — Semis / Final
 --------------------------------------------------------- */
-function computedKoHtml(storageKey, h, hcpA, hcpB, nameA, nameB, holeNumber){
-  const store = storageKey==='sf1' ? sf1 : storageKey==='sf2' ? sf2 : final;
-  const rec = store[h] || {};
-  const r = koHoleResult(rec, hcpA, hcpB, holeNumber);
-  if(r.pending){
-    return `<div class="match-points pending">Enter both scores to work out Stableford points</div>`;
+function renderStageSummary(opts){
+  const { idxA, idxB, holeNumbers, nameA, nameB, title, championStyle } = opts;
+  if(idxA===null || idxB===null){
+    return `<h2 style="margin-bottom:0.75rem;">${title}</h2><div class="card"><div class="tbd">${opts.subtitle}</div></div>`;
   }
-  return `
-    <div class="stable-line">Stableford: ${escapeHtml(nameA)} ${r.stableA} – ${r.stableB} ${escapeHtml(nameB)}</div>
-    <div class="match-points">
-      <span>${escapeHtml(nameA)}: ${ptsLabel(r.totalA)}</span>
-      <span>${escapeHtml(nameB)}: ${ptsLabel(r.totalB)}</span>
-    </div>
-  `;
-}
-
-function renderKnockout(opts){
-  const { records, numHoles, nameA, nameB, hcpA, hcpB, stage, title, subtitle, storageKey, championStyle } = opts;
-  if(nameA===null || nameB===null){
-    return `<h2 style="color:var(--gold); margin-bottom:0.75rem;">${title}</h2><div class="card"><div class="tbd">${subtitle}</div></div>`;
-  }
-  const holeCards = [];
-  for(let h=0; h<numHoles; h++){
-    const rec = records[h] || {};
-    const holeNumber = courseHoleForKnockout(stage, h);
-    const info = courseInfo(holeNumber);
-    holeCards.push(`
-      <div class="card match-card" data-ko="${storageKey}" data-hole="${h}"
-           data-name-a="${escapeHtml(nameA)}" data-name-b="${escapeHtml(nameB)}"
-           data-hcap-a="${hcpA}" data-hcap-b="${hcpB}" data-stage="${stage}">
-        <div class="match-players">
-          <div class="side home">${escapeHtml(nameA)} <span class="hcap-tag">h'cap ${hcpA}</span></div>
-          <div class="vs">hole ${holeNumber}</div>
-          <div class="side away"><span class="hcap-tag">h'cap ${hcpB}</span> ${escapeHtml(nameB)}</div>
-        </div>
-        <div class="rules-note" style="margin:0 0 0.6rem; padding:0.4rem 0.6rem;">Par ${info.par} · Stroke index ${info.stroke_index}</div>
-        <div class="shots-grid">
-          <div class="shots-col">
-            <label>${escapeHtml(nameA)} shots</label>
-            <input type="number" min="1" max="20" inputmode="numeric" data-shots-field="ashots" value="${rec.ashots ?? ''}">
-          </div>
-          <div class="shots-col">
-            <label>${escapeHtml(nameB)} shots</label>
-            <input type="number" min="1" max="20" inputmode="numeric" data-shots-field="bshots" value="${rec.bshots ?? ''}">
-          </div>
-        </div>
-        <div class="bonus-grid">
-          <div class="bonus-col">
-            <div class="colname">${escapeHtml(nameA)}</div>
-            <div class="chip ${rec.af?'on':''}" data-field="af">Fairway</div>
-            <div class="chip ${rec.ag?'on':''}" data-field="ag">GIR</div>
-            <div class="chip ${rec.ap?'on':''}" data-field="ap">1-Putt</div>
-          </div>
-          <div class="bonus-col">
-            <div class="colname">${escapeHtml(nameB)}</div>
-            <div class="chip ${rec.bf?'on':''}" data-field="bf">Fairway</div>
-            <div class="chip ${rec.bg?'on':''}" data-field="bg">GIR</div>
-            <div class="chip ${rec.bp?'on':''}" data-field="bp">1-Putt</div>
-          </div>
-        </div>
-        <div class="computed" id="computed-${storageKey}-${h}">${computedKoHtml(storageKey, h, hcpA, hcpB, nameA, nameB, holeNumber)}</div>
+  const rows = holeNumbers.map(hn=>{
+    const r = matchResultForHole(idxA, idxB, hn);
+    const stableLabel = r.pending ? 'not played yet' : `${r.stableA} – ${r.stableB}`;
+    return `
+      <div class="ko-hole-row">
+        <div class="hole-tag">Hole ${hn}</div>
+        <div class="stable">${stableLabel}</div>
+        <div class="pts">${r.pending ? '–' : `${r.totalA} – ${r.totalB}`}</div>
       </div>
-    `);
-  }
-  const totals = koTotals(records, numHoles, stage, hcpA, hcpB);
-  const complete = koComplete(records, numHoles);
-  const winner = koWinnerName(records, numHoles, stage, hcpA, hcpB, nameA, nameB);
+    `;
+  }).join('');
+  const totals = stageTotals(idxA, idxB, holeNumbers);
+  const winner = stageWinner(idxA, idxB, holeNumbers, nameA, nameB);
 
-  return `
-    <h2 style="color:var(--gold); margin-bottom:0.5rem;">${title}</h2>
-    <div class="rules-note">${escapeHtml(nameA)} vs ${escapeHtml(nameB)} · ${numHoles} holes · most points wins</div>
-    ${holeCards.join('')}
-    <div id="ko-footer-${storageKey}">${koFooterHtml(totals, complete, winner, nameA, nameB, championStyle)}</div>
-  `;
-}
-
-function koFooterHtml(totals, complete, winner, nameA, nameB, championStyle){
   let banner = '';
-  if(complete){
+  if(totals.complete){
     if(winner === 'TIE'){
       banner = `<div class="winner-banner"><span class="label">Result</span><span class="name">Tied ${totals.a}–${totals.b}</span></div><div class="tie-note">Scores level — play a sudden-death hole to separate them.</div>`;
     } else {
@@ -472,7 +363,11 @@ function koFooterHtml(totals, complete, winner, nameA, nameB, championStyle){
       </div>`;
     }
   }
+
   return `
+    <h2 style="margin-bottom:0.5rem;">${title}</h2>
+    <div class="rules-note">${escapeHtml(nameA)} vs ${escapeHtml(nameB)} · holes ${holeNumbers[0]}–${holeNumbers[holeNumbers.length-1]} · most points wins. Both players keep entering scores on their own Scorecard tab — this updates automatically.</div>
+    <div class="card">${rows}</div>
     <div class="card" style="display:flex; justify-content:space-between; font-family:ui-monospace,monospace; font-weight:700;">
       <span>${escapeHtml(nameA)}: ${totals.a}</span>
       <span>${escapeHtml(nameB)}: ${totals.b}</span>
@@ -484,47 +379,42 @@ function koFooterHtml(totals, complete, winner, nameA, nameB, championStyle){
 function renderSemis(){
   const standings = computeStandings();
   const [seed1, seed2, seed3, seed4] = standings;
-  const groupDone = SCHEDULE.every((m,idx)=> group[idx] && group[idx].hshots!=null && group[idx].ashots!=null);
+  const groupHoles = SCHEDULE.map(s=>s[0]).filter((v,i,a)=>a.indexOf(v)===i);
+  const groupDone = groupHoles.every(hn =>
+    SCHEDULE.filter(s=>s[0]===hn).every(([, a, b]) => !matchResultForHole(a,b,hn).pending)
+  );
   if(!groupDone){
     return `
-      <h2 style="color:var(--gold); margin-bottom:0.75rem;">Semi-Final 1</h2>
+      <h2 style="margin-bottom:0.75rem;">Semi-Final 1</h2>
       <div class="card"><div class="tbd">Finish all 10 holes of the group stage to lock in the semi-final line-up.</div></div>
-      <h2 style="color:var(--gold); margin-bottom:0.75rem;">Semi-Final 2</h2>
+      <h2 style="margin-bottom:0.75rem;">Semi-Final 2</h2>
       <div class="card"><div class="tbd">Finish all 10 holes of the group stage to lock in the semi-final line-up.</div></div>
     `;
   }
-  const sf1Html = renderKnockout({
-    records: sf1, numHoles: 3, stage: 'sf1',
-    nameA: seed1.name, nameB: seed4.name,
-    hcpA: players[seed1.idx].handicap, hcpB: players[seed4.idx].handicap,
-    title: 'Semi-Final 1 (Seed 1 v Seed 4)', storageKey: 'sf1',
+  const sf1 = renderStageSummary({
+    idxA: seed1.idx, idxB: seed4.idx, holeNumbers:[11,12,13],
+    nameA: seed1.name, nameB: seed4.name, title:'Semi-Final 1 (Seed 1 v Seed 4)',
   });
-  const sf2Html = renderKnockout({
-    records: sf2, numHoles: 3, stage: 'sf2',
-    nameA: seed2.name, nameB: seed3.name,
-    hcpA: players[seed2.idx].handicap, hcpB: players[seed3.idx].handicap,
-    title: 'Semi-Final 2 (Seed 2 v Seed 3)', storageKey: 'sf2',
+  const sf2 = renderStageSummary({
+    idxA: seed2.idx, idxB: seed3.idx, holeNumbers:[11,12,13],
+    nameA: seed2.name, nameB: seed3.name, title:'Semi-Final 2 (Seed 2 v Seed 3)',
   });
-  return sf1Html + sf2Html;
+  return sf1 + sf2;
 }
 
 function renderFinal(){
   const standings = computeStandings();
   const [seed1, seed2, seed3, seed4] = standings;
-  const hcp1 = players[seed1.idx].handicap, hcp4 = players[seed4.idx].handicap;
-  const hcp2 = players[seed2.idx].handicap, hcp3 = players[seed3.idx].handicap;
-  const w1 = koWinnerName(sf1, 3, 'sf1', hcp1, hcp4, seed1.name, seed4.name);
-  const w2 = koWinnerName(sf2, 3, 'sf2', hcp2, hcp3, seed2.name, seed3.name);
-  const nameA = (w1 && w1!=='TIE') ? w1 : null;
-  const nameB = (w2 && w2!=='TIE') ? w2 : null;
-  const hcpA = nameA===seed1.name ? hcp1 : nameA===seed4.name ? hcp4 : 0;
-  const hcpB = nameB===seed2.name ? hcp2 : nameB===seed3.name ? hcp3 : 0;
+  const w1 = stageWinner(seed1.idx, seed4.idx, [11,12,13], seed1.name, seed4.name);
+  const w2 = stageWinner(seed2.idx, seed3.idx, [11,12,13], seed2.name, seed3.name);
+  const idxA = w1===seed1.name ? seed1.idx : w1===seed4.name ? seed4.idx : null;
+  const idxB = w2===seed2.name ? seed2.idx : w2===seed3.name ? seed3.idx : null;
   let subtitle = 'Complete both semi-finals to set the final.';
   if(w1==='TIE' || w2==='TIE') subtitle = 'A semi-final is tied — play a sudden-death hole there before the final can be set.';
-  return renderKnockout({
-    records: final, numHoles: 4, stage: 'final',
-    nameA, nameB, hcpA, hcpB,
-    title: 'The Final', subtitle, storageKey: 'final', championStyle: true,
+  return renderStageSummary({
+    idxA, idxB, holeNumbers:[14,15,16,17],
+    nameA: idxA!==null?players[idxA].name:null, nameB: idxB!==null?players[idxB].name:null,
+    title:'The Final', subtitle, championStyle:true,
   });
 }
 
@@ -535,6 +425,66 @@ function attachHandlers(){
   document.querySelectorAll('.tab-btn').forEach(b=>{
     b.onclick = ()=>{ currentTab = b.dataset.tab; render(); };
   });
+
+  if(currentTab==='scorecard'){
+    document.querySelectorAll('.player-chip').forEach(chip=>{
+      chip.onclick = ()=>{
+        selectedPlayerIdx = parseInt(chip.dataset.selectPlayer,10);
+        localStorage.setItem(MY_PLAYER_KEY, selectedPlayerIdx);
+        render();
+      };
+    });
+    document.querySelectorAll('.sc-row[data-hole]').forEach(row=>{
+      const holeNumber = parseInt(row.dataset.hole,10);
+      const refreshRow = ()=>{
+        const s = scoreFor(selectedPlayerIdx, holeNumber);
+        const info = courseInfo(holeNumber);
+        const pts = stablefordPoints(s.shots, players[selectedPlayerIdx].handicap, info.par, info.stroke_index);
+        const ptsEl = document.getElementById(`sc-pts-${holeNumber}`);
+        if(ptsEl) ptsEl.textContent = pts===null ? '–' : pts;
+        // Refresh OUT/IN/TOTAL rows without losing focus on the input being edited
+        const body = document.getElementById('scorecard-body');
+        if(body){
+          const out = []; for(let h=1;h<=9;h++) out.push(h);
+          const inn = []; for(let h=10;h<=18;h++) inn.push(h);
+          const subtotalEls = body.querySelectorAll('.sc-row.subtotal, .sc-row.total');
+          if(subtotalEls[0]) subtotalEls[0].outerHTML = scSubtotalHtml('OUT', selectedPlayerIdx, out, 'subtotal');
+          if(subtotalEls[1]) subtotalEls[1].outerHTML = scSubtotalHtml('IN', selectedPlayerIdx, inn, 'subtotal');
+          if(subtotalEls[2]) subtotalEls[2].outerHTML = scSubtotalHtml('TOTAL', selectedPlayerIdx, out.concat(inn), 'total');
+        }
+      };
+
+      const input = row.querySelector('input[data-field="shots"]');
+      if(input){
+        let debounce;
+        input.oninput = ()=>{
+          if(!scores[selectedPlayerIdx]) scores[selectedPlayerIdx] = {};
+          if(!scores[selectedPlayerIdx][holeNumber]) scores[selectedPlayerIdx][holeNumber] = {};
+          scores[selectedPlayerIdx][holeNumber].shots = input.value === '' ? null : parseInt(input.value,10);
+          refreshRow();
+          clearTimeout(debounce);
+          debounce = setTimeout(()=>{
+            inFlight = true;
+            postJson('/api/golf/score', { playerIdx: selectedPlayerIdx, holeNumber, field:'shots', value: input.value })
+              .finally(()=>{ inFlight = false; });
+          }, 500);
+        };
+      }
+      row.querySelectorAll('.sc-bonus button').forEach(btn=>{
+        btn.onclick = ()=>{
+          const f = btn.dataset.field;
+          if(!scores[selectedPlayerIdx]) scores[selectedPlayerIdx] = {};
+          if(!scores[selectedPlayerIdx][holeNumber]) scores[selectedPlayerIdx][holeNumber] = {};
+          const cur = !!scores[selectedPlayerIdx][holeNumber][f];
+          scores[selectedPlayerIdx][holeNumber][f] = !cur;
+          btn.classList.toggle('on', !cur);
+          inFlight = true;
+          postJson('/api/golf/score', { playerIdx: selectedPlayerIdx, holeNumber, field:f, value: !cur })
+            .finally(()=>{ inFlight = false; });
+        };
+      });
+    });
+  }
 
   if(currentTab==='setup'){
     document.querySelectorAll('input[data-player-idx]').forEach(inp=>{
@@ -560,7 +510,7 @@ function attachHandlers(){
     const resetBtn = document.getElementById('resetAllBtn');
     if(resetBtn){
       resetBtn.onclick = async ()=>{
-        if(!confirm('Delete every golf result and reset players, handicaps and course settings to defaults? This can\'t be undone.')) return;
+        if(!confirm('Delete every golf score and reset players, handicaps and course settings to defaults? This can\'t be undone.')) return;
         const msgEl = document.getElementById('reset-msg');
         resetBtn.disabled = true;
         try{
@@ -600,100 +550,6 @@ function attachHandlers(){
           postJson('/api/golf/course', { holeNumber:h, field, value: inp.value }).finally(()=>{ inFlight=false; });
         }, 500);
       };
-    });
-  }
-
-  if(currentTab==='group'){
-    document.querySelectorAll('.hole-chip').forEach(chip=>{
-      chip.onclick = ()=>{ currentHole = parseInt(chip.dataset.hole,10); render(); };
-    });
-    document.querySelectorAll('.match-card[data-match]').forEach(card=>{
-      const idx = parseInt(card.dataset.match,10);
-      if(!group[idx]) group[idx] = {};
-      const rec = group[idx];
-      const m = SCHEDULE[idx];
-      const holeNumber = courseHoleForGroup(m[0]);
-
-      card.querySelectorAll('input[data-shots-field]').forEach(inp=>{
-        let debounce;
-        inp.oninput = ()=>{
-          const f = inp.dataset.shotsField;
-          rec[f] = inp.value === '' ? null : parseInt(inp.value,10);
-          const computedEl = document.getElementById(`computed-group-${idx}`);
-          if(computedEl) computedEl.innerHTML = computedGroupHtml(idx, m);
-          clearTimeout(debounce);
-          debounce = setTimeout(()=>{
-            inFlight = true;
-            postJson('/api/golf/group', { matchIdx: idx, field:f, value: inp.value })
-              .finally(()=>{ inFlight = false; });
-          }, 500);
-        };
-      });
-      card.querySelectorAll('.chip[data-field]').forEach(chip=>{
-        chip.onclick = ()=>{
-          const f = chip.dataset.field;
-          rec[f] = !rec[f];
-          chip.classList.toggle('on', !!rec[f]);
-          const computedEl = document.getElementById(`computed-group-${idx}`);
-          if(computedEl) computedEl.innerHTML = computedGroupHtml(idx, m);
-          inFlight = true;
-          postJson('/api/golf/group', { matchIdx: idx, field:f, value: rec[f] })
-            .finally(()=>{ inFlight = false; });
-        };
-      });
-    });
-  }
-
-  if(currentTab==='semis' || currentTab==='final'){
-    document.querySelectorAll('.match-card[data-ko]').forEach(card=>{
-      const key = card.dataset.ko;
-      const hole = parseInt(card.dataset.hole,10);
-      const stage = card.dataset.stage;
-      const nameA = card.dataset.nameA, nameB = card.dataset.nameB;
-      const hcpA = parseInt(card.dataset.hcapA,10), hcpB = parseInt(card.dataset.hcapB,10);
-      const holeNumber = courseHoleForKnockout(stage, hole);
-      const store = key==='sf1' ? sf1 : key==='sf2' ? sf2 : final;
-      if(!store[hole]) store[hole] = {};
-      const rec = store[hole];
-      const numHoles = key==='final' ? 4 : 3;
-
-      const refreshCard = ()=>{
-        const computedEl = document.getElementById(`computed-${key}-${hole}`);
-        if(computedEl) computedEl.innerHTML = computedKoHtml(key, hole, hcpA, hcpB, nameA, nameB, holeNumber);
-        const footerEl = document.getElementById(`ko-footer-${key}`);
-        if(footerEl){
-          const totals = koTotals(store, numHoles, stage, hcpA, hcpB);
-          const complete = koComplete(store, numHoles);
-          const winner = koWinnerName(store, numHoles, stage, hcpA, hcpB, nameA, nameB);
-          footerEl.innerHTML = koFooterHtml(totals, complete, winner, nameA, nameB, key==='final');
-        }
-      };
-
-      card.querySelectorAll('input[data-shots-field]').forEach(inp=>{
-        let debounce;
-        inp.oninput = ()=>{
-          const f = inp.dataset.shotsField;
-          rec[f] = inp.value === '' ? null : parseInt(inp.value,10);
-          refreshCard();
-          clearTimeout(debounce);
-          debounce = setTimeout(()=>{
-            inFlight = true;
-            postJson('/api/golf/knockout', { stage:key, holeIdx: hole, field:f, value: inp.value })
-              .finally(()=>{ inFlight = false; });
-          }, 500);
-        };
-      });
-      card.querySelectorAll('.chip[data-field]').forEach(chip=>{
-        chip.onclick = ()=>{
-          const f = chip.dataset.field;
-          rec[f] = !rec[f];
-          chip.classList.toggle('on', !!rec[f]);
-          refreshCard();
-          inFlight = true;
-          postJson('/api/golf/knockout', { stage:key, holeIdx: hole, field:f, value: rec[f] })
-            .finally(()=>{ inFlight = false; });
-        };
-      });
     });
   }
 }
