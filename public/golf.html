@@ -308,19 +308,16 @@
 
   .shelf-card{
     position:relative;
-    background:linear-gradient(180deg, #0C0C14, #08080D);
-    border:1px solid rgba(255,255,255,0.06);
-    border-radius:12px;
-    padding:2.2rem 1rem 0;
+    background:
+      repeating-linear-gradient(90deg, rgba(0,0,0,0.09) 0px, rgba(0,0,0,0.09) 2px, transparent 2px, transparent 15px),
+      radial-gradient(ellipse at 50% 0%, rgba(255,180,90,0.14), transparent 62%),
+      linear-gradient(180deg, #3A2415 0%, #241407 88%);
+    border:1px solid rgba(0,0,0,0.5);
+    border-radius:8px;
+    padding:2.6rem 1rem 0;
     margin-bottom:2.4rem;
-    min-height:210px;
-    box-shadow:0 14px 28px rgba(0,0,0,0.55);
-  }
-  .shelf-card::before{
-    content:'';
-    position:absolute; top:-40%; left:15%; right:15%; height:70%;
-    background:radial-gradient(ellipse at center, rgba(255,244,214,0.10), transparent 70%);
-    pointer-events:none; z-index:0;
+    min-height:220px;
+    box-shadow:0 16px 30px rgba(0,0,0,0.6), inset 0 0 50px rgba(0,0,0,0.55);
   }
   .shelf-row{
     position:relative; z-index:2;
@@ -331,6 +328,14 @@
   .shelf-item{ display:flex; flex-direction:column; align-items:center; width:132px; }
   .shelf-trophy-stage{
     position:relative; display:flex; flex-direction:column; align-items:center;
+  }
+  .shelf-trophy-stage::before{
+    content:'';
+    position:absolute; top:-2.4rem; left:50%; transform:translateX(-50%);
+    width:76px; height:76px; border-radius:50%;
+    background:radial-gradient(circle, rgba(255,205,130,0.6) 0%, rgba(255,190,110,0.22) 42%, transparent 72%);
+    filter:blur(3px);
+    pointer-events:none; z-index:0;
   }
   .shelf-trophy-img{
     width:96px; height:96px; object-fit:contain;
