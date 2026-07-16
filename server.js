@@ -58,6 +58,7 @@ try { db.exec('ALTER TABLE golf_group ADD COLUMN ashots INTEGER'); } catch (_) {
 try { db.exec('ALTER TABLE golf_knockout ADD COLUMN ashots INTEGER'); } catch (_) {}
 try { db.exec('ALTER TABLE golf_knockout ADD COLUMN bshots INTEGER'); } catch (_) {}
 try { db.exec('ALTER TABLE golf_scores ADD COLUMN putting_points INTEGER NOT NULL DEFAULT 0'); } catch (_) {}
+try { db.exec('ALTER TABLE golf_scores ADD COLUMN lost_balls INTEGER NOT NULL DEFAULT 0'); } catch (_) {}
 
 if (db.prepare('SELECT COUNT(*) AS cnt FROM golf_side_draw').get().cnt === 0) {
   db.prepare('INSERT INTO golf_side_draw (id, front_six, middlesex_six) VALUES (1, NULL, NULL)').run();
@@ -2031,7 +2032,7 @@ app.get('/api/golf/schedule', (_req, res) => res.json(GOLF_SCHEDULE));
 app.get('/api/golf/state', (_req, res) => {
   const players = db.prepare('SELECT idx, name, handicap FROM golf_players ORDER BY idx').all();
   const course  = db.prepare('SELECT hole_number, par, stroke_index FROM golf_course ORDER BY hole_number').all();
-  const scores  = db.prepare('SELECT player_idx, hole_number, shots, fairway, gir, one_putt, putting_points FROM golf_scores').all();
+  const scores  = db.prepare('SELECT player_idx, hole_number, shots, fairway, gir, one_putt, putting_points, lost_balls FROM golf_scores').all();
   const draw    = db.prepare('SELECT front_six, middlesex_six FROM golf_side_draw WHERE id = 1').get();
   const settingsRow = db.prepare('SELECT stake, formats FROM golf_settings WHERE id = 1').get();
   res.json({
@@ -2133,7 +2134,7 @@ app.delete('/api/golf/courses/:id', (req, res) => {
   res.json({ ok: true });
 });
 
-const GOLF_SCORE_FIELDS = ['shots', 'fairway', 'gir', 'one_putt', 'putting_points'];
+const GOLF_SCORE_FIELDS = ['shots', 'fairway', 'gir', 'one_putt', 'putting_points', 'lost_balls'];
 
 app.post('/api/golf/score', (req, res) => {
   const playerIdx = parseInt(req.body.playerIdx, 10);
@@ -2157,6 +2158,12 @@ app.post('/api/golf/score', (req, res) => {
       return res.status(400).json({ error: 'Putting points must be between 0 and 6.' });
     }
     db.prepare('UPDATE golf_scores SET putting_points=? WHERE player_idx=? AND hole_number=?').run(pp, playerIdx, holeNumber);
+  } else if (field === 'lost_balls') {
+    const lb = (value === '' || value == null) ? 0 : parseInt(value, 10);
+    if (isNaN(lb) || lb < 0 || lb > 20) {
+      return res.status(400).json({ error: 'Lost balls must be between 0 and 20.' });
+    }
+    db.prepare('UPDATE golf_scores SET lost_balls=? WHERE player_idx=? AND hole_number=?').run(lb, playerIdx, holeNumber);
   } else {
     db.prepare(`UPDATE golf_scores SET ${field}=? WHERE player_idx=? AND hole_number=?`).run(value ? 1 : 0, playerIdx, holeNumber);
   }
