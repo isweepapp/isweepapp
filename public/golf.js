@@ -208,9 +208,9 @@ function namedPlayerIdxs(){
   return players.map((p,i)=>i).filter(i => (players[i].name || '').trim() !== '');
 }
 const ALL_18 = Array.from({length:18}, (_,i)=>i+1);
-function overallStandings(){ return rankPlayers(i => personalStablefordForHoles(i, ALL_18)); }
-function puttingStandings(){ return rankPlayers(i => personalPuttingPointsForHoles(i, ALL_18)); }
-function sixHoleStandings(holeNumbers){ return rankPlayers(i => personalStablefordForHoles(i, holeNumbers)); }
+function overallStandings(){ return rankPlayers(i => personalStablefordForHoles(i, ALL_18), namedPlayerIdxs()); }
+function puttingStandings(){ return rankPlayers(i => personalPuttingPointsForHoles(i, ALL_18), namedPlayerIdxs()); }
+function sixHoleStandings(holeNumbers){ return rankPlayers(i => personalStablefordForHoles(i, holeNumbers), namedPlayerIdxs()); }
 function backSixHoles(){
   if(!sideDraw.frontSix || !sideDraw.middlesexSix) return null;
   const used = new Set([...sideDraw.frontSix, ...sideDraw.middlesexSix]);
@@ -605,6 +605,9 @@ function ballsHtml(holeNumbers){
 
 function sixHoleSectionHtml(title, holeNumbers){
   const rows = sixHoleStandings(holeNumbers);
+  if(rows.length === 0){
+    return `<div class="card"><h2>${title}</h2><div class="tbd">Add player names on the Format tab to see this.</div></div>`;
+  }
   const winner = rows[0];
   const tie = rows[1] && rows[1].pts === winner.pts;
   return `
@@ -788,6 +791,9 @@ function renderSideBets(){
 
   const ppHtml = !ppOn ? '' : (()=>{
     const putting = puttingStandings();
+    if(putting.length === 0){
+      return `<div class="card"><h2>Putting Points</h2><div class="tbd">Add player names on the Format tab to see this.</div></div>`;
+    }
     return `
       <div class="card">
         <h2>Putting Points</h2>
@@ -803,6 +809,10 @@ function renderSideBets(){
 
   if(!six66On && !ppOn){
     return `<div class="card"><div class="tbd">666 and PP are both switched off for this round — turn one or both on in the Competition card on the Format tab.</div></div>`;
+  }
+
+  if(overall.length === 0){
+    return `<div class="card"><div class="tbd">Add player names on the Format tab to see 666 and PP.</div></div>`;
   }
 
   return `
