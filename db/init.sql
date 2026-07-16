@@ -139,3 +139,13 @@ CREATE TABLE IF NOT EXISTS golf_settings (
   stake   REAL NOT NULL DEFAULT 0,
   formats TEXT NOT NULL DEFAULT '{"football":false,"six66":false,"pp":false}'
 );
+
+-- Trophy Cabinet: a running honours list per named competition. One row per
+-- winner entry (a competition can have many rows across different years).
+CREATE TABLE IF NOT EXISTS golf_trophies (
+  id          TEXT PRIMARY KEY,
+  competition TEXT NOT NULL,
+  year        TEXT NOT NULL,
+  winner      TEXT NOT NULL,
+  created_at  TEXT NOT NULL
+);
