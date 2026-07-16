@@ -1103,9 +1103,14 @@ function shelfCardHtml(name){
       }).join('');
   return `
     <div class="shelf-card">
-      <div class="shelf-player-name">${escapeHtml(name)}</div>
-      <div class="shelf-row">${items}</div>
-      <div class="shelf-ledge"></div>
+      <div class="shelf-cabinet-top"></div>
+      <div class="shelf-card-inner">
+        <div class="shelf-player-name">${escapeHtml(name)}</div>
+        <div class="shelf-row">${items}</div>
+        ${comps.length > 0 ? '<div class="shelf-glass-shelf"></div>' : ''}
+        <div class="shelf-ledge"></div>
+      </div>
+      <div class="shelf-drawer"><span class="shelf-drawer-handle"></span></div>
     </div>
   `;
 }

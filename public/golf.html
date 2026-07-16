@@ -307,11 +307,46 @@
   .trophy-subnav-btn.active{ color:#05051C; border-color:var(--gold); background:var(--gold); }
 
   .shelf-card{
+    padding:6px; margin-bottom:2rem; border-radius:12px;
+    background:linear-gradient(160deg, #EAC97E, #8A6524 35%, #D9AF5C 65%, #5C4218);
+    box-shadow:0 0 24px rgba(240,200,106,0.25), 0 12px 26px rgba(0,0,0,0.55),
+               0 0 0 1px rgba(0,0,0,0.3) inset;
+  }
+  .shelf-cabinet-top{
+    height:18px; position:relative;
+    background:linear-gradient(180deg, #8A6524, #4A2F16);
+    border-radius:6px 6px 0 0;
+    box-shadow:0 2px 0 rgba(255,231,168,0.35) inset, 0 3px 6px rgba(0,0,0,0.4);
+  }
+  .shelf-cabinet-top::after{
+    content:'';
+    position:absolute; top:3px; left:8%; right:8%; height:3px;
+    background:linear-gradient(90deg, transparent, #FFE7A8, transparent);
+    box-shadow:0 0 12px 3px rgba(255,231,168,0.65);
+  }
+  .shelf-card-inner{
     position:relative;
-    background:linear-gradient(160deg, #4A2F16, #241408 75%);
-    border:1px solid rgba(240,200,106,0.3); border-radius:16px;
-    padding:1.6rem 1.2rem 0; margin-bottom:1.6rem;
-    min-height:220px;
+    background:
+      repeating-linear-gradient(100deg, rgba(0,0,0,0.10) 0px, rgba(0,0,0,0.10) 2px, transparent 2px, transparent 22px),
+      linear-gradient(160deg, #4A2F16, #1E1208 78%);
+    padding:1.7rem 1.2rem 0;
+    min-height:210px;
+    border-left:5px solid;
+    border-right:5px solid;
+    border-image:linear-gradient(180deg, #8A6524, #4A2F16) 1;
+  }
+  .shelf-card-inner::before{
+    content:'';
+    position:absolute; inset:0;
+    background:linear-gradient(115deg, transparent 42%, rgba(255,255,255,0.05) 48%, rgba(255,255,255,0.09) 50%, rgba(255,255,255,0.05) 52%, transparent 58%);
+    pointer-events:none; z-index:5;
+  }
+  .shelf-glass-shelf{
+    position:relative; z-index:1;
+    height:7px; margin:0 0.2rem 1.3rem;
+    background:linear-gradient(180deg, rgba(255,255,255,0.55), rgba(190,225,255,0.12));
+    border-radius:4px;
+    box-shadow:0 3px 10px rgba(160,210,255,0.35), 0 1px 0 rgba(255,255,255,0.7) inset;
   }
   .shelf-player-name{
     position:absolute; top:50%; left:0.5rem; right:0.5rem; transform:translateY(-50%);
@@ -351,9 +386,24 @@
   .shelf-stars{ font-size:0.9rem; color:#F0C86A; letter-spacing:0.06em; }
   .shelf-ledge{
     position:relative; z-index:1;
-    height:14px; margin:0 -1.2rem; border-radius:0 0 14px 14px;
+    height:14px; margin:0 -1.2rem;
     background:linear-gradient(180deg, #7A5A1E, #3C2612);
     box-shadow:0 4px 8px rgba(0,0,0,0.45);
+  }
+  .shelf-drawer{
+    height:24px; position:relative;
+    background:linear-gradient(180deg, #3C2612, #1E1208);
+    border-radius:0 0 6px 6px;
+    box-shadow:0 -2px 0 rgba(0,0,0,0.35) inset, 0 4px 8px rgba(0,0,0,0.4);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .shelf-drawer-handle{ position:relative; width:38px; height:4px; border-radius:2px;
+    background:linear-gradient(90deg, transparent, #F0C86A, transparent);
+  }
+  .shelf-drawer-handle::before{
+    content:''; position:absolute; left:50%; top:50%; width:9px; height:9px;
+    background:#F0C86A; transform:translate(-50%,-50%) rotate(45deg);
+    box-shadow:0 0 5px rgba(240,200,106,0.7);
   }
   .save-tick{ font-size:0.7rem; color:var(--success); margin-left:0.4rem; opacity:0; transition:opacity 0.3s; }
   .save-tick.show{ opacity:1; }
