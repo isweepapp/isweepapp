@@ -98,6 +98,14 @@ CREATE TABLE IF NOT EXISTS golf_knockout (
   PRIMARY KEY (stage, hole_idx)
 );
 
+-- Saved course presets — par/stroke-index layouts you can name, save, and reload later
+CREATE TABLE IF NOT EXISTS golf_saved_courses (
+  id         TEXT PRIMARY KEY,
+  name       TEXT NOT NULL,
+  holes_json TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
 -- Personal scorecard: each player enters their own gross shots for every hole
 -- they play (1–18), independent of the group/knockout bracket. This is what
 -- the group stage, semis and final results are calculated from — a player who
@@ -110,4 +118,21 @@ CREATE TABLE IF NOT EXISTS golf_scores (
   gir         INTEGER NOT NULL DEFAULT 0,
   one_putt    INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (player_idx, hole_number)
+);
+
+-- Named, saveable course setups (par + stroke index for all 18 holes) so a
+-- course only needs setting up once and can be picked again next time.
+CREATE TABLE IF NOT EXISTS golf_course_presets (
+  id         TEXT PRIMARY KEY,
+  name       TEXT NOT NULL,
+  data       TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+-- Named, reusable course setups (par + stroke index for all 18 holes),
+-- so a course only has to be set up once and can be picked again later.
+CREATE TABLE IF NOT EXISTS golf_course_presets (
+  name      TEXT PRIMARY KEY,
+  data      TEXT NOT NULL,
+  saved_at  TEXT NOT NULL DEFAULT (datetime('now'))
 );
