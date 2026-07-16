@@ -2204,6 +2204,35 @@ app.post('/api/golf/side-draw/reset', (_req, res) => {
   res.json({ ok: true });
 });
 
+const GOLF_TROPHY_COMPETITIONS = [
+  'St Georges Day', 'Christmas Crumble', 'Easter Brighton',
+  'Champions League Final', 'Flying Ants Day', 'World Cup',
+];
+
+app.get('/api/golf/trophies', (_req, res) => {
+  const rows = db.prepare('SELECT id, competition, year, winner, created_at FROM golf_trophies ORDER BY competition, year DESC, created_at DESC').all();
+  res.json(rows);
+});
+
+app.post('/api/golf/trophies', (req, res) => {
+  const competition = String(req.body.competition || '').trim();
+  const year = String(req.body.year || '').trim();
+  const winner = String(req.body.winner || '').trim();
+  if (!GOLF_TROPHY_COMPETITIONS.includes(competition)) return res.status(400).json({ error: 'Invalid competition.' });
+  if (!year || year.length > 20) return res.status(400).json({ error: 'Enter a year.' });
+  if (!winner || winner.length > 60) return res.status(400).json({ error: "Enter the winner's name." });
+  const id = uuidv4();
+  const createdAt = new Date().toISOString();
+  db.prepare('INSERT INTO golf_trophies (id, competition, year, winner, created_at) VALUES (?, ?, ?, ?, ?)')
+    .run(id, competition, year, winner, createdAt);
+  res.json({ ok: true, id, competition, year, winner, created_at: createdAt });
+});
+
+app.delete('/api/golf/trophies/:id', (req, res) => {
+  db.prepare('DELETE FROM golf_trophies WHERE id = ?').run(req.params.id);
+  res.json({ ok: true });
+});
+
 app.post('/api/golf/reset', (_req, res) => {
   db.exec('DELETE FROM golf_scores');
   db.prepare('UPDATE golf_side_draw SET front_six=NULL, middlesex_six=NULL WHERE id = 1').run();
