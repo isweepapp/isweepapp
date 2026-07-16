@@ -35,6 +35,7 @@ const SHELF_PLAYERS = ['Kemble', 'Swanko', 'Gavin', 'Scum'];
 const TROPHY_COMPETITIONS = [
   'St Georges Day', 'Christmas Crumble', 'Easter Brighton',
   'Champions League Final', 'Flying Ants Day', 'World Cup',
+  'Caraboo Cup', 'Covid Cup',
 ];
 let scores = {};    // playerIdx -> { holeNumber -> {shots, fairway, gir, one_putt, putting_points} }
 let sideDraw = { frontSix: null, middlesexSix: null };
@@ -1011,6 +1012,25 @@ function renderStats(){
    TROPHY CABINET — an honours board per competition, added to
    each time that competition is played.
 --------------------------------------------------------- */
+function teamBadgeSvg(team){
+  if(team === 'arsenal'){
+    return `<svg viewBox="0 0 100 120" width="40" height="48">
+      <path d="M50 2 L95 15 L95 65 Q95 100 50 118 Q5 100 5 65 L5 15 Z" fill="#EF0107" stroke="#FFFFFF" stroke-width="3"/>
+      <text x="50" y="76" font-size="52" font-weight="900" fill="#FFFFFF" text-anchor="middle" font-family="Georgia,serif">A</text>
+    </svg>`;
+  }
+  return `<svg viewBox="0 0 100 120" width="40" height="48">
+    <defs>
+      <pattern id="brightonStripes" width="18" height="120" patternUnits="userSpaceOnUse">
+        <rect width="9" height="120" fill="#0057B8"/>
+        <rect x="9" width="9" height="120" fill="#FFFFFF"/>
+      </pattern>
+    </defs>
+    <path d="M50 2 L95 15 L95 65 Q95 100 50 118 Q5 100 5 65 L5 15 Z" fill="url(#brightonStripes)" stroke="#0057B8" stroke-width="3"/>
+    <text x="50" y="76" font-size="52" font-weight="900" fill="#0057B8" text-anchor="middle" font-family="Georgia,serif" style="paint-order:stroke; stroke:#FFFFFF; stroke-width:5px;">B</text>
+  </svg>`;
+}
+
 function trophyBoardHtml(competition){
   const entries = trophies.filter(t => t.competition === competition);
   const rows = entries.map(t => `
@@ -1023,10 +1043,19 @@ function trophyBoardHtml(competition){
 
   const namedChips = namedPlayerIdxs().map(idx=>`<button class="trophy-chip" data-fill-winner="${escapeHtml(players[idx].name)}">${escapeHtml(players[idx].name)}</button>`).join('');
 
+  const isCaraboo = competition === 'Caraboo Cup';
+  const titleHtml = isCaraboo
+    ? `<div class="trophy-title-row">
+        <span class="trophy-team-badge">${teamBadgeSvg('arsenal')}</span>
+        <div class="trophy-title" style="margin-bottom:0;">${escapeHtml(competition)}<br><span class="trophy-subtitle">Arsenal v Brighton</span></div>
+        <span class="trophy-team-badge">${teamBadgeSvg('brighton')}</span>
+      </div>`
+    : `<div class="trophy-title">${escapeHtml(competition)}</div>`;
+
   return `
     <div class="trophy-board">
       <div class="trophy-board-crest">
-        <div class="trophy-title">${escapeHtml(competition)}</div>
+        ${titleHtml}
         <div class="trophy-list">${rows}</div>
         <div class="trophy-add">
           <input type="text" class="trophy-year-input" placeholder="Year" data-comp="${escapeHtml(competition)}" maxlength="9">
