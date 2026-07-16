@@ -1086,32 +1086,23 @@ function shelfWinsFor(name){
 function shelfCardHtml(name){
   const wins = shelfWinsFor(name);
   const comps = Object.keys(wins);
+  const bgSlug = name.trim().toLowerCase();
 
-  if(comps.length === 0){
-    return `
-      <div class="shelf-card">
-        <div class="shelf-row"><div class="shelf-empty">No trophies yet &mdash; get winning.</div></div>
-        <div class="shelf-plank">
-          <div class="shelf-plank-top"></div>
-          <div class="shelf-plank-front"><span class="shelf-engraved-name">${escapeHtml(name)}</span></div>
-        </div>
-      </div>
-    `;
-  }
-
-  const trophyItems = comps.map(comp=>{
-    const slug = competitionSlug(comp);
-    return `
-      <div class="shelf-item">
-        <div class="shelf-trophy-stage">
-          <img class="shelf-trophy-img" src="/assets/trophies/${slug}.png" alt="${escapeHtml(comp)}"
-               onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'; this.parentElement.querySelector('.shelf-contact-shadow').style.display='none';">
-          <div class="shelf-trophy-fallback">&#127942;</div>
-          <div class="shelf-contact-shadow"></div>
-        </div>
-      </div>
-    `;
-  }).join('');
+  const trophyItems = comps.length === 0
+    ? `<div class="shelf-empty">No trophies yet &mdash; get winning.</div>`
+    : comps.map(comp=>{
+        const slug = competitionSlug(comp);
+        return `
+          <div class="shelf-item">
+            <div class="shelf-trophy-stage">
+              <img class="shelf-trophy-img" src="/assets/trophies/${slug}.png" alt="${escapeHtml(comp)}"
+                   onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'; this.parentElement.querySelector('.shelf-contact-shadow').style.display='none';">
+              <div class="shelf-trophy-fallback">&#127942;</div>
+              <div class="shelf-contact-shadow"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
 
   const captionItems = comps.map(comp=>{
     const count = wins[comp];
@@ -1124,14 +1115,10 @@ function shelfCardHtml(name){
   }).join('');
 
   return `
-    <div class="shelf-card">
+    <div class="shelf-card" style="background-image:url('/assets/shelf-bg-${bgSlug}.jpg')">
       <div class="shelf-row">${trophyItems}</div>
-      <div class="shelf-plank">
-        <div class="shelf-plank-top"></div>
-        <div class="shelf-plank-front"><span class="shelf-engraved-name">${escapeHtml(name)}</span></div>
-      </div>
-      <div class="shelf-caption-row">${captionItems}</div>
     </div>
+    ${comps.length > 0 ? `<div class="shelf-caption-row">${captionItems}</div>` : ''}
   `;
 }
 

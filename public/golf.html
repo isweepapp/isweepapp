@@ -308,97 +308,56 @@
 
   .shelf-card{
     position:relative;
-    background:
-      repeating-linear-gradient(90deg, rgba(0,0,0,0.09) 0px, rgba(0,0,0,0.09) 2px, transparent 2px, transparent 15px),
-      radial-gradient(ellipse at 50% 0%, rgba(255,180,90,0.14), transparent 62%),
-      linear-gradient(180deg, #3A2415 0%, #241407 88%);
-    border:1px solid rgba(0,0,0,0.5);
+    aspect-ratio:760/237;
+    background-size:cover;
+    background-position:center;
+    background-repeat:no-repeat;
     border-radius:8px;
-    padding:2.6rem 1rem 0;
-    margin-bottom:2.4rem;
-    min-height:220px;
-    box-shadow:0 16px 30px rgba(0,0,0,0.6), inset 0 0 50px rgba(0,0,0,0.55);
+    margin-bottom:1.6rem;
+    box-shadow:0 16px 30px rgba(0,0,0,0.6);
   }
   .shelf-row{
-    position:relative; z-index:2;
-    display:flex; flex-wrap:wrap; gap:2rem; justify-content:center;
-    align-items:flex-end; margin-bottom:-4px;
+    position:absolute; left:2%; right:2%; bottom:15%;
+    z-index:2;
+    display:flex; flex-wrap:wrap; gap:1.6rem; justify-content:center;
+    align-items:flex-end;
   }
-  .shelf-empty{ position:relative; z-index:1; color:rgba(255,255,255,0.35); font-style:italic; text-align:center; padding:2.4rem 0 2.8rem; font-size:0.95rem; }
-  .shelf-item{ display:flex; flex-direction:column; align-items:center; width:132px; }
+  .shelf-empty{ position:relative; z-index:1; color:rgba(255,255,255,0.55); font-style:italic; text-align:center; font-size:0.85rem; white-space:nowrap; }
+  .shelf-item{ display:flex; flex-direction:column; align-items:center; width:auto; }
   .shelf-trophy-stage{
     position:relative; display:flex; flex-direction:column; align-items:center;
   }
-  .shelf-trophy-stage::before{
-    content:'';
-    position:absolute; top:-2.4rem; left:50%; transform:translateX(-50%);
-    width:76px; height:76px; border-radius:50%;
-    background:radial-gradient(circle, rgba(255,205,130,0.6) 0%, rgba(255,190,110,0.22) 42%, transparent 72%);
-    filter:blur(3px);
-    pointer-events:none; z-index:0;
-  }
   .shelf-trophy-img{
-    width:96px; height:96px; object-fit:contain;
-    filter:drop-shadow(0 10px 10px rgba(0,0,0,0.6));
+    width:15vw; max-width:76px; min-width:44px; height:auto; object-fit:contain;
+    filter:drop-shadow(0 8px 8px rgba(0,0,0,0.65));
     transition:transform 0.22s ease, filter 0.22s ease;
     cursor:zoom-in; position:relative; z-index:2;
   }
   .shelf-trophy-img:hover{
     transform:scale(3);
     z-index:20;
-    filter:drop-shadow(0 14px 18px rgba(0,0,0,0.7));
+    filter:drop-shadow(0 14px 18px rgba(0,0,0,0.75));
   }
   .shelf-trophy-fallback{
-    width:96px; height:96px; display:none; align-items:center; justify-content:center;
-    font-size:3.3rem; transition:transform 0.22s ease; position:relative; z-index:2;
+    width:15vw; max-width:76px; min-width:44px; height:60px; display:none; align-items:center; justify-content:center;
+    font-size:2.6rem; transition:transform 0.22s ease; position:relative; z-index:2;
   }
   .shelf-trophy-fallback:hover{
     transform:scale(3);
     z-index:20;
   }
   .shelf-contact-shadow{
-    width:80px; height:18px; margin-top:-9px;
-    background:radial-gradient(ellipse at center, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 40%, rgba(0,0,0,0) 74%);
+    width:70%; height:11px; margin-top:-6px;
+    background:radial-gradient(ellipse at center, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.35) 45%, rgba(0,0,0,0) 75%);
     position:relative; z-index:1; pointer-events:none;
   }
   .shelf-caption-row{
     position:relative; z-index:1;
-    display:flex; flex-wrap:wrap; gap:2rem; justify-content:center;
-    padding-top:0.9rem; padding-bottom:0.3rem;
+    display:flex; flex-wrap:wrap; gap:1.6rem; justify-content:center;
+    padding:0.9rem 0.5rem 0.2rem;
   }
   .shelf-comp-name{ font-size:0.85rem; font-weight:700; color:#E8E4D8; text-align:center; line-height:1.25; margin-bottom:0.3rem; }
   .shelf-stars{ font-size:0.95rem; color:#F0C86A; letter-spacing:0.06em; text-shadow:0 0 6px rgba(240,200,106,0.4); }
-
-  .shelf-plank{ position:relative; z-index:1; margin:0 -1rem; }
-  .shelf-plank-top{
-    height:13px;
-    background:linear-gradient(180deg, #E4B87A 0%, #B4823F 100%);
-    box-shadow:0 1px 0 rgba(255,238,205,0.6) inset;
-  }
-  .shelf-plank-front{
-    position:relative;
-    height:64px;
-    display:flex; align-items:center; justify-content:center;
-    background:
-      repeating-linear-gradient(90deg, rgba(0,0,0,0.07) 0px, rgba(0,0,0,0.07) 1px, transparent 1px, transparent 6px),
-      linear-gradient(180deg, #9C6B36 0%, #764B24 55%, #4A2E16 100%);
-    box-shadow:0 22px 26px rgba(0,0,0,0.6);
-  }
-  .shelf-plank-front::after{
-    content:'';
-    position:absolute; left:0; right:0; bottom:0; height:6px;
-    background:linear-gradient(180deg, transparent, rgba(0,0,0,0.5));
-  }
-  .shelf-engraved-name{
-    position:relative; z-index:1;
-    font-family:Georgia,'Times New Roman',serif; font-weight:700;
-    font-size:clamp(1.1rem, 6vw, 1.7rem);
-    letter-spacing:0.14em; text-transform:uppercase;
-    color:#3A2412;
-    text-shadow:
-      0 -1px 0 rgba(0,0,0,0.55),
-      0 1px 0 rgba(255,221,166,0.45);
-  }
   .save-tick{ font-size:0.7rem; color:var(--success); margin-left:0.4rem; opacity:0; transition:opacity 0.3s; }
   .save-tick.show{ opacity:1; }
 
