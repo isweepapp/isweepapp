@@ -36,10 +36,19 @@ if (db.prepare('SELECT COUNT(*) AS cnt FROM matches').get().cnt === 0) {
 }
 
 if (db.prepare('SELECT COUNT(*) AS cnt FROM golf_players').get().cnt === 0) {
-  const golfDefaults = ['Scum', 'Gav', 'Bone', 'Pants', 'Crumble', 'Swanko'];
+  const golfDefaults = ['Scum', 'Gav', 'Bone', 'Pants', 'Crumble', 'Swanko', '', ''];
   const insGolfPlayer = db.prepare('INSERT INTO golf_players (idx, name) VALUES (?, ?)');
   golfDefaults.forEach((name, idx) => insGolfPlayer.run(idx, name));
   console.log('[DB] Golf players seeded with defaults');
+}
+
+// Migrate: existing deployments only had 6 player slots — add the extra 2
+const insGolfPlayerIfMissing = db.prepare('INSERT INTO golf_players (idx, name) VALUES (?, ?)');
+for (let idx = 6; idx <= 7; idx++) {
+  if (!db.prepare('SELECT 1 FROM golf_players WHERE idx = ?').get(idx)) {
+    insGolfPlayerIfMissing.run(idx, '');
+    console.log(`[DB] Golf player slot ${idx + 1} added (expanded to 8 players)`);
+  }
 }
 
 // Migrate: existing golf tables created before handicaps/shots/course-settings were added
@@ -52,6 +61,11 @@ try { db.exec('ALTER TABLE golf_scores ADD COLUMN putting_points INTEGER NOT NUL
 
 if (db.prepare('SELECT COUNT(*) AS cnt FROM golf_side_draw').get().cnt === 0) {
   db.prepare('INSERT INTO golf_side_draw (id, front_six, middlesex_six) VALUES (1, NULL, NULL)').run();
+}
+
+if (db.prepare('SELECT COUNT(*) AS cnt FROM golf_settings').get().cnt === 0) {
+  db.prepare("INSERT INTO golf_settings (id, stake, formats) VALUES (1, 0, ?)")
+    .run(JSON.stringify({ football: true, six66: true, pp: true }));
 }
 
 if (db.prepare('SELECT COUNT(*) AS cnt FROM golf_course').get().cnt === 0) {
@@ -1994,16 +2008,13 @@ async function scheduledSync() {
 // on their own scorecard — the group/knockout results are just calculated from
 // whatever's been entered, so nobody is blocked from finishing their round.
 const GOLF_SCHEDULE = [
-  [1,0,5],[1,1,4],[1,2,3],
-  [2,0,4],[2,5,3],[2,1,2],
-  [3,0,3],[3,4,2],[3,5,1],
-  [4,0,2],[4,3,1],[4,4,5],
-  [5,0,1],[5,2,5],[5,3,4],
-  [6,5,0],[6,4,1],[6,3,2],
-  [7,4,0],[7,3,5],[7,2,1],
-  [8,3,0],[8,2,4],[8,1,5],
-  [9,2,0],[9,1,3],[9,5,4],
-  [10,1,0],[10,5,2],[10,4,3],
+  [1,0,7],[1,1,6],[1,2,5],[1,3,4],
+  [2,0,1],[2,2,7],[2,3,6],[2,4,5],
+  [3,0,2],[3,3,1],[3,4,7],[3,5,6],
+  [4,0,3],[4,4,2],[4,5,1],[4,6,7],
+  [5,0,4],[5,5,3],[5,6,2],[5,7,1],
+  [6,0,5],[6,6,4],[6,7,3],[6,1,2],
+  [7,0,6],[7,7,5],[7,1,4],[7,2,3],
 ];
 
 app.get('/api/golf/schedule', (_req, res) => res.json(GOLF_SCHEDULE));
@@ -2013,18 +2024,43 @@ app.get('/api/golf/state', (_req, res) => {
   const course  = db.prepare('SELECT hole_number, par, stroke_index FROM golf_course ORDER BY hole_number').all();
   const scores  = db.prepare('SELECT player_idx, hole_number, shots, fairway, gir, one_putt, putting_points FROM golf_scores').all();
   const draw    = db.prepare('SELECT front_six, middlesex_six FROM golf_side_draw WHERE id = 1').get();
+  const settingsRow = db.prepare('SELECT stake, formats FROM golf_settings WHERE id = 1').get();
   res.json({
     players, course, scores,
     sideDraw: {
       frontSix: draw && draw.front_six ? JSON.parse(draw.front_six) : null,
       middlesexSix: draw && draw.middlesex_six ? JSON.parse(draw.middlesex_six) : null,
     },
+    settings: {
+      stake: settingsRow ? settingsRow.stake : 0,
+      formats: settingsRow ? JSON.parse(settingsRow.formats) : { football:true, six66:true, pp:true },
+    },
   });
+});
+
+app.post('/api/golf/settings', (req, res) => {
+  const { field, value } = req.body;
+  if (field === 'stake') {
+    const stake = parseFloat(value);
+    if (isNaN(stake) || stake < 0 || stake > 100000) return res.status(400).json({ error: 'Stake must be a positive number.' });
+    db.prepare('UPDATE golf_settings SET stake=? WHERE id = 1').run(stake);
+  } else if (field === 'formats') {
+    if (typeof value !== 'object' || value === null) return res.status(400).json({ error: 'Invalid formats value.' });
+    const formats = {
+      football: !!value.football,
+      six66: !!value.six66,
+      pp: !!value.pp,
+    };
+    db.prepare('UPDATE golf_settings SET formats=? WHERE id = 1').run(JSON.stringify(formats));
+  } else {
+    return res.status(400).json({ error: 'Invalid settings field.' });
+  }
+  res.json({ ok: true });
 });
 
 app.post('/api/golf/players', (req, res) => {
   const i = parseInt(req.body.idx, 10);
-  if (isNaN(i) || i < 0 || i > 5) return res.status(400).json({ error: 'Invalid player index.' });
+  if (isNaN(i) || i < 0 || i > 7) return res.status(400).json({ error: 'Invalid player index.' });
   if (req.body.name !== undefined) {
     const name = String(req.body.name || '').slice(0, 40).trim();
     if (!name) return res.status(400).json({ error: 'Name cannot be empty.' });
@@ -2094,7 +2130,7 @@ app.post('/api/golf/score', (req, res) => {
   const playerIdx = parseInt(req.body.playerIdx, 10);
   const holeNumber = parseInt(req.body.holeNumber, 10);
   const { field, value } = req.body;
-  if (isNaN(playerIdx) || playerIdx < 0 || playerIdx > 5 ||
+  if (isNaN(playerIdx) || playerIdx < 0 || playerIdx > 7 ||
       isNaN(holeNumber) || holeNumber < 1 || holeNumber > 18 ||
       !GOLF_SCORE_FIELDS.includes(field)) {
     return res.status(400).json({ error: 'Invalid player, hole, or field.' });
@@ -2155,11 +2191,12 @@ app.post('/api/golf/side-draw/reset', (_req, res) => {
 app.post('/api/admin/golf/reset', requireAdmin, (_req, res) => {
   db.exec('DELETE FROM golf_scores');
   db.prepare('UPDATE golf_side_draw SET front_six=NULL, middlesex_six=NULL WHERE id = 1').run();
-  const golfDefaults = ['Scum', 'Gav', 'Bone', 'Pants', 'Crumble', 'Swanko'];
   const updGolfPlayer = db.prepare('UPDATE golf_players SET name=?, handicap=18 WHERE idx=?');
-  golfDefaults.forEach((name, idx) => updGolfPlayer.run(name, idx));
+  for (let idx = 0; idx < 8; idx++) updGolfPlayer.run('', idx);
   const updHole = db.prepare('UPDATE golf_course SET par=4, stroke_index=? WHERE hole_number=?');
   for (let hn = 1; hn <= 18; hn++) updHole.run(hn, hn);
+  db.prepare('UPDATE golf_settings SET stake=0, formats=? WHERE id = 1')
+    .run(JSON.stringify({ football: true, six66: true, pp: true }));
   res.json({ ok: true, message: 'Golf sweepstake reset.' });
 });
 
