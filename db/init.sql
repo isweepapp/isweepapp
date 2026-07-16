@@ -111,28 +111,21 @@ CREATE TABLE IF NOT EXISTS golf_saved_courses (
 -- the group stage, semis and final results are calculated from — a player who
 -- is out of the knockout bracket can still carry on entering their round.
 CREATE TABLE IF NOT EXISTS golf_scores (
-  player_idx  INTEGER NOT NULL,
-  hole_number INTEGER NOT NULL,
-  shots       INTEGER,
-  fairway     INTEGER NOT NULL DEFAULT 0,
-  gir         INTEGER NOT NULL DEFAULT 0,
-  one_putt    INTEGER NOT NULL DEFAULT 0,
+  player_idx      INTEGER NOT NULL,
+  hole_number     INTEGER NOT NULL,
+  shots           INTEGER,
+  fairway         INTEGER NOT NULL DEFAULT 0,
+  gir             INTEGER NOT NULL DEFAULT 0,
+  one_putt        INTEGER NOT NULL DEFAULT 0,
+  putting_points  INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (player_idx, hole_number)
 );
 
--- Named, saveable course setups (par + stroke index for all 18 holes) so a
--- course only needs setting up once and can be picked again next time.
-CREATE TABLE IF NOT EXISTS golf_course_presets (
-  id         TEXT PRIMARY KEY,
-  name       TEXT NOT NULL,
-  data       TEXT NOT NULL,
-  created_at TEXT NOT NULL
-);
-
--- Named, reusable course setups (par + stroke index for all 18 holes),
--- so a course only has to be set up once and can be picked again later.
-CREATE TABLE IF NOT EXISTS golf_course_presets (
-  name      TEXT PRIMARY KEY,
-  data      TEXT NOT NULL,
-  saved_at  TEXT NOT NULL DEFAULT (datetime('now'))
+-- Side competition draw: two random 6-hole groups picked live from the 18
+-- holes (Front Six, then Middlesex from what's left); Back 6 is just whatever
+-- remains, so it never needs its own draw. A single row, always id=1.
+CREATE TABLE IF NOT EXISTS golf_side_draw (
+  id            INTEGER PRIMARY KEY CHECK (id = 1),
+  front_six     TEXT,
+  middlesex_six TEXT
 );
