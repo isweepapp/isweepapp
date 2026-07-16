@@ -1985,7 +1985,9 @@ async function scheduledSync() {
 // Each of the 6 players plays every other player once at "home" and once "away"
 // across 10 holes (3 simultaneous matches per hole). "hole" here doubles as the
 // real course hole number (1–10). The semis play course holes 11–13 and the
-// final plays course holes 14–17, so par/stroke index carries straight through.
+// final plays course holes 14–17. Holes 1–18 are all enterable by every player
+// on their own scorecard — the group/knockout results are just calculated from
+// whatever's been entered, so nobody is blocked from finishing their round.
 const GOLF_SCHEDULE = [
   [1,0,5],[1,1,4],[1,2,3],
   [2,0,4],[2,5,3],[2,1,2],
@@ -2002,11 +2004,10 @@ const GOLF_SCHEDULE = [
 app.get('/api/golf/schedule', (_req, res) => res.json(GOLF_SCHEDULE));
 
 app.get('/api/golf/state', (_req, res) => {
-  const players  = db.prepare('SELECT idx, name, handicap FROM golf_players ORDER BY idx').all();
-  const group    = db.prepare('SELECT * FROM golf_group').all();
-  const knockout = db.prepare('SELECT * FROM golf_knockout').all();
-  const course   = db.prepare('SELECT hole_number, par, stroke_index FROM golf_course ORDER BY hole_number').all();
-  res.json({ players, group, knockout, course });
+  const players = db.prepare('SELECT idx, name, handicap FROM golf_players ORDER BY idx').all();
+  const course  = db.prepare('SELECT hole_number, par, stroke_index FROM golf_course ORDER BY hole_number').all();
+  const scores  = db.prepare('SELECT player_idx, hole_number, shots, fairway, gir, one_putt FROM golf_scores').all();
+  res.json({ players, course, scores });
 });
 
 app.post('/api/golf/players', (req, res) => {
@@ -2043,51 +2044,32 @@ app.post('/api/golf/course', (req, res) => {
   res.json({ ok: true });
 });
 
-const GOLF_GROUP_FIELDS    = ['hshots', 'ashots', 'hf', 'hg', 'hp', 'af', 'ag', 'ap'];
-const GOLF_KNOCKOUT_FIELDS = ['ashots', 'bshots', 'af', 'ag', 'ap', 'bf', 'bg', 'bp'];
-const GOLF_SHOTS_FIELDS    = ['hshots', 'ashots', 'bshots'];
+const GOLF_SCORE_FIELDS = ['shots', 'fairway', 'gir', 'one_putt'];
 
-app.post('/api/golf/group', (req, res) => {
-  const i = parseInt(req.body.matchIdx, 10);
+app.post('/api/golf/score', (req, res) => {
+  const playerIdx = parseInt(req.body.playerIdx, 10);
+  const holeNumber = parseInt(req.body.holeNumber, 10);
   const { field, value } = req.body;
-  if (isNaN(i) || i < 0 || i >= GOLF_SCHEDULE.length || !GOLF_GROUP_FIELDS.includes(field)) {
-    return res.status(400).json({ error: 'Invalid field or match index.' });
+  if (isNaN(playerIdx) || playerIdx < 0 || playerIdx > 5 ||
+      isNaN(holeNumber) || holeNumber < 1 || holeNumber > 18 ||
+      !GOLF_SCORE_FIELDS.includes(field)) {
+    return res.status(400).json({ error: 'Invalid player, hole, or field.' });
   }
-  db.prepare('INSERT INTO golf_group (match_idx) VALUES (?) ON CONFLICT(match_idx) DO NOTHING').run(i);
-  if (GOLF_SHOTS_FIELDS.includes(field)) {
+  db.prepare('INSERT INTO golf_scores (player_idx, hole_number) VALUES (?, ?) ON CONFLICT(player_idx, hole_number) DO NOTHING').run(playerIdx, holeNumber);
+  if (field === 'shots') {
     const shots = (value === '' || value == null) ? null : parseInt(value, 10);
     if (shots !== null && (isNaN(shots) || shots < 1 || shots > 20)) {
       return res.status(400).json({ error: 'Shots must be between 1 and 20.' });
     }
-    db.prepare(`UPDATE golf_group SET ${field}=? WHERE match_idx=?`).run(shots, i);
+    db.prepare('UPDATE golf_scores SET shots=? WHERE player_idx=? AND hole_number=?').run(shots, playerIdx, holeNumber);
   } else {
-    db.prepare(`UPDATE golf_group SET ${field}=? WHERE match_idx=?`).run(value ? 1 : 0, i);
-  }
-  res.json({ ok: true });
-});
-
-app.post('/api/golf/knockout', (req, res) => {
-  const { stage, field, value } = req.body;
-  const h = parseInt(req.body.holeIdx, 10);
-  if (!['sf1', 'sf2', 'final'].includes(stage) || isNaN(h) || h < 0 || h > 3 || !GOLF_KNOCKOUT_FIELDS.includes(field)) {
-    return res.status(400).json({ error: 'Invalid stage, hole, or field.' });
-  }
-  db.prepare('INSERT INTO golf_knockout (stage, hole_idx) VALUES (?, ?) ON CONFLICT(stage, hole_idx) DO NOTHING').run(stage, h);
-  if (GOLF_SHOTS_FIELDS.includes(field)) {
-    const shots = (value === '' || value == null) ? null : parseInt(value, 10);
-    if (shots !== null && (isNaN(shots) || shots < 1 || shots > 20)) {
-      return res.status(400).json({ error: 'Shots must be between 1 and 20.' });
-    }
-    db.prepare(`UPDATE golf_knockout SET ${field}=? WHERE stage=? AND hole_idx=?`).run(shots, stage, h);
-  } else {
-    db.prepare(`UPDATE golf_knockout SET ${field}=? WHERE stage=? AND hole_idx=?`).run(value ? 1 : 0, stage, h);
+    db.prepare(`UPDATE golf_scores SET ${field}=? WHERE player_idx=? AND hole_number=?`).run(value ? 1 : 0, playerIdx, holeNumber);
   }
   res.json({ ok: true });
 });
 
 app.post('/api/admin/golf/reset', requireAdmin, (_req, res) => {
-  db.exec('DELETE FROM golf_group');
-  db.exec('DELETE FROM golf_knockout');
+  db.exec('DELETE FROM golf_scores');
   const golfDefaults = ['Scum', 'Gav', 'Bone', 'Pants', 'Crumble', 'Swanko'];
   const updGolfPlayer = db.prepare('UPDATE golf_players SET name=?, handicap=18 WHERE idx=?');
   golfDefaults.forEach((name, idx) => updGolfPlayer.run(name, idx));
