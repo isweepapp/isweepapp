@@ -987,25 +987,30 @@ function attachHandlers(){
     if(resetBtn){
       resetBtn.onclick = async ()=>{
         if(!confirm('Delete every golf score and reset players, handicaps and course settings to defaults? This can\'t be undone.')) return;
-        const msgEl = document.getElementById('reset-msg');
         resetBtn.disabled = true;
         try{
           const res = await fetch('/api/admin/golf/reset', { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' });
           if(res.status === 401){
-            msgEl.innerHTML = `<div class="alert alert-error" style="margin-top:0.9rem;">You need to be logged in as admin to do this. Log in at <a href="/admin.html" style="color:inherit;text-decoration:underline;">/admin.html</a>, then come back and try again.</div>`;
+            const msgEl = document.getElementById('reset-msg');
+            if(msgEl) msgEl.innerHTML = `<div class="alert alert-error" style="margin-top:0.9rem;">You need to be logged in as admin to do this. Log in at <a href="/admin.html" style="color:inherit;text-decoration:underline;">/admin.html</a>, then come back and try again.</div>`;
           } else if(res.status === 403){
             const data = await res.json().catch(()=>({}));
-            msgEl.innerHTML = `<div class="alert alert-error" style="margin-top:0.9rem;">${escapeHtml(data.error || 'Admin login is not set up on this site.')}</div>`;
+            const msgEl = document.getElementById('reset-msg');
+            if(msgEl) msgEl.innerHTML = `<div class="alert alert-error" style="margin-top:0.9rem;">${escapeHtml(data.error || 'Admin login is not set up on this site.')}</div>`;
           } else if(res.ok){
-            msgEl.innerHTML = `<div class="alert alert-success" style="margin-top:0.9rem;">Golf sweepstake reset — all clear.</div>`;
             await loadState();
+            const msgEl = document.getElementById('reset-msg');
+            if(msgEl) msgEl.innerHTML = `<div class="alert alert-success" style="margin-top:0.9rem;">Golf sweepstake reset — all clear.</div>`;
           } else {
-            msgEl.innerHTML = `<div class="alert alert-error" style="margin-top:0.9rem;">Something went wrong — try again.</div>`;
+            const msgEl = document.getElementById('reset-msg');
+            if(msgEl) msgEl.innerHTML = `<div class="alert alert-error" style="margin-top:0.9rem;">Something went wrong — try again.</div>`;
           }
         } catch(e){
-          msgEl.innerHTML = `<div class="alert alert-error" style="margin-top:0.9rem;">Couldn't reach the server — check your connection and try again.</div>`;
+          const msgEl = document.getElementById('reset-msg');
+          if(msgEl) msgEl.innerHTML = `<div class="alert alert-error" style="margin-top:0.9rem;">Couldn't reach the server — check your connection and try again.</div>`;
         } finally {
-          resetBtn.disabled = false;
+          const freshBtn = document.getElementById('resetAllBtn');
+          if(freshBtn) freshBtn.disabled = false;
         }
       };
     }
