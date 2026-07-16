@@ -191,8 +191,9 @@ function personalPuttingPointsForHoles(playerIdx, holeNumbers){
   holeNumbers.forEach(hn=>{ total += scoreFor(playerIdx, hn).putting_points || 0; });
   return total;
 }
-function rankPlayers(scoreFn){
-  const rows = players.map((p,i)=>({idx:i, name:p.name, pts:scoreFn(i)}));
+function rankPlayers(scoreFn, idxs){
+  const list = idxs || players.map((_,i)=>i);
+  const rows = list.map(i=>({idx:i, name:players[i].name, pts:scoreFn(i)}));
   rows.sort((a,b)=> b.pts - a.pts);
   let rank=0, prevPts=null, seen=0;
   rows.forEach(r=>{
@@ -201,6 +202,9 @@ function rankPlayers(scoreFn){
     r.rank = rank;
   });
   return rows;
+}
+function namedPlayerIdxs(){
+  return players.map((p,i)=>i).filter(i => (players[i].name || '').trim() !== '');
 }
 const ALL_18 = Array.from({length:18}, (_,i)=>i+1);
 function overallStandings(){ return rankPlayers(i => personalStablefordForHoles(i, ALL_18)); }
@@ -611,29 +615,33 @@ function spinPlaceholderHtml(id, label, buttonLabel, disabled, disabledNote){
 
 function computeStakeTable(){
   const stake = settings.stake || 0;
+  const activeIdxs = namedPlayerIdxs();
+  if(activeIdxs.length < 2) return null;
+
   const categories = [];
   if(settings.formats.six66){
-    if(sideDraw.frontSix) categories.push({ name:'Front Six', rows: sixHoleStandings(sideDraw.frontSix) });
-    if(sideDraw.middlesexSix) categories.push({ name:'Middlesex', rows: sixHoleStandings(sideDraw.middlesexSix) });
+    if(sideDraw.frontSix) categories.push({ name:'Front Six', rows: rankPlayers(i => personalStablefordForHoles(i, sideDraw.frontSix), activeIdxs) });
+    if(sideDraw.middlesexSix) categories.push({ name:'Middlesex', rows: rankPlayers(i => personalStablefordForHoles(i, sideDraw.middlesexSix), activeIdxs) });
     const bs = backSixHoles();
-    if(bs) categories.push({ name:'Back 6', rows: sixHoleStandings(bs) });
+    if(bs) categories.push({ name:'Back 6', rows: rankPlayers(i => personalStablefordForHoles(i, bs), activeIdxs) });
   }
   if(settings.formats.pp){
-    categories.push({ name:'Putting Points', rows: puttingStandings() });
+    categories.push({ name:'Putting Points', rows: rankPlayers(i => personalPuttingPointsForHoles(i, ALL_18), activeIdxs) });
   }
   if(categories.length===0 || stake<=0) return null;
 
-  const N = players.length;
+  const N = activeIdxs.length;
   const C = categories.length;
   const potPerCategory = stake * N / C;
   const contributionPerCategory = stake / C;
-  const net = players.map(()=>({ total:0, byCategory:{} }));
+  const net = {};
+  activeIdxs.forEach(idx => { net[idx] = { total:0, byCategory:{} }; });
 
   categories.forEach(cat=>{
     const topPts = cat.rows[0].pts;
     const winners = cat.rows.filter(r=>r.pts===topPts);
     const winShare = potPerCategory / winners.length;
-    players.forEach((p,idx)=>{
+    activeIdxs.forEach(idx=>{
       const isWinner = winners.some(w=>w.idx===idx);
       const amount = isWinner ? (winShare - contributionPerCategory) : -contributionPerCategory;
       net[idx].byCategory[cat.name] = amount;
@@ -641,7 +649,35 @@ function computeStakeTable(){
     });
   });
 
-  return { categories, potPerCategory, contributionPerCategory, net, stake, N, C };
+  const settlements = computeSettlements(net, activeIdxs);
+
+  return { categories, potPerCategory, contributionPerCategory, net, stake, N, C, activeIdxs, settlements };
+}
+
+// Turns each player's net win/loss into a minimal set of "who pays who" transfers.
+function computeSettlements(net, activeIdxs){
+  const creditors = [];
+  const debtors = [];
+  activeIdxs.forEach(idx=>{
+    const amt = Math.round(net[idx].total * 100) / 100;
+    if(amt > 0.005) creditors.push({ idx, amt });
+    else if(amt < -0.005) debtors.push({ idx, amt: -amt });
+  });
+  creditors.sort((a,b)=> b.amt - a.amt);
+  debtors.sort((a,b)=> b.amt - a.amt);
+
+  const transfers = [];
+  let ci = 0, di = 0;
+  while(ci < creditors.length && di < debtors.length){
+    const c = creditors[ci], d = debtors[di];
+    const amount = Math.min(c.amt, d.amt);
+    if(amount > 0.005) transfers.push({ from: d.idx, to: c.idx, amount });
+    c.amt -= amount;
+    d.amt -= amount;
+    if(c.amt <= 0.005) ci++;
+    if(d.amt <= 0.005) di++;
+  }
+  return transfers;
 }
 
 function moneyLabel(amount){
@@ -652,15 +688,20 @@ function moneyLabel(amount){
 function stakeTableHtml(){
   const data = computeStakeTable();
   if(!data){
+    const named = namedPlayerIdxs().length;
+    const note = named < 2
+      ? 'Need at least 2 named players (on the Format tab) before stakes can be calculated.'
+      : 'Set a stake on the Format tab (and make sure 666 and/or PP is switched on) to see the payout table.';
     return `
       <div class="card">
         <h2>Stakes</h2>
-        <div class="tbd">Set a stake on the Format tab (and make sure 666 and/or PP is switched on) to see the payout table.</div>
+        <div class="tbd">${note}</div>
       </div>
     `;
   }
   const header = `<th>Player</th>` + data.categories.map(c=>`<th style="text-align:right">${escapeHtml(c.name)}</th>`).join('') + `<th style="text-align:right">Total</th>`;
-  const rows = players.map((p,idx)=>{
+  const rows = data.activeIdxs.map(idx=>{
+    const p = players[idx];
     const cells = data.categories.map(c=>{
       const amt = data.net[idx].byCategory[c.name];
       const cls = amt > 0.001 ? 'stake-pos' : amt < -0.001 ? 'stake-neg' : '';
@@ -670,13 +711,34 @@ function stakeTableHtml(){
     const totalCls = totalAmt > 0.001 ? 'stake-pos' : totalAmt < -0.001 ? 'stake-neg' : '';
     return `<tr><td>${escapeHtml(p.name)}</td>${cells}<td style="text-align:right" class="${totalCls}"><b>${moneyLabel(totalAmt)}</b></td></tr>`;
   }).join('');
+
+  const settlementHtml = data.settlements.length === 0
+    ? `<div class="tbd" style="padding:0.75rem 0 0;">Everyone's currently level — nothing to transfer.</div>`
+    : `
+      <div class="settle-list">
+        ${data.settlements.map(t=>`
+          <div class="settle-row">
+            <span class="settle-from">${escapeHtml(players[t.from].name)}</span>
+            <span class="settle-arrow">pays &rarr;</span>
+            <span class="settle-to">${escapeHtml(players[t.to].name)}</span>
+            <span class="settle-amount">£${t.amount.toFixed(2)}</span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+
   return `
     <div class="card">
       <h2>Stakes</h2>
-      <div class="rules-note">£${data.stake.toFixed(2)} per player &times; ${data.N} players = £${(data.stake*data.N).toFixed(2)} total, split evenly across ${data.C} categor${data.C===1?'y':'ies'} &mdash; £${data.potPerCategory.toFixed(2)} each. Categories still to be drawn or with no scores yet aren't included until they're ready.</div>
+      <div class="rules-note">£${data.stake.toFixed(2)} per player &times; ${data.N} named players = £${(data.stake*data.N).toFixed(2)} total, split evenly across ${data.C} categor${data.C===1?'y':'ies'} &mdash; £${data.potPerCategory.toFixed(2)} each. Categories still to be drawn or with no scores yet aren't included until they're ready.</div>
       <div style="overflow-x:auto;">
         <table class="standings stake-table"><thead><tr>${header}</tr></thead><tbody>${rows}</tbody></table>
       </div>
+    </div>
+    <div class="card">
+      <h2>Who Owes Who</h2>
+      <div class="rules-note">The fewest payments needed to settle everything up.</div>
+      ${settlementHtml}
     </div>
   `;
 }

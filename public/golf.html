@@ -218,6 +218,17 @@
   .stake-table th, .stake-table td{ white-space:nowrap; }
   .stake-pos{ color:var(--success); font-weight:700; }
   .stake-neg{ color:var(--danger); font-weight:700; }
+
+  .settle-list{ display:flex; flex-direction:column; gap:0.5rem; }
+  .settle-row{
+    display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;
+    background:var(--bg-card-2); border:1px solid var(--border); border-radius:var(--radius-sm);
+    padding:0.6rem 0.8rem; font-size:0.88rem;
+  }
+  .settle-from{ font-weight:800; color:var(--danger); }
+  .settle-arrow{ color:var(--muted); font-size:0.78rem; }
+  .settle-to{ font-weight:800; color:var(--success); }
+  .settle-amount{ margin-left:auto; font-weight:900; color:var(--gold); font-family:ui-monospace,monospace; }
   .save-tick{ font-size:0.7rem; color:var(--success); margin-left:0.4rem; opacity:0; transition:opacity 0.3s; }
   .save-tick.show{ opacity:1; }
 
