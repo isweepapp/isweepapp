@@ -267,6 +267,7 @@ function scRowHtml(playerIdx, holeNumber){
 
 function scSubtotalHtml(label, playerIdx, holeNumbers, cls){
   let shotsSum = 0, ptsSum = 0, puttSum = 0, lbSum = 0, anyShots = false;
+  let fairwayCount = 0, girCount = 0, onePuttCount = 0;
   holeNumbers.forEach(hn=>{
     const s = scoreFor(playerIdx, hn);
     if(s.shots!=null){ shotsSum += s.shots; anyShots = true; }
@@ -275,17 +276,35 @@ function scSubtotalHtml(label, playerIdx, holeNumbers, cls){
     if(p!==null) ptsSum += p;
     puttSum += s.putting_points || 0;
     lbSum += s.lost_balls || 0;
+    if(s.fairway) fairwayCount++;
+    if(s.gir) girCount++;
+    if(s.one_putt) onePuttCount++;
   });
   return `
     <div class="sc-row ${cls}">
       <div class="sc-holecell"><div class="sc-hole" style="font-size:0.85rem;">${label}</div></div>
       <div class="sc-shots" style="text-align:center;">${anyShots ? shotsSum : ''}</div>
       <div class="sc-pts">${ptsSum}</div>
-      <div class="sc-tick"></div>
-      <div class="sc-tick"></div>
-      <div class="sc-tick"></div>
+      <div class="sc-tick">${fairwayCount}</div>
+      <div class="sc-tick">${girCount}</div>
+      <div class="sc-tick">${onePuttCount}</div>
       <div class="sc-puttcell" style="text-align:center;">${puttSum}</div>
       <div class="sc-lbcell" style="text-align:center;">${lbSum}</div>
+    </div>
+  `;
+}
+
+function scHeaderRowHtml(){
+  return `
+    <div class="sc-row sc-headerrow">
+      <div class="sc-holecell">Hole</div>
+      <div class="sc-shots">Score</div>
+      <div class="sc-pts">Pts</div>
+      <div class="sc-tick">F</div>
+      <div class="sc-tick">GIR</div>
+      <div class="sc-tick">1P</div>
+      <div class="sc-puttcell">Putt</div>
+      <div class="sc-lbcell">LB</div>
     </div>
   `;
 }
@@ -302,18 +321,10 @@ function renderScorecard(){
       <b>${escapeHtml(p.name)}</b> · handicap ${p.handicap} — enter your gross shots for each hole and the Stableford points work themselves out. Keep going through all 18 even after your bracket matches are decided. "Putt" is your score for the Putting Points competition (0–6, your call). "LB" is how many balls you lost on that hole.
     </div>
     <div class="scorecard" id="scorecard-body">
-      <div class="sc-row sc-headerrow">
-        <div class="sc-holecell">Hole</div>
-        <div class="sc-shots">Score</div>
-        <div class="sc-pts">Pts</div>
-        <div class="sc-tick">F</div>
-        <div class="sc-tick">GIR</div>
-        <div class="sc-tick">1P</div>
-        <div class="sc-puttcell">Putt</div>
-        <div class="sc-lbcell">LB</div>
-      </div>
+      ${scHeaderRowHtml()}
       ${out.map(h=>scRowHtml(selectedPlayerIdx,h)).join('')}
       ${scSubtotalHtml('OUT', selectedPlayerIdx, out, 'subtotal')}
+      ${scHeaderRowHtml()}
       ${inn.map(h=>scRowHtml(selectedPlayerIdx,h)).join('')}
       ${scSubtotalHtml('IN', selectedPlayerIdx, inn, 'subtotal')}
       ${scSubtotalHtml('TOTAL', selectedPlayerIdx, out.concat(inn), 'total')}
