@@ -5,200 +5,238 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="iSweep">
-<link rel="apple-touch-icon" href="/assets/icon-180.png">
-<title>iSweep — Golf Sweepstake</title>
-<link rel="stylesheet" href="style.css">
+<meta name="apple-mobile-web-app-title" content="Beaver">
+<link rel="apple-touch-icon" href="/assets/golf-logo.png">
+<title>BEAVER</title>
 <style>
-  /* ── Paper scorecard theme, scoped to the golf page's content panel ───────── */
-  .golf-paper {
-    --card-bg:     #FFFFFF;
-    --card-border: #DCD2B4;
-    --gold:        #96650F;
-    --gold-dim:    #C08E2E;
-    --teal:        #2E7D53;
-    --danger:      #A8402F;
-    --text:        #24291F;
-    --text-muted:  #756F5C;
-    --radius:      14px;
-    --radius-sm:   8px;
-    background: #FBF7EA;
-    border: 1px solid #E4DAB9;
-    border-radius: 20px;
-    padding: 1.25rem 1rem 2rem;
-    margin-top: 1.25rem;
-    box-shadow: 0 10px 34px rgba(20,20,10,0.35);
+  :root{
+    --bg:        #05051C;
+    --bg-card:   #0D0D2A;
+    --bg-card-2: #12122F;
+    --border:    rgba(255,255,255,0.14);
+    --gold:      #FFBA00;
+    --gold-dim:  #C89000;
+    --white:     #FFFFFF;
+    --muted:     #9C9CB4;
+    --danger:    #FF6459;
+    --success:   #35D686;
+    --radius:    14px;
+    --radius-sm: 8px;
   }
-  .golf-paper, .golf-paper input, .golf-paper button, .golf-paper select {
-    color: var(--text);
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background:var(--bg);
+    color:var(--white);
+    font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;
+    min-height:100vh;
   }
-  .golf-paper h2 { color: var(--gold); font-family: Georgia, 'Times New Roman', serif; }
-  .golf-paper .card {
-    background: var(--card-bg);
-    border-color: var(--card-border);
-    backdrop-filter: none;
-  }
-  #refresh-countdown { color: var(--text-muted); }
 
-  .tab-bar { display:flex; gap:0.5rem; margin-bottom:1.1rem; flex-wrap:wrap; }
-  .tab-btn {
-    padding:0.4rem 1rem; border-radius:20px; border:1px solid var(--card-border);
-    background:#fff; color:var(--text-muted); font-size:0.85rem; font-weight:700;
-    cursor:pointer; transition:all 0.15s; font-family:inherit;
+  /* ── Hero header ─────────────────────────────────────────────────────── */
+  header.golf-hero{
+    background: radial-gradient(ellipse at top, #0C0C30 0%, var(--bg) 70%);
+    border-bottom: 1px solid var(--border);
+    padding: 1.6rem 1rem 1.3rem;
+    text-align:center;
+    font-size:1.9rem; /* the 1em basis the logo-letter and wordmark text scale from */
   }
-  .tab-btn.active { color:#fff; border-color:var(--gold); background:var(--gold); }
-  .tab-btn:hover:not(.active) { border-color:var(--gold-dim); color:var(--text); }
+  header.golf-hero .back-link{
+    display:inline-block; font-size:0.78rem; color:var(--muted); text-decoration:none;
+    margin-bottom:1.1rem; letter-spacing:0.04em;
+  }
+  header.golf-hero .back-link:hover{ color:var(--gold); }
+  .wordmark{
+    display:flex; align-items:center; justify-content:center; gap:0.06em;
+    line-height:1;
+  }
+  .wordmark img.logo-letter{
+    width:1em; height:1em; display:block;
+  }
+  .wordmark .rest{
+    font-size:1em; font-weight:900; letter-spacing:0.02em; color:var(--white);
+  }
+  header.golf-hero p{
+    color:var(--muted); font-size:0.85rem; margin:0.6rem 0 0; letter-spacing:0.03em;
+  }
 
-  .rules-note {
-    font-size:0.82rem; color:var(--text-muted); background:rgba(150,101,15,0.06);
-    border:1px solid var(--card-border); border-radius:var(--radius-sm);
+  main{ max-width:640px; margin:0 auto; padding:1.25rem 1rem 2.5rem; }
+
+  #refresh-countdown{ font-size:0.72rem; color:var(--muted); text-align:right; margin-bottom:0.6rem; letter-spacing:0.03em; }
+
+  /* ── Tabs ────────────────────────────────────────────────────────────── */
+  .tab-bar{ display:flex; gap:0.45rem; margin-bottom:1.2rem; flex-wrap:wrap; }
+  .tab-btn{
+    padding:0.45rem 1rem; border-radius:2px; border:1px solid var(--border);
+    background:transparent; color:var(--muted); font-size:0.76rem; font-weight:800;
+    text-transform:uppercase; letter-spacing:0.05em; cursor:pointer; font-family:inherit;
+  }
+  .tab-btn.active{ color:#05051C; border-color:var(--gold); background:var(--gold); }
+  .tab-btn:hover:not(.active){ border-color:var(--gold-dim); color:var(--white); }
+
+  h2{ font-size:1rem; font-weight:900; text-transform:uppercase; letter-spacing:0.05em; color:var(--gold); margin:0 0 0.6rem; }
+
+  .rules-note{
+    font-size:0.82rem; color:var(--muted); background:rgba(255,186,0,0.06);
+    border:1px solid var(--border); border-radius:var(--radius-sm);
     padding:0.7rem 0.9rem; margin-bottom:1rem; line-height:1.5;
   }
+  .rules-note b{ color:var(--white); }
 
-  /* Number inputs: manual typing only, no spinner arrows covering the value */
+  .card{
+    background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius);
+    padding:1.1rem; margin-bottom:1rem;
+  }
+
   input[type=number]::-webkit-inner-spin-button,
-  input[type=number]::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
-  input[type=number] { -moz-appearance:textfield; appearance:textfield; }
-
-  .golf-paper input[type=text], .golf-paper input[type=number] {
-    background:#FDFBF3; border:1px solid var(--card-border); border-radius:var(--radius-sm);
-    color:var(--text); padding:0.5rem 0.6rem; font-family:inherit;
+  input[type=number]::-webkit-outer-spin-button{ -webkit-appearance:none; margin:0; }
+  input[type=number]{ -moz-appearance:textfield; appearance:textfield; }
+  input[type=text], input[type=number]{
+    background:var(--bg-card-2); border:1px solid var(--border); border-radius:var(--radius-sm);
+    color:var(--white); padding:0.55rem 0.6rem; font-family:inherit; font-size:0.95rem;
   }
-  .golf-paper input:focus { outline:none; border-color:var(--gold-dim); }
+  input:focus{ outline:none; border-color:var(--gold); }
 
-  /* Player picker chips (Scorecard tab) */
-  .player-picker { display:flex; gap:0.5rem; overflow-x:auto; padding-bottom:0.3rem; margin-bottom:1rem; -webkit-overflow-scrolling:touch; }
-  .player-chip {
-    flex-shrink:0; padding:0.5rem 0.9rem; border-radius:20px;
-    border:1.5px solid var(--card-border); background:#fff; color:var(--text);
-    font-weight:700; font-size:0.88rem; cursor:pointer; font-family:inherit;
+  /* ── Buttons / alerts (local, since we dropped the shared site stylesheet) ── */
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:0.4rem;
+    padding:0.7rem 1.4rem; border-radius:var(--radius-sm); border:none;
+    font-size:0.85rem; font-weight:800; text-transform:uppercase; letter-spacing:0.04em;
+    cursor:pointer; font-family:inherit;
   }
-  .player-chip.selected { background:var(--fairway,var(--gold)); background:var(--gold); border-color:var(--gold); color:#fff; }
+  .btn:disabled{ opacity:0.5; cursor:not-allowed; }
+  .btn-primary{ background:var(--gold); color:#05051C; }
+  .btn-danger{ background:var(--danger); color:#2a0a06; }
+  .btn-outline{ background:transparent; border:1px solid var(--border); color:var(--white); }
+  .btn-sm{ padding:0.4rem 0.9rem; font-size:0.72rem; }
+  .alert{ padding:0.75rem 1rem; border-radius:var(--radius-sm); font-size:0.85rem; margin-bottom:1rem; }
+  .alert-success{ background:rgba(53,214,134,0.12); border:1px solid rgba(53,214,134,0.35); color:var(--success); }
+  .alert-error{ background:rgba(255,100,89,0.12); border:1px solid rgba(255,100,89,0.35); color:var(--danger); }
 
-  /* Scorecard rows */
-  .scorecard { border:1px solid var(--card-border); border-radius:var(--radius); overflow:hidden; background:#fff; }
-  .sc-row {
+  /* ── Player picker ───────────────────────────────────────────────────── */
+  .player-picker{ display:flex; gap:0.5rem; overflow-x:auto; padding-bottom:0.3rem; margin-bottom:1rem; -webkit-overflow-scrolling:touch; }
+  .player-chip{
+    flex-shrink:0; padding:0.5rem 0.9rem; border-radius:2px;
+    border:1px solid var(--border); background:var(--bg-card); color:var(--white);
+    font-weight:800; font-size:0.82rem; text-transform:uppercase; letter-spacing:0.03em;
+    cursor:pointer; font-family:inherit;
+  }
+  .player-chip.selected{ background:var(--gold); border-color:var(--gold); color:#05051C; }
+
+  /* ── Scorecard ───────────────────────────────────────────────────────── */
+  .scorecard{ border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; background:var(--bg-card); }
+  .sc-row{
     display:grid; grid-template-columns: 62px 1fr 108px 52px;
-    align-items:center; gap:0.5rem; padding:0.5rem 0.7rem;
-    border-bottom:1px solid #EEE7D2;
+    align-items:center; gap:0.5rem; padding:0.55rem 0.7rem;
+    border-bottom:1px solid rgba(255,255,255,0.07);
   }
-  .sc-row:last-child { border-bottom:none; }
-  .sc-row.subtotal { background:#F5EFDC; font-weight:700; }
-  .sc-row.total { background:var(--gold); color:#fff; font-weight:800; }
-  .sc-row.total .sc-muted { color:rgba(255,255,255,0.75); }
-  .sc-hole { font-family:Georgia,serif; font-weight:800; font-size:1.05rem; line-height:1.1; }
-  .sc-muted { font-size:0.68rem; color:var(--text-muted); }
-  .sc-shots input {
-    width:100%; text-align:center; font-size:1.05rem; font-weight:700;
-    background:#FDFBF3; border:1px solid var(--card-border); border-radius:var(--radius-sm);
-    padding:0.4rem; color:var(--text);
+  .sc-row:last-child{ border-bottom:none; }
+  .sc-row.subtotal{ background:rgba(255,186,0,0.06); font-weight:800; }
+  .sc-row.total{ background:var(--gold); color:#05051C; font-weight:900; }
+  .sc-row.total .sc-muted{ color:rgba(5,5,28,0.65); }
+  .sc-hole{ font-weight:900; font-size:1.05rem; line-height:1.1; }
+  .sc-muted{ font-size:0.66rem; color:var(--muted); }
+  .sc-shots input{
+    width:100%; text-align:center; font-size:1.05rem; font-weight:800;
+    padding:0.4rem;
   }
-  .sc-bonus { display:flex; gap:0.3rem; }
-  .sc-bonus button {
-    flex:1; border:1px solid var(--card-border); background:#FDFBF3; color:var(--text-muted);
-    border-radius:6px; font-size:0.7rem; font-weight:800; padding:0.4rem 0; cursor:pointer; font-family:inherit;
+  .sc-bonus{ display:flex; gap:0.3rem; }
+  .sc-bonus button{
+    flex:1; border:1px solid var(--border); background:var(--bg-card-2); color:var(--muted);
+    border-radius:4px; font-size:0.68rem; font-weight:800; padding:0.4rem 0; cursor:pointer; font-family:inherit;
   }
-  .sc-bonus button.on { background:var(--teal); border-color:var(--teal); color:#fff; }
-  .sc-pts { text-align:right; font-weight:800; font-size:1.05rem; color:var(--gold); }
-  .sc-row.total .sc-pts { color:#fff; }
-  .sc-row.subtotal .sc-pts { color:var(--gold); }
+  .sc-bonus button.on{ background:var(--success); border-color:var(--success); color:#05200f; }
+  .sc-pts{ text-align:right; font-weight:900; font-size:1.05rem; color:var(--gold); }
+  .sc-row.total .sc-pts{ color:#05051C; }
+  .sc-row.subtotal .sc-pts{ color:var(--gold); }
 
-  /* Standings */
-  table.standings { width:100%; border-collapse:collapse; font-size:0.9rem; }
-  table.standings th {
-    text-align:left; font-size:0.7rem; text-transform:uppercase; letter-spacing:0.06em;
-    color:var(--text-muted); padding:0.4rem 0.5rem; border-bottom:2px solid var(--gold);
+  /* ── Standings ───────────────────────────────────────────────────────── */
+  table.standings{ width:100%; border-collapse:collapse; font-size:0.9rem; }
+  table.standings th{
+    text-align:left; font-size:0.68rem; text-transform:uppercase; letter-spacing:0.06em;
+    color:var(--muted); padding:0.4rem 0.5rem; border-bottom:2px solid var(--gold);
   }
-  table.standings td { padding:0.6rem 0.5rem; border-bottom:1px solid var(--card-border); }
-  table.standings tr.qualify td { background:rgba(150,101,15,0.06); }
-  .rank-pill {
+  table.standings td{ padding:0.6rem 0.5rem; border-bottom:1px solid var(--border); }
+  table.standings tr.qualify td{ background:rgba(255,186,0,0.07); }
+  .rank-pill{
     display:inline-flex; align-items:center; justify-content:center;
     width:22px; height:22px; border-radius:50%; background:var(--gold);
-    color:#fff; font-weight:700; font-size:0.72rem;
+    color:#05051C; font-weight:900; font-size:0.72rem;
   }
-  .pts-mono { font-family:ui-monospace, monospace; font-weight:700; color:var(--gold); }
+  .pts-mono{ font-family:ui-monospace,monospace; font-weight:800; color:var(--gold); }
 
-  /* Knockout summary cards */
-  .ko-hole-row {
+  /* ── Knockout summary ────────────────────────────────────────────────── */
+  .ko-hole-row{
     display:flex; justify-content:space-between; align-items:center;
-    padding:0.5rem 0; border-bottom:1px solid #EEE7D2; font-size:0.88rem;
+    padding:0.5rem 0; border-bottom:1px solid rgba(255,255,255,0.07); font-size:0.86rem;
   }
-  .ko-hole-row:last-child { border-bottom:none; }
-  .ko-hole-row .hole-tag { font-weight:700; color:var(--text-muted); width:70px; flex-shrink:0; }
-  .ko-hole-row .stable { flex:1; text-align:center; }
-  .ko-hole-row .pts { font-weight:800; color:var(--gold); width:90px; text-align:right; }
+  .ko-hole-row:last-child{ border-bottom:none; }
+  .ko-hole-row .hole-tag{ font-weight:800; color:var(--muted); width:70px; flex-shrink:0; }
+  .ko-hole-row .stable{ flex:1; text-align:center; }
+  .ko-hole-row .pts{ font-weight:900; color:var(--gold); width:90px; text-align:right; }
 
-  .winner-banner {
-    margin-top:0.5rem; background:rgba(150,101,15,0.08); border:1px solid var(--gold);
+  .winner-banner{
+    margin-top:0.5rem; background:rgba(255,186,0,0.08); border:1px solid var(--gold);
     border-radius:var(--radius); padding:1rem; text-align:center;
   }
-  .winner-banner .label {
-    display:block; font-size:0.7rem; letter-spacing:0.08em; text-transform:uppercase;
-    color:var(--text-muted); margin-bottom:0.3rem;
+  .winner-banner .label{
+    display:block; font-size:0.68rem; letter-spacing:0.1em; text-transform:uppercase;
+    color:var(--muted); margin-bottom:0.3rem;
   }
-  .winner-banner .name { font-size:1.15rem; font-weight:800; color:var(--gold); }
-  .champion-banner { background:linear-gradient(135deg, rgba(150,101,15,0.16), rgba(150,101,15,0.04)); border:2px solid var(--gold); }
-  .champion-banner .trophy { font-size:2rem; display:block; margin-bottom:0.4rem; }
-  .tie-note { color:var(--danger); font-size:0.78rem; text-align:center; margin-top:0.5rem; }
-  .tbd { text-align:center; padding:2rem 1rem; color:var(--text-muted); font-size:0.85rem; }
+  .winner-banner .name{ font-size:1.2rem; font-weight:900; color:var(--gold); text-transform:uppercase; }
+  .champion-banner{ background:linear-gradient(135deg, rgba(255,186,0,0.18), rgba(255,186,0,0.03)); border:2px solid var(--gold); }
+  .champion-banner .trophy{ font-size:2rem; display:block; margin-bottom:0.4rem; }
+  .tie-note{ color:var(--danger); font-size:0.78rem; text-align:center; margin-top:0.5rem; }
+  .tbd{ text-align:center; padding:2rem 1rem; color:var(--muted); font-size:0.85rem; }
 
-  .player-row { display:flex; align-items:center; gap:0.75rem; margin-bottom:0.75rem; }
-  .player-badge {
-    width:28px; height:28px; border-radius:50%; background:var(--gold); color:#fff;
-    display:flex; align-items:center; justify-content:center; font-weight:800; font-size:0.8rem;
+  /* ── Setup / Course ──────────────────────────────────────────────────── */
+  .player-row{ display:flex; align-items:center; gap:0.75rem; margin-bottom:0.75rem; }
+  .player-badge{
+    width:28px; height:28px; border-radius:50%; background:var(--gold); color:#05051C;
+    display:flex; align-items:center; justify-content:center; font-weight:900; font-size:0.8rem;
     flex-shrink:0;
   }
-  .hcap-group { display:flex; align-items:center; gap:0.35rem; flex-shrink:0; }
-  .hcap-group input { width:52px; text-align:center; }
-  .hcap-label { font-size:0.7rem; color:var(--text-muted); white-space:nowrap; }
-  .save-tick { font-size:0.72rem; color:var(--teal); margin-left:0.4rem; opacity:0; transition:opacity 0.3s; }
-  .save-tick.show { opacity:1; }
+  .hcap-group{ display:flex; align-items:center; gap:0.35rem; flex-shrink:0; }
+  .hcap-group input{ width:52px; text-align:center; }
+  .hcap-label{ font-size:0.68rem; color:var(--muted); white-space:nowrap; text-transform:uppercase; }
+  .save-tick{ font-size:0.7rem; color:var(--success); margin-left:0.4rem; opacity:0; transition:opacity 0.3s; }
+  .save-tick.show{ opacity:1; }
 
-  .course-section {
-    font-size:0.72rem; text-transform:uppercase; letter-spacing:0.1em;
+  .course-section{
+    font-size:0.7rem; text-transform:uppercase; letter-spacing:0.1em;
     color:var(--gold); margin:1rem 0 0.5rem; padding-top:0.75rem;
-    border-top:1px solid var(--card-border);
+    border-top:1px solid var(--border);
   }
-  .course-section:first-child { margin-top:0; padding-top:0; border-top:none; }
-  .course-row {
+  .course-section:first-child{ margin-top:0; padding-top:0; border-top:none; }
+  .course-row{
     display:flex; align-items:center; gap:0.75rem; padding:0.5rem 0;
-    border-bottom:1px solid #EEE7D2;
+    border-bottom:1px solid rgba(255,255,255,0.07);
   }
-  .course-hole { flex:1; font-weight:700; font-size:0.9rem; }
-  .course-field { display:flex; align-items:center; gap:0.4rem; }
-  .course-field label { font-size:0.72rem; color:var(--text-muted); white-space:nowrap; }
-  .course-field input { width:48px; text-align:center; padding:0.4rem 0.2rem; }
+  .course-hole{ flex:1; font-weight:800; font-size:0.9rem; }
+  .course-field{ display:flex; align-items:center; gap:0.4rem; }
+  .course-field label{ font-size:0.7rem; color:var(--muted); white-space:nowrap; }
+  .course-field input{ width:48px; text-align:center; padding:0.4rem 0.2rem; }
 
-  .preset-row {
+  .preset-row{
     display:flex; align-items:center; gap:0.6rem; padding:0.55rem 0;
-    border-bottom:1px solid #EEE7D2;
+    border-bottom:1px solid rgba(255,255,255,0.07);
   }
-  .preset-row:last-child { border-bottom:none; }
-  .preset-name { flex:1; font-weight:600; font-size:0.9rem; }
-  .preset-delete { color:var(--danger); background:transparent; border:1px solid var(--card-border); }
+  .preset-row:last-child{ border-bottom:none; }
+  .preset-name{ flex:1; font-weight:700; font-size:0.9rem; }
+  .preset-delete{ color:var(--danger); background:transparent; border:1px solid var(--border); }
 </style>
 </head>
 <body>
-  <header>
-    <div class="header-content">
-      <img src="/assets/logo.png" alt="iSweep World Cup Sweepstake" class="sweepstake-logo">
-      <nav>
-        <a href="/">Home</a>
-        <a href="/prizes.html">Prizes</a>
-        <a href="/teams.html">My Teams</a>
-        <a href="/fixtures.html">Fixtures</a>
-        <a href="/dashboard.html">Leaderboard</a>
-        <a href="/countries.html">Country Points</a>
-        <a href="/matches.html">Group Stage</a>
-        <a href="/knockout.html">Knockout</a>
-        <a href="/pots.html">Pots</a>
-        <a href="/golf" class="active">Golf</a>
-      </nav>
+  <header class="golf-hero">
+    <a href="/" class="back-link">&larr; BACK TO ISWEEP</a>
+    <div class="wordmark">
+      <img src="/assets/golf-logo.png" alt="B" class="logo-letter">
+      <span class="rest">EAVER</span>
     </div>
+    <p>Stableford scoring &middot; live leaderboard</p>
   </header>
 
-  <div class="container golf-paper" style="max-width:640px">
-    <div id="refresh-countdown">Live &middot; syncs with everyone's phone every few seconds</div>
+  <main>
+    <div id="refresh-countdown">LIVE &middot; syncs every few seconds</div>
     <div class="tab-bar">
       <button class="tab-btn active" data-tab="scorecard">My Scorecard</button>
       <button class="tab-btn" data-tab="setup">Players</button>
@@ -207,8 +245,8 @@
       <button class="tab-btn" data-tab="semis">Semis</button>
       <button class="tab-btn" data-tab="final">Final</button>
     </div>
-    <div id="golf-content"><p class="text-muted">Loading…</p></div>
-  </div>
+    <div id="golf-content"><p style="color:var(--muted)">Loading&hellip;</p></div>
+  </main>
 
   <script src="golf.js"></script>
 </body>

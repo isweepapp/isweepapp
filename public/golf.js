@@ -268,7 +268,7 @@ function renderSetup(){
     <div class="card">${rows}</div>
     <div class="card">
       <h2>Scoring</h2>
-      <div style="font-size:0.88rem; line-height:1.8; color:var(--text-muted);">
+      <div style="font-size:0.88rem; line-height:1.8; color:var(--muted);">
         Your <b style="color:var(--gold)">Scorecard</b> tab shows standard Stableford points (net score vs. par, using your handicap) for your own round.<br><br>
         For the group stage, semis and final, whoever scores more Stableford points on a shared hole wins it:<br>
         <b style="color:var(--gold)">2 pts</b> — win the hole · <b style="color:var(--gold)">1 pt</b> — halve it<br>
@@ -277,7 +277,7 @@ function renderSetup(){
     </div>
     <div class="card" style="border-color:rgba(168,64,47,0.35);">
       <h2 style="color:var(--danger);">Danger zone</h2>
-      <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:0.9rem;">
+      <div style="font-size:0.85rem; color:var(--muted); margin-bottom:0.9rem;">
         Wipes every score, and resets player names, handicaps and course settings back to defaults. Use this to clear out test data before the real thing starts.
       </div>
       <button class="btn btn-danger" id="resetAllBtn" style="width:100%;">Delete all golf data</button>
@@ -320,7 +320,7 @@ function renderCourse(){
     <div class="card">${rows}</div>
     <div class="card">
       <h2>Saved courses</h2>
-      <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:0.9rem;">Save the par/stroke-index setup above under a name so you can reuse this course another time, or load one you've saved before.</div>
+      <div style="font-size:0.85rem; color:var(--muted); margin-bottom:0.9rem;">Save the par/stroke-index setup above under a name so you can reuse this course another time, or load one you've saved before.</div>
       <div style="display:flex; gap:0.5rem; margin-bottom:1rem;">
         <input type="text" id="course-name-input" placeholder="e.g. Members' Course" style="flex:1;">
         <button class="btn btn-primary btn-sm" id="save-course-btn" style="width:auto; white-space:nowrap;">Save current</button>
