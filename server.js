@@ -69,6 +69,12 @@ if (db.prepare('SELECT COUNT(*) AS cnt FROM golf_settings').get().cnt === 0) {
     .run(JSON.stringify({ football: false, six66: false, pp: false }));
 }
 
+if (db.prepare("SELECT COUNT(*) AS cnt FROM golf_trophies WHERE competition = 'Covid Cup'").get().cnt === 0) {
+  db.prepare('INSERT INTO golf_trophies (id, competition, year, winner, created_at) VALUES (?, ?, ?, ?, ?)')
+    .run(uuidv4(), 'Covid Cup', '2020', 'Gavin', new Date().toISOString());
+  console.log('[DB] Covid Cup one-off winner (Gavin, 2020) seeded');
+}
+
 if (db.prepare('SELECT COUNT(*) AS cnt FROM golf_course').get().cnt === 0) {
   const insHole = db.prepare('INSERT INTO golf_course (hole_number, par, stroke_index) VALUES (?, ?, ?)');
   for (let h = 1; h <= 18; h++) insHole.run(h, 4, h);
@@ -2207,6 +2213,7 @@ app.post('/api/golf/side-draw/reset', (_req, res) => {
 const GOLF_TROPHY_COMPETITIONS = [
   'St Georges Day', 'Christmas Crumble', 'Easter Brighton',
   'Champions League Final', 'Flying Ants Day', 'World Cup',
+  'Caraboo Cup', 'Covid Cup',
 ];
 
 app.get('/api/golf/trophies', (_req, res) => {
