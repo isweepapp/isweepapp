@@ -248,45 +248,39 @@ function scRowHtml(playerIdx, holeNumber){
   const pts = stablefordPoints(s.shots, players[playerIdx].handicap, info.par, info.stroke_index);
   return `
     <div class="sc-row" data-hole="${holeNumber}">
-      <div class="sc-line1">
-        <div>
-          <div class="sc-hole">${holeNumber}</div>
-          <div class="sc-muted">Par ${info.par} · SI ${info.stroke_index}</div>
-        </div>
-        <div class="sc-shots"><input type="number" min="1" max="20" inputmode="numeric" data-field="shots" value="${s.shots ?? ''}"></div>
-        <div class="sc-pts" id="sc-pts-${holeNumber}">${pts===null?'–':pts}</div>
+      <div class="sc-holecell">
+        <div class="sc-hole">${holeNumber}</div>
+        <div class="sc-muted">Par ${info.par}<br>SI ${info.stroke_index}</div>
       </div>
-      <div class="sc-line2">
-        <div class="sc-bonus">
-          <button data-field="fairway" class="${s.fairway?'on':''}">F</button>
-          <button data-field="gir" class="${s.gir?'on':''}">GIR</button>
-          <button data-field="one_putt" class="${s.one_putt?'on':''}">1P</button>
-        </div>
-        <div class="sc-putt">
-          <label>Putt pts</label>
-          <input type="number" min="0" max="6" inputmode="numeric" data-field="putting_points" value="${s.putting_points || 0}">
-        </div>
-      </div>
+      <div class="sc-shots"><input type="number" min="1" max="20" inputmode="numeric" data-field="shots" value="${s.shots ?? ''}"></div>
+      <div class="sc-pts" id="sc-pts-${holeNumber}">${pts===null?'–':pts}</div>
+      <div class="sc-tick"><input type="checkbox" data-field="fairway" ${s.fairway?'checked':''}></div>
+      <div class="sc-tick"><input type="checkbox" data-field="gir" ${s.gir?'checked':''}></div>
+      <div class="sc-tick"><input type="checkbox" data-field="one_putt" ${s.one_putt?'checked':''}></div>
+      <div class="sc-puttcell"><input type="number" min="0" max="6" inputmode="numeric" data-field="putting_points" value="${s.putting_points || 0}"></div>
     </div>
   `;
 }
 
 function scSubtotalHtml(label, playerIdx, holeNumbers, cls){
-  let shotsSum = 0, ptsSum = 0, anyShots = false;
+  let shotsSum = 0, ptsSum = 0, puttSum = 0, anyShots = false;
   holeNumbers.forEach(hn=>{
     const s = scoreFor(playerIdx, hn);
     if(s.shots!=null){ shotsSum += s.shots; anyShots = true; }
     const info = courseInfo(hn);
     const p = stablefordPoints(s.shots, players[playerIdx].handicap, info.par, info.stroke_index);
     if(p!==null) ptsSum += p;
+    puttSum += s.putting_points || 0;
   });
   return `
     <div class="sc-row ${cls}">
-      <div class="sc-line1">
-        <div class="sc-hole" style="font-size:0.85rem;">${label}</div>
-        <div class="sc-muted" style="text-align:center;">${anyShots ? shotsSum+' shots' : ''}</div>
-        <div class="sc-pts">${ptsSum}</div>
-      </div>
+      <div class="sc-holecell"><div class="sc-hole" style="font-size:0.85rem;">${label}</div></div>
+      <div class="sc-shots" style="text-align:center;">${anyShots ? shotsSum : ''}</div>
+      <div class="sc-pts">${ptsSum}</div>
+      <div class="sc-tick"></div>
+      <div class="sc-tick"></div>
+      <div class="sc-tick"></div>
+      <div class="sc-puttcell" style="text-align:center;">${puttSum}</div>
     </div>
   `;
 }
@@ -300,9 +294,18 @@ function renderScorecard(){
   return `
     <div class="player-picker">${chips}</div>
     <div class="rules-note">
-      <b>${escapeHtml(p.name)}</b> · handicap ${p.handicap} — enter your gross shots for each hole and the Stableford points work themselves out. Keep going through all 18 even after your bracket matches are decided. "Putt pts" is your score for the separate Putting Points competition (0–6, your call).
+      <b>${escapeHtml(p.name)}</b> · handicap ${p.handicap} — enter your gross shots for each hole and the Stableford points work themselves out. Keep going through all 18 even after your bracket matches are decided. "Putt" is your score for the separate Putting Points competition (0–6, your call).
     </div>
     <div class="scorecard" id="scorecard-body">
+      <div class="sc-row sc-headerrow">
+        <div class="sc-holecell">Hole</div>
+        <div class="sc-shots">Score</div>
+        <div class="sc-pts">Pts</div>
+        <div class="sc-tick">F</div>
+        <div class="sc-tick">GIR</div>
+        <div class="sc-tick">1P</div>
+        <div class="sc-puttcell">Putt</div>
+      </div>
       ${out.map(h=>scRowHtml(selectedPlayerIdx,h)).join('')}
       ${scSubtotalHtml('OUT', selectedPlayerIdx, out, 'subtotal')}
       ${inn.map(h=>scRowHtml(selectedPlayerIdx,h)).join('')}
@@ -883,18 +886,23 @@ function attachHandlers(){
           }, 500);
         };
       }
-      row.querySelectorAll('.sc-bonus button').forEach(btn=>{
-        btn.onclick = ()=>{
-          const f = btn.dataset.field;
+      row.querySelectorAll('.sc-tick input[type=checkbox]').forEach(cb=>{
+        cb.onchange = ()=>{
+          const f = cb.dataset.field;
           if(!scores[selectedPlayerIdx]) scores[selectedPlayerIdx] = {};
           if(!scores[selectedPlayerIdx][holeNumber]) scores[selectedPlayerIdx][holeNumber] = {};
-          const cur = !!scores[selectedPlayerIdx][holeNumber][f];
-          const label = { fairway:'fairway', gir:'GIR', one_putt:'first putt' }[f] || f;
-          if(cur && !confirm(`Are you sure you want to change hole ${holeNumber}'s ${label} tick back off?`)) return;
-          scores[selectedPlayerIdx][holeNumber][f] = !cur;
-          btn.classList.toggle('on', !cur);
+          const wasOn = !!scores[selectedPlayerIdx][holeNumber][f];
+          const nowOn = cb.checked;
+          if(wasOn && !nowOn){
+            const label = { fairway:'fairway', gir:'GIR', one_putt:'first putt' }[f] || f;
+            if(!confirm(`Are you sure you want to change hole ${holeNumber}'s ${label} tick back off?`)){
+              cb.checked = true;
+              return;
+            }
+          }
+          scores[selectedPlayerIdx][holeNumber][f] = nowOn;
           inFlight = true;
-          postJson('/api/golf/score', { playerIdx: selectedPlayerIdx, holeNumber, field:f, value: !cur })
+          postJson('/api/golf/score', { playerIdx: selectedPlayerIdx, holeNumber, field:f, value: nowOn })
             .finally(()=>{ inFlight = false; });
         };
       });

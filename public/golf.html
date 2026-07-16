@@ -122,41 +122,41 @@
   }
   .player-chip.selected{ background:var(--gold); border-color:var(--gold); color:#05051C; }
 
-  /* ── Scorecard ───────────────────────────────────────────────────────── */
-  .scorecard{ border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; background:var(--bg-card); }
+  /* ── Scorecard (light paper look, scoped just to this area) ────────────── */
+  .scorecard{
+    border:1px solid #C9BD98; border-radius:var(--radius); overflow:hidden;
+    background:#F6F1DE; color:#26231A;
+  }
   .sc-row{
-    padding:0.55rem 0.7rem;
-    border-bottom:1px solid rgba(255,255,255,0.07);
+    display:grid; grid-template-columns: 52px 46px 34px 30px 30px 30px 42px;
+    align-items:center; gap:0.3rem;
+    padding:0.5rem 0.5rem;
+    border-bottom:1px solid #DED2A8;
   }
   .sc-row:last-child{ border-bottom:none; }
-  .sc-line1{
-    display:grid; grid-template-columns: 62px 1fr 52px;
-    align-items:center; gap:0.5rem;
+  .sc-headerrow{
+    background:#EADFB8; color:#5B5230; font-size:0.66rem; font-weight:800;
+    text-transform:uppercase; letter-spacing:0.03em; text-align:center;
   }
-  .sc-line2{
-    display:flex; align-items:center; gap:0.6rem; margin-top:0.5rem;
-  }
-  .sc-putt{ display:flex; align-items:center; gap:0.4rem; }
-  .sc-putt label{ font-size:0.66rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.04em; white-space:nowrap; }
-  .sc-putt input{ width:46px; text-align:center; padding:0.35rem; }
-  .sc-row.total .sc-putt label{ color:rgba(5,5,28,0.65); }
-  .sc-row.subtotal{ background:rgba(255,186,0,0.06); font-weight:800; }
+  .sc-headerrow .sc-holecell{ text-align:left; }
+  .sc-row.subtotal{ background:#EFE6C4; font-weight:800; }
   .sc-row.total{ background:var(--gold); color:#05051C; font-weight:900; }
   .sc-row.total .sc-muted{ color:rgba(5,5,28,0.65); }
-  .sc-hole{ font-weight:900; font-size:1.05rem; line-height:1.1; }
-  .sc-muted{ font-size:0.66rem; color:var(--muted); }
-  .sc-shots{ display:flex; justify-content:center; }
-  .sc-shots input{
-    width:52px; text-align:center; font-size:1rem; font-weight:800;
-    padding:0.4rem 0.2rem;
+  .sc-holecell{ line-height:1.15; }
+  .sc-hole{ font-weight:900; font-size:1.05rem; color:#1A1710; }
+  .sc-row.total .sc-hole{ color:#05051C; }
+  .sc-muted{ font-size:0.62rem; color:#7A7150; }
+  .sc-shots, .sc-puttcell{ text-align:center; }
+  .sc-shots input, .sc-puttcell input{
+    width:100%; max-width:46px; text-align:center; font-size:1rem; font-weight:800;
+    padding:0.35rem 0.1rem; background:#FFFDF6; border:1px solid #C9BD98; color:#1A1710;
+    border-radius:6px;
   }
-  .sc-bonus{ display:flex; gap:0.3rem; }
-  .sc-bonus button{
-    flex:1; border:1px solid var(--border); background:var(--bg-card-2); color:var(--muted);
-    border-radius:4px; font-size:0.68rem; font-weight:800; padding:0.4rem 0; cursor:pointer; font-family:inherit;
+  .sc-tick{ display:flex; justify-content:center; align-items:center; }
+  .sc-tick input[type=checkbox]{
+    width:22px; height:22px; accent-color:var(--gold-dim); cursor:pointer; margin:0;
   }
-  .sc-bonus button.on{ background:var(--success); border-color:var(--success); color:#05200f; }
-  .sc-pts{ text-align:right; font-weight:900; font-size:1.05rem; color:var(--gold); }
+  .sc-pts{ text-align:center; font-weight:900; font-size:1.05rem; color:var(--gold-dim); }
   .sc-row.total .sc-pts{ color:#05051C; }
   .sc-row.subtotal .sc-pts{ color:var(--gold); }
 
