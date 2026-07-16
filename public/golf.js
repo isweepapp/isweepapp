@@ -906,6 +906,50 @@ function crumbleChartSvg(){
   `;
 }
 
+function braggingCounts(playerIdx){
+  let eagles=0, birdies=0, pars=0, crumbles=0;
+  ALL_18.forEach(hn=>{
+    const s = scoreFor(playerIdx, hn);
+    const info = courseInfo(hn);
+    const p = stablefordPoints(s.shots, players[playerIdx].handicap, info.par, info.stroke_index);
+    if(p===null) return;
+    if(p>=4) eagles++;
+    else if(p===3) birdies++;
+    else if(p===2) pars++;
+    else if(p===0) crumbles++;
+  });
+  return { eagles, birdies, pars, crumbles };
+}
+
+function braggingTableHtml(){
+  const idxs = namedPlayerIdxs();
+  if(idxs.length===0) return `<div class="tbd">Add player names on the Format tab to see this.</div>`;
+  const rows = idxs.map(idx=>({ idx, name: players[idx].name, ...braggingCounts(idx) }));
+  const body = rows.map(r=>`
+    <tr>
+      <td>${escapeHtml(r.name)}</td>
+      <td style="text-align:center" class="pts-mono">${r.eagles}</td>
+      <td style="text-align:center" class="pts-mono">${r.birdies}</td>
+      <td style="text-align:center" class="pts-mono">${r.pars}</td>
+      <td style="text-align:center" class="pts-mono">${r.crumbles}</td>
+    </tr>
+  `).join('');
+  return `
+    <table class="standings">
+      <thead>
+        <tr>
+          <th>Player</th>
+          <th style="text-align:center">Eagles</th>
+          <th style="text-align:center">Birdies</th>
+          <th style="text-align:center">Pars</th>
+          <th style="text-align:center">Crumbles</th>
+        </tr>
+      </thead>
+      <tbody>${body}</tbody>
+    </table>
+  `;
+}
+
 function renderStats(){
   const lostBalls = lostBallsStandings();
   const lostBallsHtml = lostBalls.length === 0
@@ -920,6 +964,12 @@ function renderStats(){
     </div>
 
     ${sixHoleSectionHtml('Scum Corner', [7,8,9])}
+
+    <div class="card">
+      <h2>Bragging</h2>
+      <div class="rules-note">Net eagles, birdies and pars across the round &mdash; plus Crumbles, a hole worth 0 Stableford points.</div>
+      ${braggingTableHtml()}
+    </div>
 
     <div class="card">
       <h2>Crumble</h2>
