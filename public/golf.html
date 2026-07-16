@@ -343,7 +343,7 @@
   }
   .shelf-glass-shelf{
     position:relative; z-index:1;
-    height:7px; margin:0 0.2rem 1.3rem;
+    height:7px; margin:0 0.2rem 0.4rem;
     background:linear-gradient(180deg, rgba(255,255,255,0.55), rgba(190,225,255,0.12));
     border-radius:4px;
     box-shadow:0 3px 10px rgba(160,210,255,0.35), 0 1px 0 rgba(255,255,255,0.7) inset;
@@ -358,29 +358,46 @@
   }
   .shelf-row{
     position:relative; z-index:1;
-    display:flex; flex-wrap:wrap; gap:1.8rem; justify-content:center; padding-bottom:1.3rem;
+    display:flex; flex-wrap:wrap; gap:1.8rem; justify-content:center;
+    align-items:flex-end; padding-bottom:0;
   }
   .shelf-empty{ position:relative; z-index:1; color:rgba(240,200,106,0.55); font-style:italic; text-align:center; padding:2.4rem 0 2.6rem; font-size:0.95rem; }
   .shelf-item{ display:flex; flex-direction:column; align-items:center; width:132px; }
+  .shelf-trophy-stage{
+    position:relative; display:flex; flex-direction:column; align-items:center;
+    margin-bottom:0.5rem;
+  }
   .shelf-trophy-img{
-    width:92px; height:92px; object-fit:contain; margin-bottom:0.5rem;
+    width:92px; height:92px; object-fit:contain;
     filter:drop-shadow(0 4px 7px rgba(0,0,0,0.55));
     transition:transform 0.22s ease, filter 0.22s ease;
-    cursor:zoom-in;
+    cursor:zoom-in; position:relative; z-index:2;
   }
   .shelf-trophy-img:hover{
     transform:scale(3);
-    position:relative; z-index:20;
+    z-index:20;
     filter:drop-shadow(0 8px 16px rgba(0,0,0,0.65));
   }
   .shelf-trophy-fallback{
     width:92px; height:92px; display:none; align-items:center; justify-content:center;
-    font-size:3.2rem; margin-bottom:0.5rem;
-    transition:transform 0.22s ease;
+    font-size:3.2rem; transition:transform 0.22s ease; position:relative; z-index:2;
   }
   .shelf-trophy-fallback:hover{
     transform:scale(3);
-    position:relative; z-index:20;
+    z-index:20;
+  }
+  .shelf-contact-shadow{
+    width:64px; height:13px; margin-top:-7px;
+    background:radial-gradient(ellipse at center, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 72%);
+    position:relative; z-index:1; pointer-events:none;
+  }
+  .shelf-trophy-reflection{
+    width:92px; height:42px; object-fit:cover; object-position:top;
+    transform:scaleY(-1);
+    opacity:0.2; margin-top:-9px;
+    -webkit-mask-image:linear-gradient(to bottom, rgba(0,0,0,0.55), transparent 78%);
+    mask-image:linear-gradient(to bottom, rgba(0,0,0,0.55), transparent 78%);
+    pointer-events:none; position:relative; z-index:0;
   }
   .shelf-comp-name{ font-size:0.9rem; font-weight:700; color:#F3E7C8; text-align:center; line-height:1.25; margin-bottom:0.35rem; min-height:2.1em; }
   .shelf-stars{ font-size:0.9rem; color:#F0C86A; letter-spacing:0.06em; }

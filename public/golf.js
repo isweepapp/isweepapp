@@ -1093,9 +1093,13 @@ function shelfCardHtml(name){
         const count = wins[comp];
         return `
           <div class="shelf-item">
-            <img class="shelf-trophy-img" src="/assets/trophies/${slug}.png" alt="${escapeHtml(comp)}"
-                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-            <div class="shelf-trophy-fallback">&#127942;</div>
+            <div class="shelf-trophy-stage">
+              <img class="shelf-trophy-img" src="/assets/trophies/${slug}.png" alt="${escapeHtml(comp)}"
+                   onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'; this.parentElement.querySelectorAll('.shelf-trophy-reflection,.shelf-contact-shadow').forEach(function(el){el.style.display='none';});">
+              <div class="shelf-trophy-fallback">&#127942;</div>
+              <div class="shelf-contact-shadow"></div>
+              <img class="shelf-trophy-reflection" src="/assets/trophies/${slug}.png" alt="" aria-hidden="true">
+            </div>
             <div class="shelf-comp-name">${escapeHtml(comp)}</div>
             <div class="shelf-stars">${'&#9733;'.repeat(count)}</div>
           </div>
