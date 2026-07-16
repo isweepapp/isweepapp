@@ -307,20 +307,29 @@
   .trophy-subnav-btn.active{ color:#05051C; border-color:var(--gold); background:var(--gold); }
 
   .shelf-card{
+    position:relative;
     background:linear-gradient(160deg, #4A2F16, #241408 75%);
-    border:1px solid rgba(240,200,106,0.3); border-radius:14px;
-    padding:1.1rem 1rem 0; margin-bottom:1.2rem;
+    border:1px solid rgba(240,200,106,0.3); border-radius:16px;
+    padding:1.6rem 1.2rem 0; margin-bottom:1.6rem;
+    min-height:220px;
   }
   .shelf-player-name{
-    font-family:Georgia,'Times New Roman',serif; font-size:1.15rem; font-weight:700;
-    color:#F0C86A; text-align:center; margin-bottom:0.9rem; letter-spacing:0.03em;
+    position:absolute; top:50%; left:0.5rem; right:0.5rem; transform:translateY(-50%);
+    font-family:Georgia,'Times New Roman',serif; font-weight:700;
+    font-size:clamp(1.6rem, 11vw, 3.4rem);
+    color:rgba(240,200,106,0.16); text-align:center; letter-spacing:0.04em;
+    text-transform:uppercase; white-space:nowrap; pointer-events:none; z-index:0;
+    text-shadow:0 2px 0 rgba(0,0,0,0.25);
   }
-  .shelf-row{ display:flex; flex-wrap:wrap; gap:1.1rem; justify-content:center; padding-bottom:1rem; }
-  .shelf-empty{ color:rgba(240,200,106,0.55); font-style:italic; text-align:center; padding:0.8rem 0 1.1rem; font-size:0.85rem; }
-  .shelf-item{ display:flex; flex-direction:column; align-items:center; width:100px; }
+  .shelf-row{
+    position:relative; z-index:1;
+    display:flex; flex-wrap:wrap; gap:1.8rem; justify-content:center; padding-bottom:1.3rem;
+  }
+  .shelf-empty{ position:relative; z-index:1; color:rgba(240,200,106,0.55); font-style:italic; text-align:center; padding:2.4rem 0 2.6rem; font-size:0.95rem; }
+  .shelf-item{ display:flex; flex-direction:column; align-items:center; width:132px; }
   .shelf-trophy-img{
-    width:52px; height:52px; object-fit:contain; margin-bottom:0.35rem;
-    filter:drop-shadow(0 3px 5px rgba(0,0,0,0.5));
+    width:92px; height:92px; object-fit:contain; margin-bottom:0.5rem;
+    filter:drop-shadow(0 4px 7px rgba(0,0,0,0.55));
     transition:transform 0.22s ease, filter 0.22s ease;
     cursor:zoom-in;
   }
@@ -330,18 +339,19 @@
     filter:drop-shadow(0 8px 16px rgba(0,0,0,0.65));
   }
   .shelf-trophy-fallback{
-    width:52px; height:52px; display:none; align-items:center; justify-content:center;
-    font-size:1.9rem; margin-bottom:0.35rem;
+    width:92px; height:92px; display:none; align-items:center; justify-content:center;
+    font-size:3.2rem; margin-bottom:0.5rem;
     transition:transform 0.22s ease;
   }
   .shelf-trophy-fallback:hover{
     transform:scale(3);
     position:relative; z-index:20;
   }
-  .shelf-comp-name{ font-size:0.85rem; font-weight:700; color:#F3E7C8; text-align:center; line-height:1.25; margin-bottom:0.3rem; min-height:1.9em; }
-  .shelf-stars{ font-size:0.75rem; color:#F0C86A; letter-spacing:0.05em; }
+  .shelf-comp-name{ font-size:0.9rem; font-weight:700; color:#F3E7C8; text-align:center; line-height:1.25; margin-bottom:0.35rem; min-height:2.1em; }
+  .shelf-stars{ font-size:0.9rem; color:#F0C86A; letter-spacing:0.06em; }
   .shelf-ledge{
-    height:11px; margin:0 -1rem; border-radius:0 0 12px 12px;
+    position:relative; z-index:1;
+    height:14px; margin:0 -1.2rem; border-radius:0 0 14px 14px;
     background:linear-gradient(180deg, #7A5A1E, #3C2612);
     box-shadow:0 4px 8px rgba(0,0,0,0.45);
   }
