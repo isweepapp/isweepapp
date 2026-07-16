@@ -129,3 +129,12 @@ CREATE TABLE IF NOT EXISTS golf_side_draw (
   front_six     TEXT,
   middlesex_six TEXT
 );
+
+-- Round settings: stake per player, and which competitions are being played
+-- this round (Football = the Table/Semis/Final bracket, 666 = Front
+-- Six/Middlesex/Back Six, PP = Putting Points). Single row, always id=1.
+CREATE TABLE IF NOT EXISTS golf_settings (
+  id      INTEGER PRIMARY KEY CHECK (id = 1),
+  stake   REAL NOT NULL DEFAULT 0,
+  formats TEXT NOT NULL DEFAULT '{"football":true,"six66":true,"pp":true}'
+);
