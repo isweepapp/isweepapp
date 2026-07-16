@@ -45,7 +45,7 @@ let inFlight = false;
 --------------------------------------------------------- */
 async function loadState(){
   try{
-    const res = await fetch('/api/golf/state');
+    const res = await fetch(`/api/golf/state?_=${Date.now()}`, { cache: 'no-store' });
     const data = await res.json();
     players = new Array(NUM_PLAYERS).fill(0).map((_,i)=>{
       const row = data.players.find(p=>p.idx===i);
