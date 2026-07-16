@@ -97,3 +97,17 @@ CREATE TABLE IF NOT EXISTS golf_knockout (
   bp INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (stage, hole_idx)
 );
+
+-- Personal scorecard: each player enters their own gross shots for every hole
+-- they play (1–18), independent of the group/knockout bracket. This is what
+-- the group stage, semis and final results are calculated from — a player who
+-- is out of the knockout bracket can still carry on entering their round.
+CREATE TABLE IF NOT EXISTS golf_scores (
+  player_idx  INTEGER NOT NULL,
+  hole_number INTEGER NOT NULL,
+  shots       INTEGER,
+  fairway     INTEGER NOT NULL DEFAULT 0,
+  gir         INTEGER NOT NULL DEFAULT 0,
+  one_putt    INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (player_idx, hole_number)
+);
