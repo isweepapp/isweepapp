@@ -311,22 +311,15 @@
     background:linear-gradient(180deg, #0C0C14, #08080D);
     border:1px solid rgba(255,255,255,0.06);
     border-radius:12px;
-    padding:2rem 1rem 0;
-    margin-bottom:2.2rem;
-    min-height:200px;
+    padding:2.2rem 1rem 0;
+    margin-bottom:2.4rem;
+    min-height:210px;
     box-shadow:0 14px 28px rgba(0,0,0,0.55);
   }
-  .shelf-player-name{
-    position:absolute; top:1.6rem; left:0.5rem; right:0.5rem;
-    font-family:Georgia,'Times New Roman',serif; font-weight:700;
-    font-size:clamp(1.6rem, 11vw, 3.2rem);
-    color:rgba(255,255,255,0.07); text-align:center; letter-spacing:0.04em;
-    text-transform:uppercase; white-space:nowrap; pointer-events:none; z-index:0;
-  }
   .shelf-row{
-    position:relative; z-index:1;
+    position:relative; z-index:2;
     display:flex; flex-wrap:wrap; gap:2rem; justify-content:center;
-    align-items:flex-end; padding-bottom:0;
+    align-items:flex-end; margin-bottom:-9px;
   }
   .shelf-empty{ position:relative; z-index:1; color:rgba(255,255,255,0.35); font-style:italic; text-align:center; padding:2.4rem 0 2.8rem; font-size:0.95rem; }
   .shelf-item{ display:flex; flex-direction:column; align-items:center; width:132px; }
@@ -355,26 +348,41 @@
   }
   .shelf-contact-shadow{
     width:78px; height:16px; margin-top:-10px;
-    background:radial-gradient(ellipse at center, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.35) 45%, rgba(0,0,0,0) 75%);
+    background:radial-gradient(ellipse at center, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 45%, rgba(0,0,0,0) 75%);
     position:relative; z-index:1; pointer-events:none;
   }
   .shelf-comp-name{ font-size:0.9rem; font-weight:700; color:#E8E4D8; text-align:center; line-height:1.25; margin-bottom:0.35rem; min-height:2.1em; }
   .shelf-stars{ font-size:0.9rem; color:#F0C86A; letter-spacing:0.06em; }
-  .shelf-plank{
+
+  .shelf-plank{ position:relative; z-index:1; margin:0 -1rem; }
+  .shelf-plank-top{
+    height:13px;
+    background:linear-gradient(180deg, #E4B87A 0%, #B4823F 100%);
+    box-shadow:0 1px 0 rgba(255,238,205,0.6) inset;
+  }
+  .shelf-plank-front{
+    position:relative;
+    height:64px;
+    display:flex; align-items:center; justify-content:center;
+    background:
+      repeating-linear-gradient(90deg, rgba(0,0,0,0.07) 0px, rgba(0,0,0,0.07) 1px, transparent 1px, transparent 6px),
+      linear-gradient(180deg, #9C6B36 0%, #764B24 55%, #4A2E16 100%);
+    box-shadow:0 22px 26px rgba(0,0,0,0.6);
+  }
+  .shelf-plank-front::after{
+    content:'';
+    position:absolute; left:0; right:0; bottom:0; height:6px;
+    background:linear-gradient(180deg, transparent, rgba(0,0,0,0.5));
+  }
+  .shelf-engraved-name{
     position:relative; z-index:1;
-    height:20px; margin:0 -1rem;
-    background:linear-gradient(180deg, #C89658 0%, #A97A42 45%, #8B5E2E 100%);
-    box-shadow:0 16px 22px rgba(0,0,0,0.6);
-  }
-  .shelf-plank::before{
-    content:'';
-    position:absolute; top:0; left:0; right:0; height:2px;
-    background:rgba(255,228,180,0.55);
-  }
-  .shelf-plank::after{
-    content:'';
-    position:absolute; left:0; right:0; bottom:-7px; height:7px;
-    background:linear-gradient(180deg, #6B4423, #472C16);
+    font-family:Georgia,'Times New Roman',serif; font-weight:700;
+    font-size:clamp(1.1rem, 6vw, 1.7rem);
+    letter-spacing:0.14em; text-transform:uppercase;
+    color:#3A2412;
+    text-shadow:
+      0 -1px 0 rgba(0,0,0,0.55),
+      0 1px 0 rgba(255,221,166,0.45);
   }
   .save-tick{ font-size:0.7rem; color:var(--success); margin-left:0.4rem; opacity:0; transition:opacity 0.3s; }
   .save-tick.show{ opacity:1; }

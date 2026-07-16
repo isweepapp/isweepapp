@@ -1106,9 +1106,11 @@ function shelfCardHtml(name){
       }).join('');
   return `
     <div class="shelf-card">
-      <div class="shelf-player-name">${escapeHtml(name)}</div>
       <div class="shelf-row">${items}</div>
-      <div class="shelf-plank"></div>
+      <div class="shelf-plank">
+        <div class="shelf-plank-top"></div>
+        <div class="shelf-plank-front"><span class="shelf-engraved-name">${escapeHtml(name)}</span></div>
+      </div>
     </div>
   `;
 }
