@@ -235,6 +235,52 @@
   .crumble-legend{ display:flex; flex-wrap:wrap; gap:0.6rem 1rem; margin-top:0.9rem; }
   .crumble-legend-item{ display:flex; align-items:center; gap:0.35rem; font-size:0.8rem; color:var(--white); }
   .crumble-dot{ width:10px; height:10px; border-radius:50%; display:inline-block; flex-shrink:0; }
+
+  /* ── Trophy Cabinet ──────────────────────────────────────────────────── */
+  .trophy-board{
+    margin-bottom:1.1rem; padding:3px;
+    background:linear-gradient(135deg, #C9973B, #7A5A1E, #C9973B);
+    border-radius:16px;
+  }
+  .trophy-board-inner{
+    background:
+      repeating-linear-gradient(100deg, rgba(0,0,0,0.10) 0px, rgba(0,0,0,0.10) 2px, transparent 2px, transparent 26px),
+      linear-gradient(160deg, #5A3A1E, #3C2612 70%);
+    border-radius:14px;
+    padding:1.1rem 1rem;
+  }
+  .trophy-title{
+    font-size:1.15rem; font-weight:900; text-transform:uppercase; letter-spacing:0.06em;
+    color:#F3D98A; text-align:center; margin-bottom:0.8rem;
+    text-shadow:0 1px 0 rgba(0,0,0,0.4);
+  }
+  .trophy-list{
+    background:rgba(0,0,0,0.18); border:1px solid rgba(243,217,138,0.25); border-radius:10px;
+    padding:0.3rem 0.5rem; margin-bottom:0.9rem; max-height:220px; overflow-y:auto;
+  }
+  .trophy-row{
+    display:flex; align-items:center; gap:0.6rem; padding:0.4rem 0.2rem;
+    border-bottom:1px solid rgba(243,217,138,0.12);
+  }
+  .trophy-row:last-child{ border-bottom:none; }
+  .trophy-year{ font-weight:800; color:#F3D98A; width:52px; flex-shrink:0; font-family:ui-monospace,monospace; font-size:0.85rem; }
+  .trophy-winner{ flex:1; color:#FBF3DD; font-size:0.92rem; }
+  .trophy-delete{
+    background:none; border:none; color:rgba(243,217,138,0.5); font-size:1.1rem;
+    cursor:pointer; padding:0 0.3rem; line-height:1;
+  }
+  .trophy-delete:hover{ color:#FF6459; }
+  .trophy-empty{ color:rgba(243,217,138,0.6); font-size:0.85rem; text-align:center; padding:0.6rem 0; font-style:italic; }
+  .trophy-add{ display:flex; gap:0.4rem; flex-wrap:wrap; }
+  .trophy-year-input{ width:70px; flex-shrink:0; }
+  .trophy-winner-input{ flex:1; min-width:110px; }
+  .trophy-add-btn{ width:auto; white-space:nowrap; flex-shrink:0; }
+  .trophy-chips{ display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.6rem; }
+  .trophy-chip{
+    background:rgba(243,217,138,0.14); border:1px solid rgba(243,217,138,0.35); color:#F3D98A;
+    border-radius:14px; padding:0.3rem 0.7rem; font-size:0.76rem; font-weight:700; cursor:pointer; font-family:inherit;
+  }
+  .trophy-chip:hover{ background:rgba(243,217,138,0.24); }
   .save-tick{ font-size:0.7rem; color:var(--success); margin-left:0.4rem; opacity:0; transition:opacity 0.3s; }
   .save-tick.show{ opacity:1; }
 
@@ -293,6 +339,7 @@
       <button class="tab-btn" data-tab="final">Final</button>
       <button class="tab-btn" data-tab="sidebets">666 and PP</button>
       <button class="tab-btn" data-tab="stats">Stats</button>
+      <button class="tab-btn" data-tab="trophies">Trophy Cabinet</button>
     </div>
     <div id="golf-content"><p style="color:var(--muted)">Loading&hellip;</p></div>
   </main>

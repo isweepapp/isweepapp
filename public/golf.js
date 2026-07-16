@@ -29,6 +29,11 @@ let players = [
 ];
 let course = {};    // holeNumber (1-18) -> {par, stroke_index}
 let savedCourses = []; // [{id, name, created_at}]
+let trophies = []; // [{id, competition, year, winner, created_at}]
+const TROPHY_COMPETITIONS = [
+  'St Georges Day', 'Christmas Crumble', 'Easter Brighton',
+  'Champions League Final', 'Flying Ants Day', 'World Cup',
+];
 let scores = {};    // playerIdx -> { holeNumber -> {shots, fairway, gir, one_putt, putting_points} }
 let sideDraw = { frontSix: null, middlesexSix: null };
 let settings = { stake: 0, formats: { football: false, six66: false, pp: false } };
@@ -90,6 +95,16 @@ async function loadSavedCourses(){
     if(currentTab==='course' || currentTab==='setup') render();
   }catch(e){
     console.error('Failed to load saved courses', e);
+  }
+}
+
+async function loadTrophies(){
+  try{
+    const res = await fetch('/api/golf/trophies');
+    trophies = await res.json();
+    if(currentTab==='trophies') render();
+  }catch(e){
+    console.error('Failed to load trophies', e);
   }
 }
 
@@ -238,6 +253,7 @@ function render(){
   else if(currentTab==='final') el.innerHTML = renderFinal();
   else if(currentTab==='sidebets') el.innerHTML = renderSideBets();
   else if(currentTab==='stats') el.innerHTML = renderStats();
+  else if(currentTab==='trophies') el.innerHTML = renderTrophyCabinet();
   attachHandlers();
 }
 
@@ -989,6 +1005,46 @@ function renderStats(){
   `;
 }
 
+/* ---------------------------------------------------------
+   TROPHY CABINET — an honours board per competition, added to
+   each time that competition is played.
+--------------------------------------------------------- */
+function trophyBoardHtml(competition){
+  const entries = trophies.filter(t => t.competition === competition);
+  const rows = entries.map(t => `
+    <div class="trophy-row">
+      <span class="trophy-year">${escapeHtml(t.year)}</span>
+      <span class="trophy-winner">${escapeHtml(t.winner)}</span>
+      <button class="trophy-delete" data-delete-trophy="${t.id}" title="Remove entry">&times;</button>
+    </div>
+  `).join('') || `<div class="trophy-empty">No winners engraved yet &mdash; be the first.</div>`;
+
+  const namedChips = namedPlayerIdxs().map(idx=>`<button class="trophy-chip" data-fill-winner="${escapeHtml(players[idx].name)}">${escapeHtml(players[idx].name)}</button>`).join('');
+
+  return `
+    <div class="trophy-board">
+      <div class="trophy-board-inner">
+        <div class="trophy-title">${escapeHtml(competition)}</div>
+        <div class="trophy-list">${rows}</div>
+        <div class="trophy-add">
+          <input type="text" class="trophy-year-input" placeholder="Year" data-comp="${escapeHtml(competition)}" maxlength="9">
+          <input type="text" class="trophy-winner-input" placeholder="Winner's name" data-comp="${escapeHtml(competition)}" maxlength="60">
+          <button class="btn btn-primary btn-sm trophy-add-btn" data-comp="${escapeHtml(competition)}">Add</button>
+        </div>
+        ${namedChips ? `<div class="trophy-chips">${namedChips}</div>` : ''}
+        <div class="trophy-msg" data-comp-msg="${escapeHtml(competition)}"></div>
+      </div>
+    </div>
+  `;
+}
+
+function renderTrophyCabinet(){
+  return `
+    <div class="rules-note">Every time one of these gets played, add the year and the winner's name to its board. Nothing here ever gets wiped by "Delete all golf data" &mdash; it's the permanent record.</div>
+    ${TROPHY_COMPETITIONS.map(c => trophyBoardHtml(c)).join('')}
+  `;
+}
+
 
 function attachHandlers(){
   document.querySelectorAll('.tab-btn').forEach(b=>{
@@ -996,6 +1052,7 @@ function attachHandlers(){
       currentTab = b.dataset.tab;
       render();
       if(currentTab==='course' || currentTab==='setup') loadSavedCourses();
+      if(currentTab==='trophies') loadTrophies();
     };
   });
 
@@ -1362,6 +1419,56 @@ function attachHandlers(){
         if(!confirm(`Delete the saved course "${name}"? This can't be undone.`)) return;
         await fetch(`/api/golf/courses/${id}`, { method:'DELETE' });
         await loadSavedCourses();
+      };
+    });
+  }
+
+  if(currentTab==='trophies'){
+    document.querySelectorAll('[data-fill-winner]').forEach(chip=>{
+      chip.onclick = ()=>{
+        let node = chip.parentElement;
+        while(node && !node.classList.contains('trophy-board')) node = node.parentElement;
+        const input = node ? node.querySelector('.trophy-winner-input') : null;
+        if(input) input.value = chip.dataset.fillWinner;
+      };
+    });
+
+    document.querySelectorAll('.trophy-add-btn').forEach(btn=>{
+      btn.onclick = async ()=>{
+        const comp = btn.dataset.comp;
+        const yearInput = document.querySelector(`.trophy-year-input[data-comp="${comp}"]`);
+        const winnerInput = document.querySelector(`.trophy-winner-input[data-comp="${comp}"]`);
+        const msgEl = document.querySelector(`[data-comp-msg="${comp}"]`);
+        const year = (yearInput.value || '').trim();
+        const winner = (winnerInput.value || '').trim();
+        if(!year || !winner){
+          if(msgEl) msgEl.innerHTML = `<div class="alert alert-error" style="margin-top:0.6rem;">Enter both a year and a winner.</div>`;
+          return;
+        }
+        btn.disabled = true;
+        try{
+          const res = await fetch('/api/golf/trophies', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ competition: comp, year, winner }) });
+          if(res.ok){
+            await loadTrophies();
+            const freshMsgEl = document.querySelector(`[data-comp-msg="${comp}"]`);
+            if(freshMsgEl) freshMsgEl.innerHTML = `<div class="alert alert-success" style="margin-top:0.6rem;">Added ${escapeHtml(winner)} (${escapeHtml(year)}).</div>`;
+          } else {
+            const data = await res.json().catch(()=>({}));
+            if(msgEl) msgEl.innerHTML = `<div class="alert alert-error" style="margin-top:0.6rem;">${escapeHtml(data.error || 'Could not add that entry.')}</div>`;
+          }
+        } finally {
+          const freshBtn = document.querySelector(`.trophy-add-btn[data-comp="${comp}"]`);
+          if(freshBtn) freshBtn.disabled = false;
+        }
+      };
+    });
+
+    document.querySelectorAll('[data-delete-trophy]').forEach(btn=>{
+      btn.onclick = async ()=>{
+        const id = btn.dataset.deleteTrophy;
+        if(!confirm('Remove this entry from the board? This can\'t be undone.')) return;
+        await fetch(`/api/golf/trophies/${id}`, { method:'DELETE' });
+        await loadTrophies();
       };
     });
   }
