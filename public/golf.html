@@ -209,6 +209,15 @@
   .hcap-group{ display:flex; align-items:center; gap:0.35rem; flex-shrink:0; }
   .hcap-group input{ width:52px; text-align:center; }
   .hcap-label{ font-size:0.68rem; color:var(--muted); white-space:nowrap; text-transform:uppercase; }
+
+  .format-row{ display:flex; flex-direction:column; gap:0.7rem; }
+  .format-check{ display:flex; align-items:center; gap:0.6rem; font-size:0.85rem; cursor:pointer; }
+  .format-check input[type=checkbox]{ width:18px; height:18px; accent-color:var(--gold); flex-shrink:0; }
+  .format-check span b{ color:var(--white); }
+
+  .stake-table th, .stake-table td{ white-space:nowrap; }
+  .stake-pos{ color:var(--success); font-weight:700; }
+  .stake-neg{ color:var(--danger); font-weight:700; }
   .save-tick{ font-size:0.7rem; color:var(--success); margin-left:0.4rem; opacity:0; transition:opacity 0.3s; }
   .save-tick.show{ opacity:1; }
 
@@ -260,12 +269,12 @@
     <div id="refresh-countdown">LIVE &middot; syncs every few seconds</div>
     <div class="tab-bar">
       <button class="tab-btn active" data-tab="scorecard">My Scorecard</button>
-      <button class="tab-btn" data-tab="setup">Players</button>
+      <button class="tab-btn" data-tab="setup">Format</button>
       <button class="tab-btn" data-tab="course">Course</button>
       <button class="tab-btn" data-tab="standings">Table</button>
       <button class="tab-btn" data-tab="semis">Semis</button>
       <button class="tab-btn" data-tab="final">Final</button>
-      <button class="tab-btn" data-tab="sidebets">Side Bets</button>
+      <button class="tab-btn" data-tab="sidebets">666 and PP</button>
     </div>
     <div id="golf-content"><p style="color:var(--muted)">Loading&hellip;</p></div>
   </main>

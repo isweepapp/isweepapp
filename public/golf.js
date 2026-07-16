@@ -1,38 +1,41 @@
 'use strict';
 
 /* ---------------------------------------------------------
-   SCHEDULE — [holeNumber(1–10), playerAIdx, playerBIdx], 0-based.
-   Every player also plays holes 11–18 on their own scorecard;
-   only 11–13 (semis) and 14–17 (final) feed into the bracket.
+   SCHEDULE — [holeNumber(1–7), playerAIdx, playerBIdx], 0-based.
+   Single round-robin across 8 players: each plays every other once,
+   4 simultaneous matches per hole, 7 holes total. Semis then play
+   holes 8–10, the final holes 11–14. Holes 15–18 are personal-
+   scorecard-only (still usable by Front Six/Middlesex/Back Six/PP).
 --------------------------------------------------------- */
 const SCHEDULE = [
-  [1,0,5],[1,1,4],[1,2,3],
-  [2,0,4],[2,5,3],[2,1,2],
-  [3,0,3],[3,4,2],[3,5,1],
-  [4,0,2],[4,3,1],[4,4,5],
-  [5,0,1],[5,2,5],[5,3,4],
-  [6,5,0],[6,4,1],[6,3,2],
-  [7,4,0],[7,3,5],[7,2,1],
-  [8,3,0],[8,2,4],[8,1,5],
-  [9,2,0],[9,1,3],[9,5,4],
-  [10,1,0],[10,5,2],[10,4,3],
+  [1,0,7],[1,1,6],[1,2,5],[1,3,4],
+  [2,0,1],[2,2,7],[2,3,6],[2,4,5],
+  [3,0,2],[3,3,1],[3,4,7],[3,5,6],
+  [4,0,3],[4,4,2],[4,5,1],[4,6,7],
+  [5,0,4],[5,5,3],[5,6,2],[5,7,1],
+  [6,0,5],[6,6,4],[6,7,3],[6,1,2],
+  [7,0,6],[7,7,5],[7,1,4],[7,2,3],
 ];
 
 const POLL_MS = 5000;
 const MY_PLAYER_KEY = 'golf_my_player_idx';
 
+const NUM_PLAYERS = 8;
+
 let players = [
   {name:"Player 1",handicap:18},{name:"Player 2",handicap:18},{name:"Player 3",handicap:18},
   {name:"Player 4",handicap:18},{name:"Player 5",handicap:18},{name:"Player 6",handicap:18},
+  {name:"Player 7",handicap:18},{name:"Player 8",handicap:18},
 ];
 let course = {};    // holeNumber (1-18) -> {par, stroke_index}
 let savedCourses = []; // [{id, name, created_at}]
 let scores = {};    // playerIdx -> { holeNumber -> {shots, fairway, gir, one_putt, putting_points} }
 let sideDraw = { frontSix: null, middlesexSix: null };
+let settings = { stake: 0, formats: { football: true, six66: true, pp: true } };
 
 let currentTab = "scorecard";
 let selectedPlayerIdx = parseInt(localStorage.getItem(MY_PLAYER_KEY), 10);
-if(isNaN(selectedPlayerIdx) || selectedPlayerIdx < 0 || selectedPlayerIdx > 5) selectedPlayerIdx = 0;
+if(isNaN(selectedPlayerIdx) || selectedPlayerIdx < 0 || selectedPlayerIdx >= NUM_PLAYERS) selectedPlayerIdx = 0;
 
 let pollTimer = null;
 let inFlight = false;
@@ -44,14 +47,14 @@ async function loadState(){
   try{
     const res = await fetch('/api/golf/state');
     const data = await res.json();
-    players = new Array(6).fill(0).map((_,i)=>{
+    players = new Array(NUM_PLAYERS).fill(0).map((_,i)=>{
       const row = data.players.find(p=>p.idx===i);
       return row ? { name: row.name, handicap: row.handicap } : { name:`Player ${i+1}`, handicap:18 };
     });
     course = {};
     data.course.forEach(row=>{ course[row.hole_number] = { par: row.par, stroke_index: row.stroke_index }; });
     scores = {};
-    for(let i=0;i<6;i++) scores[i] = {};
+    for(let i=0;i<NUM_PLAYERS;i++) scores[i] = {};
     data.scores.forEach(row=>{
       scores[row.player_idx][row.hole_number] = {
         shots: row.shots, fairway: !!row.fairway, gir: !!row.gir, one_putt: !!row.one_putt,
@@ -59,6 +62,12 @@ async function loadState(){
       };
     });
     sideDraw = data.sideDraw || { frontSix: null, middlesexSix: null };
+    if(data.settings){
+      settings = {
+        stake: data.settings.stake || 0,
+        formats: data.settings.formats || { football:true, six66:true, pp:true },
+      };
+    }
     render();
   }catch(e){
     console.error('Failed to load golf state', e);
@@ -77,7 +86,7 @@ async function loadSavedCourses(){
   try{
     const res = await fetch('/api/golf/courses');
     savedCourses = await res.json();
-    if(currentTab==='course') render();
+    if(currentTab==='course' || currentTab==='setup') render();
   }catch(e){
     console.error('Failed to load saved courses', e);
   }
@@ -146,7 +155,7 @@ function stageWinner(idxA, idxB, holeNumbers, nameA, nameB){
 }
 
 function computeStandings(){
-  const pts = new Array(6).fill(0);
+  const pts = new Array(NUM_PLAYERS).fill(0);
   SCHEDULE.forEach(([holeNumber, aIdx, bIdx])=>{
     const r = matchResultForHole(aIdx, bIdx, holeNumber);
     pts[aIdx] += r.totalA;
@@ -320,6 +329,46 @@ function renderSetup(){
     <div class="rules-note">Type a name or handicap and it saves automatically for everyone. Each player enters their own scores on the My Scorecard tab.</div>
     <div class="card">${rows}</div>
     <div class="card">
+      <h2>Competition</h2>
+      <div style="font-size:0.85rem; color:var(--muted); margin-bottom:0.9rem;">Choose which competitions are being played this round. Switching one off hides it elsewhere on the site.</div>
+      <div class="format-row">
+        <label class="format-check">
+          <input type="checkbox" id="fmt-football" ${settings.formats.football?'checked':''}>
+          <span><b>Football</b> — the Table, Semis &amp; Final bracket</span>
+        </label>
+        <label class="format-check">
+          <input type="checkbox" id="fmt-six66" ${settings.formats.six66?'checked':''}>
+          <span><b>666</b> — Front Six, Middlesex &amp; Back 6</span>
+        </label>
+        <label class="format-check">
+          <input type="checkbox" id="fmt-pp" ${settings.formats.pp?'checked':''}>
+          <span><b>PP</b> — Putting Points</span>
+        </label>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Stake</h2>
+      <div style="font-size:0.85rem; color:var(--muted); margin-bottom:0.9rem;">What each player is betting. The 666 and PP tab splits the total pot equally across whichever of 666/PP competitions are switched on above.</div>
+      <div style="display:flex; align-items:center; gap:0.6rem;">
+        <label for="stake-input" style="font-weight:800; color:var(--gold);">£</label>
+        <input type="number" id="stake-input" min="0" step="0.5" value="${settings.stake || ''}" placeholder="0" style="width:100px;">
+        <span style="font-size:0.8rem; color:var(--muted);">per player</span>
+      </div>
+      <div id="stake-msg"></div>
+    </div>
+    <div class="card">
+      <h2>Course</h2>
+      <div style="font-size:0.85rem; color:var(--muted); margin-bottom:0.9rem;">Load a saved course to fill in the Course tab's par and stroke index for you.</div>
+      <div style="display:flex; gap:0.5rem;">
+        <select id="format-course-select" style="flex:1;">
+          <option value="">${savedCourses.length ? 'Choose a saved course…' : 'No saved courses yet'}</option>
+          ${savedCourses.map(c=>`<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}
+        </select>
+        <button class="btn btn-primary btn-sm" id="format-load-course-btn" style="width:auto; white-space:nowrap;" ${savedCourses.length?'':'disabled'}>Load</button>
+      </div>
+      <div id="format-course-msg"></div>
+    </div>
+    <div class="card">
       <h2>Scoring</h2>
       <div style="font-size:0.88rem; line-height:1.8; color:var(--muted);">
         Your <b style="color:var(--gold)">Scorecard</b> tab shows standard Stableford points (net score vs. par, using your handicap) for your own round.<br><br>
@@ -331,7 +380,7 @@ function renderSetup(){
     <div class="card" style="border-color:rgba(168,64,47,0.35);">
       <h2 style="color:var(--danger);">Danger zone</h2>
       <div style="font-size:0.85rem; color:var(--muted); margin-bottom:0.9rem;">
-        Wipes every score, and resets player names, handicaps and course settings back to defaults. Use this to clear out test data before the real thing starts.
+        Wipes every score, clears all eight player names back to blank, and resets handicaps, course settings, the stake and the competition picker back to defaults. Use this to start a fresh round.
       </div>
       <button class="btn btn-danger" id="resetAllBtn" style="width:100%;">Delete all golf data</button>
       <div id="reset-msg"></div>
@@ -388,6 +437,9 @@ function renderCourse(){
    STANDINGS TAB
 --------------------------------------------------------- */
 function renderStandings(){
+  if(!settings.formats.football){
+    return `<div class="card"><div class="tbd">Football isn't switched on for this round — turn it on in the Competition card on the Format tab to see the table.</div></div>`;
+  }
   const rows = computeStandings();
   const body = rows.map((r,i)=>`
     <tr class="${i<4?'qualify':''}">
@@ -459,6 +511,9 @@ function renderStageSummary(opts){
 }
 
 function renderSemis(){
+  if(!settings.formats.football){
+    return `<div class="card"><div class="tbd">Football isn't switched on for this round — turn it on in the Competition card on the Format tab to see the semis.</div></div>`;
+  }
   const standings = computeStandings();
   const [seed1, seed2, seed3, seed4] = standings;
   const groupHoles = SCHEDULE.map(s=>s[0]).filter((v,i,a)=>a.indexOf(v)===i);
@@ -468,33 +523,36 @@ function renderSemis(){
   if(!groupDone){
     return `
       <h2 style="margin-bottom:0.75rem;">Semi-Final 1</h2>
-      <div class="card"><div class="tbd">Finish all 10 holes of the group stage to lock in the semi-final line-up.</div></div>
+      <div class="card"><div class="tbd">Finish all 7 holes of the group stage to lock in the semi-final line-up.</div></div>
       <h2 style="margin-bottom:0.75rem;">Semi-Final 2</h2>
-      <div class="card"><div class="tbd">Finish all 10 holes of the group stage to lock in the semi-final line-up.</div></div>
+      <div class="card"><div class="tbd">Finish all 7 holes of the group stage to lock in the semi-final line-up.</div></div>
     `;
   }
   const sf1 = renderStageSummary({
-    idxA: seed1.idx, idxB: seed4.idx, holeNumbers:[11,12,13],
+    idxA: seed1.idx, idxB: seed4.idx, holeNumbers:[8,9,10],
     nameA: seed1.name, nameB: seed4.name, title:'Semi-Final 1 (Seed 1 v Seed 4)',
   });
   const sf2 = renderStageSummary({
-    idxA: seed2.idx, idxB: seed3.idx, holeNumbers:[11,12,13],
+    idxA: seed2.idx, idxB: seed3.idx, holeNumbers:[8,9,10],
     nameA: seed2.name, nameB: seed3.name, title:'Semi-Final 2 (Seed 2 v Seed 3)',
   });
   return sf1 + sf2;
 }
 
 function renderFinal(){
+  if(!settings.formats.football){
+    return `<div class="card"><div class="tbd">Football isn't switched on for this round — turn it on in the Competition card on the Format tab to see the final.</div></div>`;
+  }
   const standings = computeStandings();
   const [seed1, seed2, seed3, seed4] = standings;
-  const w1 = stageWinner(seed1.idx, seed4.idx, [11,12,13], seed1.name, seed4.name);
-  const w2 = stageWinner(seed2.idx, seed3.idx, [11,12,13], seed2.name, seed3.name);
+  const w1 = stageWinner(seed1.idx, seed4.idx, [8,9,10], seed1.name, seed4.name);
+  const w2 = stageWinner(seed2.idx, seed3.idx, [8,9,10], seed2.name, seed3.name);
   const idxA = w1===seed1.name ? seed1.idx : w1===seed4.name ? seed4.idx : null;
   const idxB = w2===seed2.name ? seed2.idx : w2===seed3.name ? seed3.idx : null;
   let subtitle = 'Complete both semi-finals to set the final.';
   if(w1==='TIE' || w2==='TIE') subtitle = 'A semi-final is tied — play a sudden-death hole there before the final can be set.';
   return renderStageSummary({
-    idxA, idxB, holeNumbers:[14,15,16,17],
+    idxA, idxB, holeNumbers:[11,12,13,14],
     nameA: idxA!==null?players[idxA].name:null, nameB: idxB!==null?players[idxB].name:null,
     title:'The Final', subtitle, championStyle:true,
   });
@@ -551,15 +609,119 @@ function spinPlaceholderHtml(id, label, buttonLabel, disabled, disabledNote){
   `;
 }
 
+function computeStakeTable(){
+  const stake = settings.stake || 0;
+  const categories = [];
+  if(settings.formats.six66){
+    if(sideDraw.frontSix) categories.push({ name:'Front Six', rows: sixHoleStandings(sideDraw.frontSix) });
+    if(sideDraw.middlesexSix) categories.push({ name:'Middlesex', rows: sixHoleStandings(sideDraw.middlesexSix) });
+    const bs = backSixHoles();
+    if(bs) categories.push({ name:'Back 6', rows: sixHoleStandings(bs) });
+  }
+  if(settings.formats.pp){
+    categories.push({ name:'Putting Points', rows: puttingStandings() });
+  }
+  if(categories.length===0 || stake<=0) return null;
+
+  const N = players.length;
+  const C = categories.length;
+  const potPerCategory = stake * N / C;
+  const contributionPerCategory = stake / C;
+  const net = players.map(()=>({ total:0, byCategory:{} }));
+
+  categories.forEach(cat=>{
+    const topPts = cat.rows[0].pts;
+    const winners = cat.rows.filter(r=>r.pts===topPts);
+    const winShare = potPerCategory / winners.length;
+    players.forEach((p,idx)=>{
+      const isWinner = winners.some(w=>w.idx===idx);
+      const amount = isWinner ? (winShare - contributionPerCategory) : -contributionPerCategory;
+      net[idx].byCategory[cat.name] = amount;
+      net[idx].total += amount;
+    });
+  });
+
+  return { categories, potPerCategory, contributionPerCategory, net, stake, N, C };
+}
+
+function moneyLabel(amount){
+  const sign = amount > 0.001 ? '+' : '';
+  return `${sign}£${amount.toFixed(2)}`;
+}
+
+function stakeTableHtml(){
+  const data = computeStakeTable();
+  if(!data){
+    return `
+      <div class="card">
+        <h2>Stakes</h2>
+        <div class="tbd">Set a stake on the Format tab (and make sure 666 and/or PP is switched on) to see the payout table.</div>
+      </div>
+    `;
+  }
+  const header = `<th>Player</th>` + data.categories.map(c=>`<th style="text-align:right">${escapeHtml(c.name)}</th>`).join('') + `<th style="text-align:right">Total</th>`;
+  const rows = players.map((p,idx)=>{
+    const cells = data.categories.map(c=>{
+      const amt = data.net[idx].byCategory[c.name];
+      const cls = amt > 0.001 ? 'stake-pos' : amt < -0.001 ? 'stake-neg' : '';
+      return `<td style="text-align:right" class="${cls}">${moneyLabel(amt)}</td>`;
+    }).join('');
+    const totalAmt = data.net[idx].total;
+    const totalCls = totalAmt > 0.001 ? 'stake-pos' : totalAmt < -0.001 ? 'stake-neg' : '';
+    return `<tr><td>${escapeHtml(p.name)}</td>${cells}<td style="text-align:right" class="${totalCls}"><b>${moneyLabel(totalAmt)}</b></td></tr>`;
+  }).join('');
+  return `
+    <div class="card">
+      <h2>Stakes</h2>
+      <div class="rules-note">£${data.stake.toFixed(2)} per player &times; ${data.N} players = £${(data.stake*data.N).toFixed(2)} total, split evenly across ${data.C} categor${data.C===1?'y':'ies'} &mdash; £${data.potPerCategory.toFixed(2)} each. Categories still to be drawn or with no scores yet aren't included until they're ready.</div>
+      <div style="overflow-x:auto;">
+        <table class="standings stake-table"><thead><tr>${header}</tr></thead><tbody>${rows}</tbody></table>
+      </div>
+    </div>
+  `;
+}
+
 function renderSideBets(){
+  const six66On = settings.formats.six66;
+  const ppOn = settings.formats.pp;
   const frontSix = sideDraw.frontSix;
   const middlesexSix = sideDraw.middlesexSix;
   const backSix = backSixHoles();
 
   const overall = overallStandings();
-  const putting = puttingStandings();
-
   const anyDrawn = frontSix || middlesexSix;
+
+  const six66Html = !six66On ? '' : `
+    ${frontSix ? sixHoleSectionHtml('Front Six', frontSix) : spinPlaceholderHtml('spin-front', 'Front Six', 'Front Six', false, '')}
+    ${middlesexSix ? sixHoleSectionHtml('Middlesex', middlesexSix)
+      : spinPlaceholderHtml('spin-middlesex', 'Middlesex', 'Middlesex', !frontSix, 'Spin the Front Six first.')}
+    ${backSix ? sixHoleSectionHtml('Back 6', backSix)
+      : `<div class="card"><h2>Back 6</h2><div class="tbd">Whatever's left once the Front Six and Middlesex are drawn.</div></div>`}
+    ${anyDrawn ? `
+      <div style="text-align:center; margin:0.5rem 0 1rem;">
+        <button class="btn btn-outline btn-sm" id="redraw-btn">Redraw Front Six &amp; Middlesex</button>
+      </div>
+    ` : ''}
+  `;
+
+  const ppHtml = !ppOn ? '' : (()=>{
+    const putting = puttingStandings();
+    return `
+      <div class="card">
+        <h2>Putting Points</h2>
+        <div class="rules-note">Each player's own 0&ndash;6 putting score, added up across all 18 holes &mdash; entered on the My Scorecard tab.</div>
+        ${miniLeaderboardHtml(putting)}
+        <div class="winner-banner" style="margin-top:0.9rem;">
+          <span class="label">Winner</span>
+          <span class="name">${escapeHtml(putting[0].name)}</span>
+        </div>
+      </div>
+    `;
+  })();
+
+  if(!six66On && !ppOn){
+    return `<div class="card"><div class="tbd">666 and PP are both switched off for this round — turn one or both on in the Competition card on the Format tab.</div></div>`;
+  }
 
   return `
     <div class="card">
@@ -573,29 +735,9 @@ function renderSideBets(){
       </div>
     </div>
 
-    ${frontSix ? sixHoleSectionHtml('Front Six', frontSix) : spinPlaceholderHtml('spin-front', 'Front Six', 'Front Six', false, '')}
-
-    ${middlesexSix ? sixHoleSectionHtml('Middlesex', middlesexSix)
-      : spinPlaceholderHtml('spin-middlesex', 'Middlesex', 'Middlesex', !frontSix, 'Spin the Front Six first.')}
-
-    ${backSix ? sixHoleSectionHtml('Back 6', backSix)
-      : `<div class="card"><h2>Back 6</h2><div class="tbd">Whatever's left once the Front Six and Middlesex are drawn.</div></div>`}
-
-    <div class="card">
-      <h2>Putting Points</h2>
-      <div class="rules-note">Each player's own 0&ndash;6 putting score, added up across all 18 holes &mdash; entered on the My Scorecard tab.</div>
-      ${miniLeaderboardHtml(putting)}
-      <div class="winner-banner" style="margin-top:0.9rem;">
-        <span class="label">Winner</span>
-        <span class="name">${escapeHtml(putting[0].name)}</span>
-      </div>
-    </div>
-
-    ${anyDrawn ? `
-      <div style="text-align:center; margin-top:0.5rem;">
-        <button class="btn btn-outline btn-sm" id="redraw-btn">Redraw Front Six &amp; Middlesex</button>
-      </div>
-    ` : ''}
+    ${six66Html}
+    ${ppHtml}
+    ${stakeTableHtml()}
   `;
 }
 
@@ -605,7 +747,7 @@ function attachHandlers(){
     b.onclick = ()=>{
       currentTab = b.dataset.tab;
       render();
-      if(currentTab==='course') loadSavedCourses();
+      if(currentTab==='course' || currentTab==='setup') loadSavedCourses();
     };
   });
 
@@ -797,6 +939,50 @@ function attachHandlers(){
       };
     });
 
+    const stakeInput = document.getElementById('stake-input');
+    if(stakeInput){
+      let stakeDebounce;
+      stakeInput.oninput = ()=>{
+        clearTimeout(stakeDebounce);
+        stakeDebounce = setTimeout(async ()=>{
+          const v = stakeInput.value === '' ? 0 : parseFloat(stakeInput.value);
+          settings.stake = isNaN(v) ? 0 : v;
+          await postJson('/api/golf/settings', { field:'stake', value: settings.stake });
+          const msgEl = document.getElementById('stake-msg');
+          if(msgEl){
+            msgEl.innerHTML = `<div class="alert alert-success" style="margin-top:0.6rem;">Saved.</div>`;
+            setTimeout(()=>{ if(msgEl) msgEl.innerHTML=''; }, 1500);
+          }
+        }, 500);
+      };
+    }
+
+    ['football','six66','pp'].forEach(key=>{
+      const cb = document.getElementById(`fmt-${key}`);
+      if(cb){
+        cb.onchange = async ()=>{
+          settings.formats[key] = cb.checked;
+          await postJson('/api/golf/settings', { field:'formats', value: settings.formats });
+        };
+      }
+    });
+
+    const formatLoadBtn = document.getElementById('format-load-course-btn');
+    if(formatLoadBtn){
+      formatLoadBtn.onclick = async ()=>{
+        const select = document.getElementById('format-course-select');
+        const id = select.value;
+        if(!id) return;
+        const name = select.options[select.selectedIndex].text;
+        if(!confirm(`Load "${name}"? This will overwrite the current par and stroke index for every hole on the Course tab.`)) return;
+        formatLoadBtn.disabled = true;
+        await postJson('/api/golf/courses/load', { id });
+        await loadState();
+        const msgEl = document.getElementById('format-course-msg');
+        if(msgEl) msgEl.innerHTML = `<div class="alert alert-success" style="margin-top:0.9rem;">Loaded "${escapeHtml(name)}" onto the Course tab.</div>`;
+      };
+    }
+
     const resetBtn = document.getElementById('resetAllBtn');
     if(resetBtn){
       resetBtn.onclick = async ()=>{
@@ -844,7 +1030,6 @@ function attachHandlers(){
 
     const saveBtn = document.getElementById('save-course-btn');
     const nameInput = document.getElementById('course-name-input');
-    const msgEl = document.getElementById('course-msg');
     if(saveBtn){
       saveBtn.onclick = async ()=>{
         const name = (nameInput.value || '').trim();
@@ -853,12 +1038,13 @@ function attachHandlers(){
         try{
           const res = await fetch('/api/golf/courses', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name }) });
           if(res.ok){
-            nameInput.value = '';
-            msgEl.innerHTML = `<div class="alert alert-success" style="margin-top:0.9rem;">Saved "${escapeHtml(name)}".</div>`;
             await loadSavedCourses();
+            const msgEl = document.getElementById('course-msg');
+            if(msgEl) msgEl.innerHTML = `<div class="alert alert-success" style="margin-top:0.9rem;">Saved "${escapeHtml(name)}".</div>`;
           } else {
             const data = await res.json().catch(()=>({}));
-            msgEl.innerHTML = `<div class="alert alert-error" style="margin-top:0.9rem;">${escapeHtml(data.error || 'Could not save the course.')}</div>`;
+            const msgEl = document.getElementById('course-msg');
+            if(msgEl) msgEl.innerHTML = `<div class="alert alert-error" style="margin-top:0.9rem;">${escapeHtml(data.error || 'Could not save the course.')}</div>`;
           }
         } finally {
           saveBtn.disabled = false;
@@ -872,8 +1058,9 @@ function attachHandlers(){
         const name = btn.dataset.courseName;
         if(!confirm(`Load "${name}"? This will overwrite the current par and stroke index for every hole.`)) return;
         await postJson('/api/golf/courses/load', { id });
-        if(msgEl) msgEl.innerHTML = `<div class="alert alert-success" style="margin-top:0.9rem;">Loaded "${escapeHtml(name)}".</div>`;
         await loadState();
+        const msgEl = document.getElementById('course-msg');
+        if(msgEl) msgEl.innerHTML = `<div class="alert alert-success" style="margin-top:0.9rem;">Loaded "${escapeHtml(name)}".</div>`;
       };
     });
 
