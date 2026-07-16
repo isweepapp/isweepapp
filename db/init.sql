@@ -136,5 +136,5 @@ CREATE TABLE IF NOT EXISTS golf_side_draw (
 CREATE TABLE IF NOT EXISTS golf_settings (
   id      INTEGER PRIMARY KEY CHECK (id = 1),
   stake   REAL NOT NULL DEFAULT 0,
-  formats TEXT NOT NULL DEFAULT '{"football":true,"six66":true,"pp":true}'
+  formats TEXT NOT NULL DEFAULT '{"football":false,"six66":false,"pp":false}'
 );
