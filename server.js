@@ -48,6 +48,11 @@ try { db.exec('ALTER TABLE golf_group ADD COLUMN hshots INTEGER'); } catch (_) {
 try { db.exec('ALTER TABLE golf_group ADD COLUMN ashots INTEGER'); } catch (_) {}
 try { db.exec('ALTER TABLE golf_knockout ADD COLUMN ashots INTEGER'); } catch (_) {}
 try { db.exec('ALTER TABLE golf_knockout ADD COLUMN bshots INTEGER'); } catch (_) {}
+try { db.exec('ALTER TABLE golf_scores ADD COLUMN putting_points INTEGER NOT NULL DEFAULT 0'); } catch (_) {}
+
+if (db.prepare('SELECT COUNT(*) AS cnt FROM golf_side_draw').get().cnt === 0) {
+  db.prepare('INSERT INTO golf_side_draw (id, front_six, middlesex_six) VALUES (1, NULL, NULL)').run();
+}
 
 if (db.prepare('SELECT COUNT(*) AS cnt FROM golf_course').get().cnt === 0) {
   const insHole = db.prepare('INSERT INTO golf_course (hole_number, par, stroke_index) VALUES (?, ?, ?)');
@@ -2006,8 +2011,15 @@ app.get('/api/golf/schedule', (_req, res) => res.json(GOLF_SCHEDULE));
 app.get('/api/golf/state', (_req, res) => {
   const players = db.prepare('SELECT idx, name, handicap FROM golf_players ORDER BY idx').all();
   const course  = db.prepare('SELECT hole_number, par, stroke_index FROM golf_course ORDER BY hole_number').all();
-  const scores  = db.prepare('SELECT player_idx, hole_number, shots, fairway, gir, one_putt FROM golf_scores').all();
-  res.json({ players, course, scores });
+  const scores  = db.prepare('SELECT player_idx, hole_number, shots, fairway, gir, one_putt, putting_points FROM golf_scores').all();
+  const draw    = db.prepare('SELECT front_six, middlesex_six FROM golf_side_draw WHERE id = 1').get();
+  res.json({
+    players, course, scores,
+    sideDraw: {
+      frontSix: draw && draw.front_six ? JSON.parse(draw.front_six) : null,
+      middlesexSix: draw && draw.middlesex_six ? JSON.parse(draw.middlesex_six) : null,
+    },
+  });
 });
 
 app.post('/api/golf/players', (req, res) => {
@@ -2044,74 +2056,6 @@ app.post('/api/golf/course', (req, res) => {
   res.json({ ok: true });
 });
 
-app.get('/api/golf/course-presets', (_req, res) => {
-  const rows = db.prepare('SELECT id, name, data, created_at FROM golf_course_presets ORDER BY created_at DESC').all();
-  res.json(rows.map(r => ({ id: r.id, name: r.name, created_at: r.created_at, holes: JSON.parse(r.data) })));
-});
-
-app.post('/api/golf/course-presets', (req, res) => {
-  const name = String(req.body.name || '').slice(0, 60).trim();
-  if (!name) return res.status(400).json({ error: 'Name cannot be empty.' });
-  const holes = db.prepare('SELECT hole_number, par, stroke_index FROM golf_course ORDER BY hole_number').all();
-  const data = {};
-  holes.forEach(h => { data[h.hole_number] = { par: h.par, strokeIndex: h.stroke_index }; });
-  const id = uuidv4();
-  db.prepare('INSERT INTO golf_course_presets (id, name, data, created_at) VALUES (?, ?, ?, ?)')
-    .run(id, name, JSON.stringify(data), new Date().toISOString());
-  res.json({ ok: true, id });
-});
-
-app.post('/api/golf/course-presets/load', (req, res) => {
-  const id = String(req.body.id || '');
-  const row = db.prepare('SELECT data FROM golf_course_presets WHERE id=?').get(id);
-  if (!row) return res.status(404).json({ error: 'Preset not found.' });
-  const data = JSON.parse(row.data);
-  const upd = db.prepare('UPDATE golf_course SET par=?, stroke_index=? WHERE hole_number=?');
-  for (let h = 1; h <= 18; h++) {
-    const hole = data[h] || data[String(h)];
-    if (hole) upd.run(hole.par, hole.strokeIndex, h);
-  }
-  res.json({ ok: true });
-});
-
-app.post('/api/golf/course-presets/delete', (req, res) => {
-  const id = String(req.body.id || '');
-  db.prepare('DELETE FROM golf_course_presets WHERE id=?').run(id);
-  res.json({ ok: true });
-});
-
-// ── Named, reusable course presets ─────────────────────────────────────────────
-app.get('/api/golf/course-presets', (_req, res) => {
-  const rows = db.prepare('SELECT name, saved_at FROM golf_course_presets ORDER BY name COLLATE NOCASE').all();
-  res.json(rows);
-});
-
-app.post('/api/golf/course-presets', (req, res) => {
-  const name = String(req.body.name || '').slice(0, 60).trim();
-  if (!name) return res.status(400).json({ error: 'Give the course a name.' });
-  const course = db.prepare('SELECT hole_number, par, stroke_index FROM golf_course ORDER BY hole_number').all();
-  db.prepare('INSERT INTO golf_course_presets (name, data, saved_at) VALUES (?, ?, datetime(\'now\')) ON CONFLICT(name) DO UPDATE SET data=excluded.data, saved_at=excluded.saved_at')
-    .run(name, JSON.stringify(course));
-  res.json({ ok: true });
-});
-
-app.post('/api/golf/course-presets/load', (req, res) => {
-  const name = String(req.body.name || '').trim();
-  const row = db.prepare('SELECT data FROM golf_course_presets WHERE name=?').get(name);
-  if (!row) return res.status(404).json({ error: 'No saved course with that name.' });
-  let holes;
-  try { holes = JSON.parse(row.data); } catch (_) { return res.status(500).json({ error: 'Saved course data is corrupted.' }); }
-  const upd = db.prepare('UPDATE golf_course SET par=?, stroke_index=? WHERE hole_number=?');
-  holes.forEach(h => upd.run(h.par, h.stroke_index, h.hole_number));
-  res.json({ ok: true });
-});
-
-app.post('/api/golf/course-presets/delete', (req, res) => {
-  const name = String(req.body.name || '').trim();
-  db.prepare('DELETE FROM golf_course_presets WHERE name=?').run(name);
-  res.json({ ok: true });
-});
-
 app.get('/api/golf/courses', (_req, res) => {
   const rows = db.prepare('SELECT id, name, created_at FROM golf_saved_courses ORDER BY created_at DESC').all();
   res.json(rows);
@@ -2144,7 +2088,7 @@ app.delete('/api/golf/courses/:id', (req, res) => {
   res.json({ ok: true });
 });
 
-const GOLF_SCORE_FIELDS = ['shots', 'fairway', 'gir', 'one_putt'];
+const GOLF_SCORE_FIELDS = ['shots', 'fairway', 'gir', 'one_putt', 'putting_points'];
 
 app.post('/api/golf/score', (req, res) => {
   const playerIdx = parseInt(req.body.playerIdx, 10);
@@ -2162,14 +2106,55 @@ app.post('/api/golf/score', (req, res) => {
       return res.status(400).json({ error: 'Shots must be between 1 and 20.' });
     }
     db.prepare('UPDATE golf_scores SET shots=? WHERE player_idx=? AND hole_number=?').run(shots, playerIdx, holeNumber);
+  } else if (field === 'putting_points') {
+    const pp = (value === '' || value == null) ? 0 : parseInt(value, 10);
+    if (isNaN(pp) || pp < 0 || pp > 6) {
+      return res.status(400).json({ error: 'Putting points must be between 0 and 6.' });
+    }
+    db.prepare('UPDATE golf_scores SET putting_points=? WHERE player_idx=? AND hole_number=?').run(pp, playerIdx, holeNumber);
   } else {
     db.prepare(`UPDATE golf_scores SET ${field}=? WHERE player_idx=? AND hole_number=?`).run(value ? 1 : 0, playerIdx, holeNumber);
   }
   res.json({ ok: true });
 });
 
+// ── Side competitions: Front Six / Middlesex / Back 6 random draw ─────────────
+app.post('/api/golf/side-draw', (req, res) => {
+  const stage = req.body.stage;
+  if (!['front', 'middlesex'].includes(stage)) {
+    return res.status(400).json({ error: 'Invalid draw stage.' });
+  }
+  const row = db.prepare('SELECT front_six, middlesex_six FROM golf_side_draw WHERE id = 1').get();
+  const frontSix = row && row.front_six ? JSON.parse(row.front_six) : null;
+  const middlesexSix = row && row.middlesex_six ? JSON.parse(row.middlesex_six) : null;
+
+  if (stage === 'front') {
+    if (frontSix) return res.status(400).json({ error: 'Front Six has already been drawn.' });
+    const pool = Array.from({ length: 18 }, (_, i) => i + 1);
+    const picked = [];
+    for (let i = 0; i < 6; i++) picked.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+    db.prepare('UPDATE golf_side_draw SET front_six=? WHERE id = 1').run(JSON.stringify(picked));
+    return res.json({ ok: true, holes: picked });
+  }
+
+  // middlesex
+  if (!frontSix) return res.status(400).json({ error: 'Draw the Front Six first.' });
+  if (middlesexSix) return res.status(400).json({ error: 'Middlesex has already been drawn.' });
+  const pool = Array.from({ length: 18 }, (_, i) => i + 1).filter(h => !frontSix.includes(h));
+  const picked = [];
+  for (let i = 0; i < 6; i++) picked.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+  db.prepare('UPDATE golf_side_draw SET middlesex_six=? WHERE id = 1').run(JSON.stringify(picked));
+  res.json({ ok: true, holes: picked });
+});
+
+app.post('/api/golf/side-draw/reset', (_req, res) => {
+  db.prepare('UPDATE golf_side_draw SET front_six=NULL, middlesex_six=NULL WHERE id = 1').run();
+  res.json({ ok: true });
+});
+
 app.post('/api/admin/golf/reset', requireAdmin, (_req, res) => {
   db.exec('DELETE FROM golf_scores');
+  db.prepare('UPDATE golf_side_draw SET front_six=NULL, middlesex_six=NULL WHERE id = 1').run();
   const golfDefaults = ['Scum', 'Gav', 'Bone', 'Pants', 'Crumble', 'Swanko'];
   const updGolfPlayer = db.prepare('UPDATE golf_players SET name=?, handicap=18 WHERE idx=?');
   golfDefaults.forEach((name, idx) => updGolfPlayer.run(name, idx));
