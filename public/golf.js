@@ -59,6 +59,7 @@ async function loadState(){
       scores[row.player_idx][row.hole_number] = {
         shots: row.shots, fairway: !!row.fairway, gir: !!row.gir, one_putt: !!row.one_putt,
         putting_points: row.putting_points || 0,
+        lost_balls: row.lost_balls || 0,
       };
     });
     sideDraw = data.sideDraw || { frontSix: null, middlesexSix: null };
@@ -236,6 +237,7 @@ function render(){
   else if(currentTab==='semis') el.innerHTML = renderSemis();
   else if(currentTab==='final') el.innerHTML = renderFinal();
   else if(currentTab==='sidebets') el.innerHTML = renderSideBets();
+  else if(currentTab==='stats') el.innerHTML = renderStats();
   attachHandlers();
 }
 
@@ -258,12 +260,13 @@ function scRowHtml(playerIdx, holeNumber){
       <div class="sc-tick"><input type="checkbox" data-field="gir" ${s.gir?'checked':''}></div>
       <div class="sc-tick"><input type="checkbox" data-field="one_putt" ${s.one_putt?'checked':''}></div>
       <div class="sc-puttcell"><input type="number" min="0" max="6" inputmode="numeric" data-field="putting_points" value="${s.putting_points || 0}"></div>
+      <div class="sc-lbcell"><input type="number" min="0" max="20" inputmode="numeric" data-field="lost_balls" value="${s.lost_balls || 0}"></div>
     </div>
   `;
 }
 
 function scSubtotalHtml(label, playerIdx, holeNumbers, cls){
-  let shotsSum = 0, ptsSum = 0, puttSum = 0, anyShots = false;
+  let shotsSum = 0, ptsSum = 0, puttSum = 0, lbSum = 0, anyShots = false;
   holeNumbers.forEach(hn=>{
     const s = scoreFor(playerIdx, hn);
     if(s.shots!=null){ shotsSum += s.shots; anyShots = true; }
@@ -271,6 +274,7 @@ function scSubtotalHtml(label, playerIdx, holeNumbers, cls){
     const p = stablefordPoints(s.shots, players[playerIdx].handicap, info.par, info.stroke_index);
     if(p!==null) ptsSum += p;
     puttSum += s.putting_points || 0;
+    lbSum += s.lost_balls || 0;
   });
   return `
     <div class="sc-row ${cls}">
@@ -281,6 +285,7 @@ function scSubtotalHtml(label, playerIdx, holeNumbers, cls){
       <div class="sc-tick"></div>
       <div class="sc-tick"></div>
       <div class="sc-puttcell" style="text-align:center;">${puttSum}</div>
+      <div class="sc-lbcell" style="text-align:center;">${lbSum}</div>
     </div>
   `;
 }
@@ -294,7 +299,7 @@ function renderScorecard(){
   return `
     <div class="player-picker">${chips}</div>
     <div class="rules-note">
-      <b>${escapeHtml(p.name)}</b> · handicap ${p.handicap} — enter your gross shots for each hole and the Stableford points work themselves out. Keep going through all 18 even after your bracket matches are decided. "Putt" is your score for the separate Putting Points competition (0–6, your call).
+      <b>${escapeHtml(p.name)}</b> · handicap ${p.handicap} — enter your gross shots for each hole and the Stableford points work themselves out. Keep going through all 18 even after your bracket matches are decided. "Putt" is your score for the Putting Points competition (0–6, your call). "LB" is how many balls you lost on that hole.
     </div>
     <div class="scorecard" id="scorecard-body">
       <div class="sc-row sc-headerrow">
@@ -305,6 +310,7 @@ function renderScorecard(){
         <div class="sc-tick">GIR</div>
         <div class="sc-tick">1P</div>
         <div class="sc-puttcell">Putt</div>
+        <div class="sc-lbcell">LB</div>
       </div>
       ${out.map(h=>scRowHtml(selectedPlayerIdx,h)).join('')}
       ${scSubtotalHtml('OUT', selectedPlayerIdx, out, 'subtotal')}
@@ -806,6 +812,112 @@ function renderSideBets(){
   `;
 }
 
+/* ---------------------------------------------------------
+   STATS TAB — Lost Balls / Scum Corner / Crumble chart
+--------------------------------------------------------- */
+function lostBallsTotal(playerIdx){
+  let total = 0;
+  ALL_18.forEach(hn => { total += scoreFor(playerIdx, hn).lost_balls || 0; });
+  return total;
+}
+function rankPlayersAscending(scoreFn, idxs){
+  const list = idxs || players.map((_,i)=>i);
+  const rows = list.map(i=>({idx:i, name:players[i].name, pts:scoreFn(i)}));
+  rows.sort((a,b)=> a.pts - b.pts);
+  let rank=0, prevPts=null, seen=0;
+  rows.forEach(r=>{
+    seen++;
+    if(r.pts !== prevPts){ rank = seen; prevPts = r.pts; }
+    r.rank = rank;
+  });
+  return rows;
+}
+function lostBallsStandings(){ return rankPlayersAscending(i => lostBallsTotal(i), namedPlayerIdxs()); }
+
+const CRUMBLE_COLORS = ['#FFBA00','#35D686','#FF6459','#5AC8FA','#C99BFF','#FF9F5A','#7FE3D0','#F06BAE'];
+
+function crumbleChartSvg(){
+  const activeIdxs = namedPlayerIdxs();
+  if(activeIdxs.length === 0){
+    return `<div class="tbd">Add player names on the Format tab to see this chart.</div>`;
+  }
+  const width = 700, height = 320;
+  const padL = 30, padR = 12, padT = 14, padB = 26;
+  const plotW = width - padL - padR;
+  const plotH = height - padT - padB;
+  const maxY = 6;
+  const xFor = h => padL + (h - 1) * (plotW / (ALL_18.length - 1));
+  const yFor = v => padT + plotH - (Math.max(0, Math.min(v, maxY)) / maxY) * plotH;
+
+  let gridLines = '';
+  [0,2,4,6].forEach(v=>{
+    const y = yFor(v);
+    gridLines += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${width-padR}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>`;
+    gridLines += `<text x="${padL-6}" y="${(y+3).toFixed(1)}" font-size="10" fill="#9C9CB4" text-anchor="end">${v}</text>`;
+  });
+  const baselineY = yFor(2);
+  const baseline = `<line x1="${padL}" y1="${baselineY.toFixed(1)}" x2="${width-padR}" y2="${baselineY.toFixed(1)}" stroke="#FFBA00" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+
+  let xLabels = '';
+  ALL_18.forEach(h=>{
+    xLabels += `<text x="${xFor(h).toFixed(1)}" y="${height-padB+14}" font-size="9" fill="#9C9CB4" text-anchor="middle">${h}</text>`;
+  });
+
+  let lines = '';
+  let legend = '';
+  activeIdxs.forEach((idx,ci)=>{
+    const color = CRUMBLE_COLORS[ci % CRUMBLE_COLORS.length];
+    const pts = [];
+    ALL_18.forEach(h=>{
+      const s = scoreFor(idx, h);
+      const info = courseInfo(h);
+      const p = stablefordPoints(s.shots, players[idx].handicap, info.par, info.stroke_index);
+      if(p !== null) pts.push([xFor(h), yFor(p)]);
+    });
+    if(pts.length > 0){
+      const poly = pts.map(([x,y])=>`${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+      lines += `<polyline points="${poly}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+      pts.forEach(([x,y])=>{ lines += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.6" fill="${color}"/>`; });
+    }
+    legend += `<span class="crumble-legend-item"><span class="crumble-dot" style="background:${color}"></span>${escapeHtml(players[idx].name)}</span>`;
+  });
+
+  return `
+    <div class="crumble-chart-wrap">
+      <svg viewBox="0 0 ${width} ${height}" class="crumble-svg" preserveAspectRatio="xMidYMid meet">
+        ${gridLines}
+        ${baseline}
+        ${xLabels}
+        ${lines}
+      </svg>
+    </div>
+    <div class="crumble-legend">${legend}</div>
+  `;
+}
+
+function renderStats(){
+  const lostBalls = lostBallsStandings();
+  const lostBallsHtml = lostBalls.length === 0
+    ? `<div class="tbd">Add player names on the Format tab to see this.</div>`
+    : miniLeaderboardHtml(lostBalls);
+
+  return `
+    <div class="card">
+      <h2>Lost Balls</h2>
+      <div class="rules-note">Total balls lost across the round, entered on the My Scorecard tab &mdash; fewest at the top.</div>
+      ${lostBallsHtml}
+    </div>
+
+    ${sixHoleSectionHtml('Scum Corner', [7,8,9])}
+
+    <div class="card">
+      <h2>Crumble</h2>
+      <div class="rules-note">Everyone's Stableford points, hole by hole. The dashed line marks 2 points &mdash; the baseline (net par).</div>
+      ${crumbleChartSvg()}
+    </div>
+  `;
+}
+
 
 function attachHandlers(){
   document.querySelectorAll('.tab-btn').forEach(b=>{
@@ -939,6 +1051,46 @@ function attachHandlers(){
               } else {
                 puttInput.value = original;
                 scores[selectedPlayerIdx][holeNumber].putting_points = parseInt(original,10);
+              }
+            } else {
+              proceed();
+            }
+          }, 500);
+        };
+      }
+
+      const lbInput = row.querySelector('input[data-field="lost_balls"]');
+      if(lbInput){
+        let lbDebounce;
+        lbInput.onfocus = ()=>{
+          if(lbInput.dataset.originalValue === undefined){
+            const existing = scoreFor(selectedPlayerIdx, holeNumber).lost_balls || 0;
+            lbInput.dataset.originalValue = String(existing);
+          }
+        };
+        lbInput.oninput = ()=>{
+          if(!scores[selectedPlayerIdx]) scores[selectedPlayerIdx] = {};
+          if(!scores[selectedPlayerIdx][holeNumber]) scores[selectedPlayerIdx][holeNumber] = {};
+          let v = lbInput.value === '' ? 0 : parseInt(lbInput.value,10);
+          if(isNaN(v)) v = 0;
+          if(v < 0) v = 0; if(v > 20) v = 20;
+          scores[selectedPlayerIdx][holeNumber].lost_balls = v;
+          clearTimeout(lbDebounce);
+          lbDebounce = setTimeout(()=>{
+            const original = lbInput.dataset.originalValue ?? '0';
+            const changingExisting = original !== '0' && original !== String(v);
+            const proceed = ()=>{
+              lbInput.dataset.originalValue = String(v);
+              inFlight = true;
+              postJson('/api/golf/score', { playerIdx: selectedPlayerIdx, holeNumber, field:'lost_balls', value: v })
+                .finally(()=>{ inFlight = false; });
+            };
+            if(changingExisting){
+              if(confirm(`Are you sure you want to change hole ${holeNumber}'s lost balls from ${original} to ${v}?`)){
+                proceed();
+              } else {
+                lbInput.value = original;
+                scores[selectedPlayerIdx][holeNumber].lost_balls = parseInt(original,10);
               }
             } else {
               proceed();

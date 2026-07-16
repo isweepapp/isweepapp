@@ -128,7 +128,7 @@
     background:#F6F1DE; color:#26231A;
   }
   .sc-row{
-    display:grid; grid-template-columns: 52px 46px 34px 30px 30px 30px 42px;
+    display:grid; grid-template-columns: 46px 42px 30px 26px 26px 26px 36px 32px;
     align-items:center; gap:0.3rem;
     padding:0.5rem 0.5rem;
     border-bottom:1px solid #DED2A8;
@@ -146,9 +146,9 @@
   .sc-hole{ font-weight:900; font-size:1.05rem; color:#1A1710; }
   .sc-row.total .sc-hole{ color:#05051C; }
   .sc-muted{ font-size:0.62rem; color:#7A7150; }
-  .sc-shots, .sc-puttcell{ text-align:center; }
-  .sc-shots input, .sc-puttcell input{
-    width:100%; max-width:46px; text-align:center; font-size:1rem; font-weight:800;
+  .sc-shots, .sc-puttcell, .sc-lbcell{ text-align:center; }
+  .sc-shots input, .sc-puttcell input, .sc-lbcell input{
+    width:100%; max-width:40px; text-align:center; font-size:0.95rem; font-weight:800;
     padding:0.35rem 0.1rem; background:#FFFDF6; border:1px solid #C9BD98; color:#1A1710;
     border-radius:6px;
   }
@@ -229,6 +229,12 @@
   .settle-arrow{ color:var(--muted); font-size:0.78rem; }
   .settle-to{ font-weight:800; color:var(--success); }
   .settle-amount{ margin-left:auto; font-weight:900; color:var(--gold); font-family:ui-monospace,monospace; }
+
+  .crumble-chart-wrap{ width:100%; overflow-x:auto; }
+  .crumble-svg{ width:100%; height:auto; min-width:520px; display:block; }
+  .crumble-legend{ display:flex; flex-wrap:wrap; gap:0.6rem 1rem; margin-top:0.9rem; }
+  .crumble-legend-item{ display:flex; align-items:center; gap:0.35rem; font-size:0.8rem; color:var(--white); }
+  .crumble-dot{ width:10px; height:10px; border-radius:50%; display:inline-block; flex-shrink:0; }
   .save-tick{ font-size:0.7rem; color:var(--success); margin-left:0.4rem; opacity:0; transition:opacity 0.3s; }
   .save-tick.show{ opacity:1; }
 
@@ -286,6 +292,7 @@
       <button class="tab-btn" data-tab="semis">Semis</button>
       <button class="tab-btn" data-tab="final">Final</button>
       <button class="tab-btn" data-tab="sidebets">666 and PP</button>
+      <button class="tab-btn" data-tab="stats">Stats</button>
     </div>
     <div id="golf-content"><p style="color:var(--muted)">Loading&hellip;</p></div>
   </main>
