@@ -31,6 +31,7 @@ let course = {};    // holeNumber (1-18) -> {par, stroke_index}
 let savedCourses = []; // [{id, name, created_at}]
 let trophies = []; // [{id, competition, year, winner, created_at}]
 let trophySubPage = 'boards'; // 'boards' | 'shelf'
+const SHELF_PLAYERS = ['Kemble', 'Swanko', 'Gavin', 'Scum'];
 const TROPHY_COMPETITIONS = [
   'St Georges Day', 'Christmas Crumble', 'Easter Brighton',
   'Champions League Final', 'Flying Ants Day', 'World Cup',
@@ -1076,9 +1077,11 @@ function competitionWinCount(comp){
   return trophies.filter(t => t.competition === comp).length;
 }
 
-function paniniSlotHtml(comp){
+function paniniSlotHtml(comp, playerName){
   const slug = competitionSlug(comp);
-  const count = competitionWinCount(comp);
+  const count = playerName
+    ? trophies.filter(t => t.competition === comp && (t.winner||'').trim().toLowerCase() === playerName.toLowerCase()).length
+    : competitionWinCount(comp);
   const stars = count > 0 ? `<div class="panini-stars">${'&#9733;'.repeat(count)}</div>` : `<div class="panini-stars panini-stars-empty">&nbsp;</div>`;
 
   if(count === 0){
@@ -1105,14 +1108,23 @@ function paniniSlotHtml(comp){
   `;
 }
 
+function paniniPlayerLineHtml(playerName){
+  return `
+    <div class="panini-player-block">
+      <div class="panini-player-name">${escapeHtml(playerName)}</div>
+      <div class="panini-line">
+        ${TROPHY_COMPETITIONS.map(c => paniniSlotHtml(c, playerName)).join('')}
+      </div>
+    </div>
+  `;
+}
+
 function renderTrophyShelf(){
   return `
-    <div class="rules-note">Send over each competition's sticker and I'll drop it in &mdash; the moment a competition's been won for the first time, its sticker replaces the grey placeholder here, with a star below for every time it's been won since.</div>
+    <div class="rules-note">Send over each competition's sticker and I'll drop it in &mdash; the moment a player wins a competition for the first time, its sticker replaces the grey placeholder on their line, with a star below for every time they've won it since.</div>
     <div class="panini-page">
       <div class="panini-header">Trophies</div>
-      <div class="panini-grid">
-        ${TROPHY_COMPETITIONS.map(c => paniniSlotHtml(c)).join('')}
-      </div>
+      ${SHELF_PLAYERS.map(n => paniniPlayerLineHtml(n)).join('')}
     </div>
   `;
 }

@@ -309,29 +309,38 @@
   .panini-page{
     background:linear-gradient(180deg, #F4F1E8, #E8E2D0);
     border:1px solid #C9BD98; border-radius:12px;
-    padding:1.2rem 1rem 1.6rem;
+    padding:1.2rem 0.9rem 1.4rem;
     box-shadow:0 10px 24px rgba(0,0,0,0.35);
   }
   .panini-header{
     font-family:Georgia,'Times New Roman',serif; font-weight:900; font-style:italic;
     font-size:1.6rem; text-align:center; color:#1A1A2E;
     text-transform:uppercase; letter-spacing:0.04em;
-    margin-bottom:1rem;
+    margin-bottom:1.1rem;
     text-shadow:1px 1px 0 rgba(255,255,255,0.5);
   }
-  .panini-grid{
-    display:grid; grid-template-columns:1fr 1fr; gap:1rem 0.9rem;
+  .panini-player-block{ margin-bottom:1.3rem; }
+  .panini-player-block:last-child{ margin-bottom:0; }
+  .panini-player-name{
+    font-family:Georgia,'Times New Roman',serif; font-weight:700;
+    font-size:0.95rem; color:#1A1A2E; text-transform:uppercase; letter-spacing:0.05em;
+    margin-bottom:0.5rem; padding-bottom:0.25rem;
+    border-bottom:1px solid #C9BD98;
   }
-  .panini-item{ display:flex; flex-direction:column; align-items:center; }
+  .panini-line{
+    display:flex; gap:0.55rem; overflow-x:auto; padding-bottom:0.3rem;
+    -webkit-overflow-scrolling:touch;
+  }
+  .panini-item{ display:flex; flex-direction:column; align-items:center; flex-shrink:0; width:58px; }
   .panini-slot{
-    position:relative; width:100%; aspect-ratio:3/4;
-    border-radius:8px; overflow:hidden;
+    position:relative; width:58px; aspect-ratio:3/4;
+    border-radius:6px; overflow:hidden;
     display:flex; align-items:center; justify-content:center;
-    box-shadow:0 3px 8px rgba(0,0,0,0.25);
+    box-shadow:0 2px 5px rgba(0,0,0,0.25);
   }
   .panini-slot-empty{
-    background:repeating-linear-gradient(135deg, #D3D3D3, #D3D3D3 10px, #C7C7C7 10px, #C7C7C7 20px);
-    border:2px dashed #A8A8A8;
+    background:repeating-linear-gradient(135deg, #D3D3D3, #D3D3D3 7px, #C7C7C7 7px, #C7C7C7 14px);
+    border:1.5px dashed #A8A8A8;
   }
   .panini-slot-filled{
     border:1px solid rgba(0,0,0,0.15);
@@ -340,17 +349,17 @@
   .panini-sticker-img{ width:100%; height:100%; object-fit:cover; display:block; }
   .panini-watermark{
     position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-    width:52%; height:auto; opacity:0.16; pointer-events:none;
+    width:58%; height:auto; opacity:0.18; pointer-events:none;
   }
   .panini-empty-name{
     position:relative; z-index:1;
-    font-weight:800; font-size:0.82rem; color:#5A5A5A;
-    text-align:center; text-transform:uppercase; letter-spacing:0.03em;
-    padding:0 0.5rem; line-height:1.3;
+    font-weight:800; font-size:0.5rem; color:#5A5A5A;
+    text-align:center; text-transform:uppercase; letter-spacing:0.01em;
+    padding:0 0.2rem; line-height:1.15;
   }
   .panini-stars{
-    margin-top:0.4rem; font-size:0.85rem; letter-spacing:0.06em;
-    color:#96650F; text-align:center; min-height:1.2em;
+    margin-top:0.25rem; font-size:0.6rem; letter-spacing:0.03em;
+    color:#96650F; text-align:center; min-height:1.1em;
   }
   .save-tick{ font-size:0.7rem; color:var(--success); margin-left:0.4rem; opacity:0; transition:opacity 0.3s; }
   .save-tick.show{ opacity:1; }
