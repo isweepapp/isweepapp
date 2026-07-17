@@ -1121,12 +1121,20 @@ function paniniSlotHtml(comp, playerName){
   `;
 }
 
+function competitionsForPlayer(playerName){
+  return TROPHY_COMPETITIONS.filter(c=>{
+    if(c === 'Covid Cup') return playerName.trim().toLowerCase() === 'gavin';
+    return true;
+  });
+}
+
 function paniniPlayerLineHtml(playerName){
+  const comps = competitionsForPlayer(playerName);
   return `
     <div class="panini-player-block">
       <div class="panini-player-name">${escapeHtml(playerName)}</div>
       <div class="panini-line">
-        ${TROPHY_COMPETITIONS.map(c => paniniSlotHtml(c, playerName)).join('')}
+        ${comps.map(c => paniniSlotHtml(c, playerName)).join('')}
       </div>
     </div>
   `;
