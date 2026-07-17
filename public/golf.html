@@ -345,7 +345,10 @@
   .panini-slot-filled{
     border:1px solid rgba(0,0,0,0.15);
     background:#fff;
+    cursor:zoom-in;
+    transition:transform 0.15s ease;
   }
+  .panini-slot-filled:active{ transform:scale(0.94); }
   .panini-sticker-img{ width:100%; height:100%; object-fit:cover; display:block; }
   .panini-watermark{
     position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
@@ -396,6 +399,19 @@
   }
   .spin-display{ display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.3rem; }
   .spin-display .hole-ball{ background:var(--bg-card-2); color:var(--muted); border:1px solid var(--border); }
+
+  /* ── Sticker lightbox (tap a sticker to see it full-size) ───────────────── */
+  .sticker-lightbox{
+    display:none; position:fixed; inset:0; z-index:500;
+    background:rgba(0,0,0,0.86);
+    align-items:center; justify-content:center;
+    padding:2rem; cursor:zoom-out;
+  }
+  .sticker-lightbox.show{ display:flex; }
+  .sticker-lightbox img{
+    max-width:88vw; max-height:82vh; border-radius:12px;
+    box-shadow:0 24px 60px rgba(0,0,0,0.65);
+  }
 </style>
 </head>
 <body>

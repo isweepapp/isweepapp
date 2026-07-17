@@ -243,6 +243,19 @@ function escapeHtml(s){
 }
 function ptsLabel(n){ return `${n} pt${n===1?'':'s'}`; }
 
+function openStickerLightbox(imgSrc, label){
+  let overlay = document.getElementById('sticker-lightbox');
+  if(!overlay){
+    overlay = document.createElement('div');
+    overlay.id = 'sticker-lightbox';
+    overlay.className = 'sticker-lightbox';
+    overlay.onclick = ()=>{ overlay.classList.remove('show'); };
+    document.body.appendChild(overlay);
+  }
+  overlay.innerHTML = `<img src="${imgSrc}" alt="${escapeHtml(label)}">`;
+  overlay.classList.add('show');
+}
+
 function render(){
   document.querySelectorAll('.tab-btn').forEach(b=>{
     b.classList.toggle('active', b.dataset.tab === currentTab);
@@ -1097,9 +1110,9 @@ function paniniSlotHtml(comp, playerName){
   }
   return `
     <div class="panini-item">
-      <div class="panini-slot panini-slot-filled">
+      <div class="panini-slot panini-slot-filled" onclick="openStickerLightbox('/assets/stickers/${slug}.jpg', '${escapeHtml(comp).replace(/'/g,"\\'")}')">
         <img class="panini-sticker-img" src="/assets/stickers/${slug}.jpg" alt="${escapeHtml(comp)}"
-             onerror="this.parentElement.classList.remove('panini-slot-filled'); this.parentElement.classList.add('panini-slot-empty'); this.style.display='none'; this.nextElementSibling.style.display='block'; this.parentElement.querySelector('.panini-empty-name').style.display='block';">
+             onerror="this.parentElement.classList.remove('panini-slot-filled'); this.parentElement.classList.add('panini-slot-empty'); this.parentElement.onclick=null; this.style.display='none'; this.nextElementSibling.style.display='block'; this.parentElement.querySelector('.panini-empty-name').style.display='block';">
         <img class="panini-watermark" src="/assets/golf-logo.png" alt="" style="display:none;">
         <span class="panini-empty-name" style="display:none;">${escapeHtml(comp)}</span>
       </div>
