@@ -306,58 +306,52 @@
   }
   .trophy-subnav-btn.active{ color:#05051C; border-color:var(--gold); background:var(--gold); }
 
-  .shelf-card{
-    position:relative;
-    aspect-ratio:760/237;
-    background-size:cover;
-    background-position:center;
-    background-repeat:no-repeat;
-    border-radius:8px;
-    margin-bottom:1.6rem;
-    box-shadow:0 16px 30px rgba(0,0,0,0.6);
+  .panini-page{
+    background:linear-gradient(180deg, #F4F1E8, #E8E2D0);
+    border:1px solid #C9BD98; border-radius:12px;
+    padding:1.2rem 1rem 1.6rem;
+    box-shadow:0 10px 24px rgba(0,0,0,0.35);
   }
-  .shelf-row{
-    position:absolute; left:2%; right:2%; bottom:15%;
-    z-index:2;
-    display:flex; flex-wrap:wrap; gap:1.6rem; justify-content:center;
-    align-items:flex-end;
+  .panini-header{
+    font-family:Georgia,'Times New Roman',serif; font-weight:900; font-style:italic;
+    font-size:1.6rem; text-align:center; color:#1A1A2E;
+    text-transform:uppercase; letter-spacing:0.04em;
+    margin-bottom:1rem;
+    text-shadow:1px 1px 0 rgba(255,255,255,0.5);
   }
-  .shelf-empty{ position:relative; z-index:1; color:rgba(255,255,255,0.55); font-style:italic; text-align:center; font-size:0.85rem; white-space:nowrap; }
-  .shelf-item{ display:flex; flex-direction:column; align-items:center; width:auto; }
-  .shelf-trophy-stage{
-    position:relative; display:flex; flex-direction:column; align-items:center;
+  .panini-grid{
+    display:grid; grid-template-columns:1fr 1fr; gap:1rem 0.9rem;
   }
-  .shelf-trophy-img{
-    width:15vw; max-width:76px; min-width:44px; height:auto; object-fit:contain;
-    filter:drop-shadow(0 8px 8px rgba(0,0,0,0.65));
-    transition:transform 0.22s ease, filter 0.22s ease;
-    cursor:zoom-in; position:relative; z-index:2;
+  .panini-item{ display:flex; flex-direction:column; align-items:center; }
+  .panini-slot{
+    position:relative; width:100%; aspect-ratio:3/4;
+    border-radius:8px; overflow:hidden;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 3px 8px rgba(0,0,0,0.25);
   }
-  .shelf-trophy-img:hover{
-    transform:scale(3);
-    z-index:20;
-    filter:drop-shadow(0 14px 18px rgba(0,0,0,0.75));
+  .panini-slot-empty{
+    background:repeating-linear-gradient(135deg, #D3D3D3, #D3D3D3 10px, #C7C7C7 10px, #C7C7C7 20px);
+    border:2px dashed #A8A8A8;
   }
-  .shelf-trophy-fallback{
-    width:15vw; max-width:76px; min-width:44px; height:60px; display:none; align-items:center; justify-content:center;
-    font-size:2.6rem; transition:transform 0.22s ease; position:relative; z-index:2;
+  .panini-slot-filled{
+    border:1px solid rgba(0,0,0,0.15);
+    background:#fff;
   }
-  .shelf-trophy-fallback:hover{
-    transform:scale(3);
-    z-index:20;
+  .panini-sticker-img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .panini-watermark{
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    width:52%; height:auto; opacity:0.16; pointer-events:none;
   }
-  .shelf-contact-shadow{
-    width:70%; height:11px; margin-top:-6px;
-    background:radial-gradient(ellipse at center, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.35) 45%, rgba(0,0,0,0) 75%);
-    position:relative; z-index:1; pointer-events:none;
-  }
-  .shelf-caption-row{
+  .panini-empty-name{
     position:relative; z-index:1;
-    display:flex; flex-wrap:wrap; gap:1.6rem; justify-content:center;
-    padding:0.9rem 0.5rem 0.2rem;
+    font-weight:800; font-size:0.82rem; color:#5A5A5A;
+    text-align:center; text-transform:uppercase; letter-spacing:0.03em;
+    padding:0 0.5rem; line-height:1.3;
   }
-  .shelf-comp-name{ font-size:0.85rem; font-weight:700; color:#E8E4D8; text-align:center; line-height:1.25; margin-bottom:0.3rem; }
-  .shelf-stars{ font-size:0.95rem; color:#F0C86A; letter-spacing:0.06em; text-shadow:0 0 6px rgba(240,200,106,0.4); }
+  .panini-stars{
+    margin-top:0.4rem; font-size:0.85rem; letter-spacing:0.06em;
+    color:#96650F; text-align:center; min-height:1.2em;
+  }
   .save-tick{ font-size:0.7rem; color:var(--success); margin-left:0.4rem; opacity:0; transition:opacity 0.3s; }
   .save-tick.show{ opacity:1; }
 

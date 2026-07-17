@@ -31,7 +31,6 @@ let course = {};    // holeNumber (1-18) -> {par, stroke_index}
 let savedCourses = []; // [{id, name, created_at}]
 let trophies = []; // [{id, competition, year, winner, created_at}]
 let trophySubPage = 'boards'; // 'boards' | 'shelf'
-const SHELF_PLAYERS = ['Kemble', 'Swanko', 'Gavin', 'Scum'];
 const TROPHY_COMPETITIONS = [
   'St Georges Day', 'Christmas Crumble', 'Easter Brighton',
   'Champions League Final', 'Flying Ants Day', 'World Cup',
@@ -1073,59 +1072,48 @@ function competitionSlug(comp){
   return comp.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
 }
 
-function shelfWinsFor(name){
-  const wins = {};
-  trophies.forEach(t=>{
-    if((t.winner||'').trim().toLowerCase() === name.toLowerCase()){
-      wins[t.competition] = (wins[t.competition] || 0) + 1;
-    }
-  });
-  return wins;
+function competitionWinCount(comp){
+  return trophies.filter(t => t.competition === comp).length;
 }
 
-function shelfCardHtml(name){
-  const wins = shelfWinsFor(name);
-  const comps = Object.keys(wins);
-  const bgSlug = name.trim().toLowerCase();
+function paniniSlotHtml(comp){
+  const slug = competitionSlug(comp);
+  const count = competitionWinCount(comp);
+  const stars = count > 0 ? `<div class="panini-stars">${'&#9733;'.repeat(count)}</div>` : `<div class="panini-stars panini-stars-empty">&nbsp;</div>`;
 
-  const trophyItems = comps.length === 0
-    ? `<div class="shelf-empty">No trophies yet &mdash; get winning.</div>`
-    : comps.map(comp=>{
-        const slug = competitionSlug(comp);
-        return `
-          <div class="shelf-item">
-            <div class="shelf-trophy-stage">
-              <img class="shelf-trophy-img" src="/assets/trophies/${slug}.png" alt="${escapeHtml(comp)}"
-                   onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'; this.parentElement.querySelector('.shelf-contact-shadow').style.display='none';">
-              <div class="shelf-trophy-fallback">&#127942;</div>
-              <div class="shelf-contact-shadow"></div>
-            </div>
-          </div>
-        `;
-      }).join('');
-
-  const captionItems = comps.map(comp=>{
-    const count = wins[comp];
+  if(count === 0){
     return `
-      <div class="shelf-item">
-        <div class="shelf-comp-name">${escapeHtml(comp)}</div>
-        <div class="shelf-stars">${'&#9733;'.repeat(count)}</div>
+      <div class="panini-item">
+        <div class="panini-slot panini-slot-empty">
+          <img class="panini-watermark" src="/assets/golf-logo.png" alt="">
+          <span class="panini-empty-name">${escapeHtml(comp)}</span>
+        </div>
+        ${stars}
       </div>
     `;
-  }).join('');
-
+  }
   return `
-    <div class="shelf-card" style="background-image:url('/assets/shelf-bg-${bgSlug}.jpg')">
-      <div class="shelf-row">${trophyItems}</div>
+    <div class="panini-item">
+      <div class="panini-slot panini-slot-filled">
+        <img class="panini-sticker-img" src="/assets/stickers/${slug}.jpg" alt="${escapeHtml(comp)}"
+             onerror="this.parentElement.classList.remove('panini-slot-filled'); this.parentElement.classList.add('panini-slot-empty'); this.style.display='none'; this.nextElementSibling.style.display='block'; this.parentElement.querySelector('.panini-empty-name').style.display='block';">
+        <img class="panini-watermark" src="/assets/golf-logo.png" alt="" style="display:none;">
+        <span class="panini-empty-name" style="display:none;">${escapeHtml(comp)}</span>
+      </div>
+      ${stars}
     </div>
-    ${comps.length > 0 ? `<div class="shelf-caption-row">${captionItems}</div>` : ''}
   `;
 }
 
 function renderTrophyShelf(){
   return `
-    <div class="rules-note">Send over the trophy images and I'll drop them in &mdash; each one appears on a player's shelf the moment they win it, with a star below for every time they've won it since.</div>
-    ${SHELF_PLAYERS.map(n=>shelfCardHtml(n)).join('')}
+    <div class="rules-note">Send over each competition's sticker and I'll drop it in &mdash; the moment a competition's been won for the first time, its sticker replaces the grey placeholder here, with a star below for every time it's been won since.</div>
+    <div class="panini-page">
+      <div class="panini-header">Trophies</div>
+      <div class="panini-grid">
+        ${TROPHY_COMPETITIONS.map(c => paniniSlotHtml(c)).join('')}
+      </div>
+    </div>
   `;
 }
 
@@ -1133,7 +1121,7 @@ function renderTrophyCabinet(){
   const subnav = `
     <div class="trophy-subnav">
       <button class="trophy-subnav-btn ${trophySubPage==='boards'?'active':''}" data-trophy-sub="boards">Honours Boards</button>
-      <button class="trophy-subnav-btn ${trophySubPage==='shelf'?'active':''}" data-trophy-sub="shelf">Trophy Shelf</button>
+      <button class="trophy-subnav-btn ${trophySubPage==='shelf'?'active':''}" data-trophy-sub="shelf">Sticker Album</button>
     </div>
   `;
   if(trophySubPage === 'shelf'){
