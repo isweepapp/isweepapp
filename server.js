@@ -64,6 +64,7 @@ try { db.exec('ALTER TABLE golf_scores ADD COLUMN ba INTEGER NOT NULL DEFAULT 0'
 try { db.exec('ALTER TABLE golf_scores ADD COLUMN bo INTEGER NOT NULL DEFAULT 0'); } catch (_) {}
 try { db.exec("ALTER TABLE golf_settings ADD COLUMN course_name TEXT NOT NULL DEFAULT 'Custom Course'"); } catch (_) {}
 try { db.exec('ALTER TABLE golf_settings ADD COLUMN plus_minus_stake REAL NOT NULL DEFAULT 0'); } catch (_) {}
+try { db.exec(`ALTER TABLE golf_settings ADD COLUMN scorecard_columns TEXT NOT NULL DEFAULT '{"fairway":false,"gir":false,"onePutt":false,"lostBalls":false,"bi":false,"ba":false,"bo":false}'`); } catch (_) {}
 
 const GOLF_KNOWN_PLAYERS = ['Gavin', 'Scum', 'Kemble', 'Swanko'];
 const insKnownPlayer = db.prepare('INSERT OR IGNORE INTO golf_known_players (name, handicap) VALUES (?, 18)');
@@ -2053,8 +2054,9 @@ app.get('/api/golf/state', (_req, res) => {
   const course  = db.prepare('SELECT hole_number, par, stroke_index FROM golf_course ORDER BY hole_number').all();
   const scores  = db.prepare('SELECT player_idx, hole_number, shots, fairway, gir, one_putt, putting_points, lost_balls, bi, ba, bo FROM golf_scores').all();
   const draw    = db.prepare('SELECT front_six, middlesex_six FROM golf_side_draw WHERE id = 1').get();
-  const settingsRow = db.prepare('SELECT stake, formats, course_name, plus_minus_stake FROM golf_settings WHERE id = 1').get();
+  const settingsRow = db.prepare('SELECT stake, formats, course_name, plus_minus_stake, scorecard_columns FROM golf_settings WHERE id = 1').get();
   const ryderRow = db.prepare('SELECT player_idxs, set1_team_a, set2_team_a, set3_team_a FROM golf_ryder_cup WHERE id = 1').get();
+  const DEFAULT_SCORECARD_COLUMNS = { fairway:false, gir:false, onePutt:false, lostBalls:false, bi:false, ba:false, bo:false };
   res.json({
     players, course, scores,
     sideDraw: {
@@ -2066,6 +2068,7 @@ app.get('/api/golf/state', (_req, res) => {
       formats: settingsRow ? JSON.parse(settingsRow.formats) : { football:false, six66:false, pp:false, ryderCup:false, plusMinus:false },
       courseName: settingsRow ? settingsRow.course_name : 'Custom Course',
       plusMinusStake: settingsRow ? settingsRow.plus_minus_stake : 0,
+      scorecardColumns: settingsRow ? JSON.parse(settingsRow.scorecard_columns) : DEFAULT_SCORECARD_COLUMNS,
     },
     ryderCup: {
       playerIdxs: ryderRow && ryderRow.player_idxs ? JSON.parse(ryderRow.player_idxs) : null,
@@ -2096,6 +2099,18 @@ app.post('/api/golf/settings', (req, res) => {
       plusMinus: !!value.plusMinus,
     };
     db.prepare('UPDATE golf_settings SET formats=? WHERE id = 1').run(JSON.stringify(formats));
+  } else if (field === 'scorecardColumns') {
+    if (typeof value !== 'object' || value === null) return res.status(400).json({ error: 'Invalid scorecard columns value.' });
+    const cols = {
+      fairway: !!value.fairway,
+      gir: !!value.gir,
+      onePutt: !!value.onePutt,
+      lostBalls: !!value.lostBalls,
+      bi: !!value.bi,
+      ba: !!value.ba,
+      bo: !!value.bo,
+    };
+    db.prepare('UPDATE golf_settings SET scorecard_columns=? WHERE id = 1').run(JSON.stringify(cols));
   } else {
     return res.status(400).json({ error: 'Invalid settings field.' });
   }
@@ -2396,7 +2411,7 @@ app.post('/api/golf/reset', (_req, res) => {
   for (let idx = 0; idx < 8; idx++) updGolfPlayer.run('', idx);
   const updHole = db.prepare('UPDATE golf_course SET par=4, stroke_index=? WHERE hole_number=?');
   for (let hn = 1; hn <= 18; hn++) updHole.run(hn, hn);
-  db.prepare("UPDATE golf_settings SET stake=0, formats=?, course_name='Custom Course', plus_minus_stake=0 WHERE id = 1")
+  db.prepare(`UPDATE golf_settings SET stake=0, formats=?, course_name='Custom Course', plus_minus_stake=0, scorecard_columns='{"fairway":false,"gir":false,"onePutt":false,"lostBalls":false,"bi":false,"ba":false,"bo":false}' WHERE id = 1`)
     .run(JSON.stringify({ football: false, six66: false, pp: false, ryderCup: false, plusMinus: false }));
   db.prepare('UPDATE golf_ryder_cup SET player_idxs=NULL, set1_team_a=NULL, set2_team_a=NULL, set3_team_a=NULL WHERE id = 1').run();
   res.json({ ok: true, message: 'Golf sweepstake reset.' });
