@@ -70,7 +70,7 @@
     background:transparent; color:var(--muted); font-size:0.76rem; font-weight:800;
     text-transform:uppercase; letter-spacing:0.05em; cursor:pointer; font-family:inherit;
   }
-  .tab-btn.active{ color:#05051C; border-color:var(--gold); background:var(--gold); }
+  .tab-btn.active{ color:#05051C; border-color:#FFE600; background:#FFE600; box-shadow:0 0 0 2px rgba(255,230,0,0.35), 0 2px 8px rgba(255,230,0,0.5); font-weight:900; }
   .tab-btn:hover:not(.active){ border-color:var(--gold-dim); color:var(--white); }
 
   h2{ font-size:1rem; font-weight:900; text-transform:uppercase; letter-spacing:0.05em; color:var(--gold); margin:0 0 0.6rem; }
@@ -149,11 +149,11 @@
   .sc-muted{ font-size:0.62rem; color:#7A7150; }
   .sc-shots, .sc-puttcell, .sc-lbcell, .sc-bicell, .sc-bacell, .sc-bocell{ text-align:center; }
   .sc-shots select, .sc-puttcell select, .sc-lbcell select, .sc-bicell select, .sc-bacell select, .sc-bocell select{
-    width:100%; max-width:46px; text-align:center; text-align-last:center; font-size:0.95rem; font-weight:800;
-    padding:0.4rem 0.1rem; background:#FFFDF6; border:1px solid #C9BD98; color:#1A1710;
+    width:100%; max-width:50px; text-align:center; text-align-last:center; font-size:1.1rem; font-weight:800;
+    padding:0.5rem 0.15rem; background:#FFFDF6; border:1px solid #C9BD98; color:#1A1710;
     border-radius:6px; appearance:none; -webkit-appearance:none;
     background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'><path d='M0 0 L5 6 L10 0 Z' fill='%23A8987A'/></svg>");
-    background-repeat:no-repeat; background-position:right 3px center; background-size:8px 5px;
+    background-repeat:no-repeat; background-position:right 4px center; background-size:9px 6px;
   }
   .sc-tick{ display:flex; justify-content:center; align-items:center; }
   .sc-tick input[type=checkbox]{
@@ -460,9 +460,7 @@
       <button class="tab-btn active" data-tab="scorecard">My Scorecard</button>
       <button class="tab-btn" data-tab="setup">Format</button>
       <button class="tab-btn" data-tab="course">Course</button>
-      <button class="tab-btn" data-tab="standings">Table</button>
-      <button class="tab-btn" data-tab="semis">Semis</button>
-      <button class="tab-btn" data-tab="final">Final</button>
+      <button class="tab-btn" data-tab="football">Football</button>
       <button class="tab-btn" data-tab="sidebets">666 and PP</button>
       <button class="tab-btn" data-tab="stats">Stats</button>
       <button class="tab-btn" data-tab="trophies">Trophy Cabinet</button>

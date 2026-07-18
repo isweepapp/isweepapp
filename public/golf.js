@@ -35,6 +35,7 @@ let selectedPlayerPage = 'Gavin';
 let roundHistory = []; // round history for the currently selected player page
 let roundHistoryLoadedFor = null; // which player the current roundHistory array belongs to
 let trophySubPage = 'boards'; // 'boards' | 'shelf'
+let footballSubPage = 'table'; // 'table' | 'semis' | 'final'
 const SHELF_PLAYERS = ['Kemble', 'Swanko', 'Gavin', 'Scum'];
 const TROPHY_COMPETITIONS = [
   'St Georges Day', 'Christmas Crumble', 'Easter Brighton',
@@ -43,7 +44,13 @@ const TROPHY_COMPETITIONS = [
 ];
 let scores = {};    // playerIdx -> { holeNumber -> {shots, fairway, gir, one_putt, putting_points} }
 let sideDraw = { frontSix: null, middlesexSix: null };
-let settings = { stake: 0, formats: { football: false, six66: false, pp: false, ryderCup: false, plusMinus: false }, courseName: 'Custom Course', plusMinusStake: 0 };
+let settings = {
+  stake: 0,
+  formats: { football: false, six66: false, pp: false, ryderCup: false, plusMinus: false },
+  courseName: 'Custom Course',
+  plusMinusStake: 0,
+  scorecardColumns: { fairway:false, gir:false, onePutt:false, lostBalls:false, bi:false, ba:false, bo:false },
+};
 let ryderCup = { playerIdxs: null, set1TeamA: null, set2TeamA: null, set3TeamA: null };
 
 let currentTab = "scorecard";
@@ -85,6 +92,7 @@ async function loadState(){
         formats: data.settings.formats || { football:false, six66:false, pp:false, ryderCup:false, plusMinus:false },
         courseName: data.settings.courseName || 'Custom Course',
         plusMinusStake: data.settings.plusMinusStake || 0,
+        scorecardColumns: data.settings.scorecardColumns || { fairway:false, gir:false, onePutt:false, lostBalls:false, bi:false, ba:false, bo:false },
       };
     }
     ryderCup = data.ryderCup || { playerIdxs: null, set1TeamA: null, set2TeamA: null, set3TeamA: null };
@@ -298,9 +306,7 @@ function render(){
   if(currentTab==='scorecard') el.innerHTML = renderScorecard();
   else if(currentTab==='setup') el.innerHTML = renderSetup();
   else if(currentTab==='course') el.innerHTML = renderCourse();
-  else if(currentTab==='standings') el.innerHTML = renderStandings();
-  else if(currentTab==='semis') el.innerHTML = renderSemis();
-  else if(currentTab==='final') el.innerHTML = renderFinal();
+  else if(currentTab==='football') el.innerHTML = renderFootball();
   else if(currentTab==='sidebets') el.innerHTML = renderSideBets();
   else if(currentTab==='stats') el.innerHTML = renderStats();
   else if(currentTab==='trophies') el.innerHTML = renderTrophyCabinet();
@@ -321,33 +327,47 @@ function numberOptionsHtml(selectedValue, min, max){
   return html;
 }
 
+function scActiveColumns(){
+  const c = settings.scorecardColumns || {};
+  const cols = [
+    { key:'hole', width:46 },
+    { key:'shots', width:46 },
+    { key:'pts', width:32 },
+  ];
+  if(c.fairway) cols.push({ key:'fairway', width:28 });
+  if(c.gir) cols.push({ key:'gir', width:28 });
+  if(c.onePutt) cols.push({ key:'onePutt', width:28 });
+  if(settings.formats.pp) cols.push({ key:'putt', width:42 });
+  if(c.lostBalls) cols.push({ key:'lostBalls', width:38 });
+  if(c.bi) cols.push({ key:'bi', width:38 });
+  if(c.ba) cols.push({ key:'ba', width:38 });
+  if(c.bo) cols.push({ key:'bo', width:38 });
+  return cols;
+}
+function scGridTemplate(){
+  return scActiveColumns().map(c=>`${c.width}px`).join(' ');
+}
+const SC_COLUMN_CLASS = { hole:'sc-holecell', shots:'sc-shots', pts:'sc-pts', fairway:'sc-tick', gir:'sc-tick', onePutt:'sc-tick', putt:'sc-puttcell', lostBalls:'sc-lbcell', bi:'sc-bicell', ba:'sc-bacell', bo:'sc-bocell' };
+
 function scRowHtml(playerIdx, holeNumber){
   const info = courseInfo(holeNumber);
   const s = scoreFor(playerIdx, holeNumber);
   const pts = stablefordPoints(s.shots, players[playerIdx].handicap, info.par, info.stroke_index);
-  const puttVal = s.putting_points || null;
-  const lbVal = s.lost_balls || null;
-  const biVal = s.bi || null;
-  const baVal = s.ba || null;
-  const boVal = s.bo || null;
-  return `
-    <div class="sc-row" data-hole="${holeNumber}">
-      <div class="sc-holecell">
-        <div class="sc-hole">${holeNumber}</div>
-        <div class="sc-muted">Par ${info.par}<br>SI ${info.stroke_index}</div>
-      </div>
-      <div class="sc-shots"><select data-field="shots">${numberOptionsHtml(s.shots ?? null, 1, 10)}</select></div>
-      <div class="sc-pts" id="sc-pts-${holeNumber}">${pts===null?'–':pts}</div>
-      <div class="sc-tick"><input type="checkbox" data-field="fairway" ${s.fairway?'checked':''}></div>
-      <div class="sc-tick"><input type="checkbox" data-field="gir" ${s.gir?'checked':''}></div>
-      <div class="sc-tick"><input type="checkbox" data-field="one_putt" ${s.one_putt?'checked':''}></div>
-      <div class="sc-puttcell"><select data-field="putting_points">${numberOptionsHtml(puttVal, 0, 10)}</select></div>
-      <div class="sc-lbcell"><select data-field="lost_balls">${numberOptionsHtml(lbVal, 0, 10)}</select></div>
-      <div class="sc-bicell"><select data-field="bi">${numberOptionsHtml(biVal, 0, 10)}</select></div>
-      <div class="sc-bacell"><select data-field="ba">${numberOptionsHtml(baVal, 0, 10)}</select></div>
-      <div class="sc-bocell"><select data-field="bo">${numberOptionsHtml(boVal, 0, 10)}</select></div>
-    </div>
-  `;
+  const cellFor = {
+    hole: `<div class="sc-hole">${holeNumber}</div><div class="sc-muted">Par ${info.par}<br>SI ${info.stroke_index}</div>`,
+    shots: `<select data-field="shots">${numberOptionsHtml(s.shots ?? null, 1, 10)}</select>`,
+    pts: `<span id="sc-pts-${holeNumber}">${pts===null?'–':pts}</span>`,
+    fairway: `<input type="checkbox" data-field="fairway" ${s.fairway?'checked':''}>`,
+    gir: `<input type="checkbox" data-field="gir" ${s.gir?'checked':''}>`,
+    onePutt: `<input type="checkbox" data-field="one_putt" ${s.one_putt?'checked':''}>`,
+    putt: `<select data-field="putting_points">${numberOptionsHtml(s.putting_points || null, 0, 10)}</select>`,
+    lostBalls: `<select data-field="lost_balls">${numberOptionsHtml(s.lost_balls || null, 0, 10)}</select>`,
+    bi: `<select data-field="bi">${numberOptionsHtml(s.bi || null, 0, 10)}</select>`,
+    ba: `<select data-field="ba">${numberOptionsHtml(s.ba || null, 0, 10)}</select>`,
+    bo: `<select data-field="bo">${numberOptionsHtml(s.bo || null, 0, 10)}</select>`,
+  };
+  const cells = scActiveColumns().map(col=>`<div class="${SC_COLUMN_CLASS[col.key]}">${cellFor[col.key]}</div>`).join('');
+  return `<div class="sc-row" data-hole="${holeNumber}" style="grid-template-columns:${scGridTemplate()}">${cells}</div>`;
 }
 
 function scSubtotalHtml(label, playerIdx, holeNumbers, cls){
@@ -368,39 +388,30 @@ function scSubtotalHtml(label, playerIdx, holeNumbers, cls){
     if(s.gir) girCount++;
     if(s.one_putt) onePuttCount++;
   });
-  return `
-    <div class="sc-row ${cls}">
-      <div class="sc-holecell"><div class="sc-hole" style="font-size:0.85rem;">${label}</div></div>
-      <div class="sc-shots" style="text-align:center;">${anyShots ? shotsSum : ''}</div>
-      <div class="sc-pts">${ptsSum}</div>
-      <div class="sc-tick">${fairwayCount}</div>
-      <div class="sc-tick">${girCount}</div>
-      <div class="sc-tick">${onePuttCount}</div>
-      <div class="sc-puttcell" style="text-align:center;">${puttSum}</div>
-      <div class="sc-lbcell" style="text-align:center;">${lbSum}</div>
-      <div class="sc-bicell" style="text-align:center;">${biSum}</div>
-      <div class="sc-bacell" style="text-align:center;">${baSum}</div>
-      <div class="sc-bocell" style="text-align:center;">${boSum}</div>
-    </div>
-  `;
+  const cellFor = {
+    hole: `<div class="sc-hole" style="font-size:0.85rem;">${label}</div>`,
+    shots: anyShots ? shotsSum : '',
+    pts: ptsSum,
+    fairway: fairwayCount,
+    gir: girCount,
+    onePutt: onePuttCount,
+    putt: puttSum,
+    lostBalls: lbSum,
+    bi: biSum,
+    ba: baSum,
+    bo: boSum,
+  };
+  const cells = scActiveColumns().map(col=>{
+    const style = col.key === 'hole' ? '' : ' style="text-align:center;"';
+    return `<div class="${SC_COLUMN_CLASS[col.key]}"${style}>${cellFor[col.key]}</div>`;
+  }).join('');
+  return `<div class="sc-row ${cls}" style="grid-template-columns:${scGridTemplate()}">${cells}</div>`;
 }
 
 function scHeaderRowHtml(){
-  return `
-    <div class="sc-row sc-headerrow">
-      <div class="sc-holecell">Hole</div>
-      <div class="sc-shots">Score</div>
-      <div class="sc-pts">Pts</div>
-      <div class="sc-tick">F</div>
-      <div class="sc-tick">GIR</div>
-      <div class="sc-tick">1P</div>
-      <div class="sc-puttcell">Putt</div>
-      <div class="sc-lbcell">LB</div>
-      <div class="sc-bicell">Bi</div>
-      <div class="sc-bacell">Ba</div>
-      <div class="sc-bocell">Bo</div>
-    </div>
-  `;
+  const labels = { hole:'Hole', shots:'Score', pts:'Pts', fairway:'F', gir:'GIR', onePutt:'1P', putt:'Putt', lostBalls:'LB', bi:'Bi', ba:'Ba', bo:'Bo' };
+  const cells = scActiveColumns().map(col=>`<div class="${SC_COLUMN_CLASS[col.key]}">${labels[col.key]}</div>`).join('');
+  return `<div class="sc-row sc-headerrow" style="grid-template-columns:${scGridTemplate()}">${cells}</div>`;
 }
 
 function renderScorecard(){
@@ -412,7 +423,7 @@ function renderScorecard(){
   return `
     <div class="player-picker">${chips}</div>
     <div class="rules-note">
-      <b>${escapeHtml(p.name)}</b> · handicap ${p.handicap} — enter your gross shots for each hole and the Stableford points work themselves out. Keep going through all 18 even after your bracket matches are decided. "Putt" is your score for the Putting Points competition (0–6, your call). "LB" is how many balls you lost on that hole. Scroll the scorecard sideways to see the Bi/Ba/Bo columns.
+      <b>${escapeHtml(p.name)}</b> · handicap ${p.handicap} — enter your gross shots for each hole and the Stableford points work themselves out. Keep going through all 18 even after your bracket matches are decided. Only the columns switched on in the Format tab's "Scorecard Columns" card show up here — turn on whichever you're tracking this round.
     </div>
     <div class="scorecard-scroll">
       <div class="scorecard" id="scorecard-body">
@@ -495,6 +506,40 @@ function renderSetup(){
       <div id="plusminus-stake-msg"></div>
     </div>
     <div class="card">
+      <h2>Scorecard Columns</h2>
+      <div style="font-size:0.85rem; color:var(--muted); margin-bottom:0.9rem;">Only ticked columns show on the My Scorecard tab &mdash; leave the ones you're not using this round switched off to free up space. Score and Pts always show; Putt shows whenever PP is switched on above.</div>
+      <div class="format-row">
+        <label class="format-check">
+          <input type="checkbox" id="col-fairway" ${settings.scorecardColumns.fairway?'checked':''}>
+          <span><b>F</b> — Fairway hit</span>
+        </label>
+        <label class="format-check">
+          <input type="checkbox" id="col-gir" ${settings.scorecardColumns.gir?'checked':''}>
+          <span><b>GIR</b> — Green in regulation</span>
+        </label>
+        <label class="format-check">
+          <input type="checkbox" id="col-onePutt" ${settings.scorecardColumns.onePutt?'checked':''}>
+          <span><b>1P</b> — One putt</span>
+        </label>
+        <label class="format-check">
+          <input type="checkbox" id="col-lostBalls" ${settings.scorecardColumns.lostBalls?'checked':''}>
+          <span><b>LB</b> — Lost balls</span>
+        </label>
+        <label class="format-check">
+          <input type="checkbox" id="col-bi" ${settings.scorecardColumns.bi?'checked':''}>
+          <span><b>Bi</b></span>
+        </label>
+        <label class="format-check">
+          <input type="checkbox" id="col-ba" ${settings.scorecardColumns.ba?'checked':''}>
+          <span><b>Ba</b></span>
+        </label>
+        <label class="format-check">
+          <input type="checkbox" id="col-bo" ${settings.scorecardColumns.bo?'checked':''}>
+          <span><b>Bo</b></span>
+        </label>
+      </div>
+    </div>
+    <div class="card">
       <h2>Course</h2>
       <div style="font-size:0.85rem; color:var(--muted); margin-bottom:0.9rem;">Load a saved course to fill in the Course tab's par and stroke index for you.</div>
       <div style="display:flex; gap:0.5rem;">
@@ -574,10 +619,23 @@ function renderCourse(){
 /* ---------------------------------------------------------
    STANDINGS TAB
 --------------------------------------------------------- */
-function renderStandings(){
+function renderFootball(){
   if(!settings.formats.football){
-    return `<div class="card"><div class="tbd">Football isn't switched on for this round — turn it on in the Competition card on the Format tab to see the table.</div></div>`;
+    return `<div class="card"><div class="tbd">Football isn't switched on for this round &mdash; turn it on in the Competition card on the Format tab.</div></div>`;
   }
+  const subnav = `
+    <div class="trophy-subnav">
+      <button class="trophy-subnav-btn ${footballSubPage==='table'?'active':''}" data-football-sub="table">Table</button>
+      <button class="trophy-subnav-btn ${footballSubPage==='semis'?'active':''}" data-football-sub="semis">Semis</button>
+      <button class="trophy-subnav-btn ${footballSubPage==='final'?'active':''}" data-football-sub="final">Final</button>
+    </div>
+  `;
+  if(footballSubPage === 'semis') return subnav + renderSemis();
+  if(footballSubPage === 'final') return subnav + renderFinal();
+  return subnav + renderStandings();
+}
+
+function renderStandings(){
   const rows = computeStandings();
   const body = rows.map((r,i)=>`
     <tr class="${i<4?'qualify':''}">
@@ -649,9 +707,6 @@ function renderStageSummary(opts){
 }
 
 function renderSemis(){
-  if(!settings.formats.football){
-    return `<div class="card"><div class="tbd">Football isn't switched on for this round — turn it on in the Competition card on the Format tab to see the semis.</div></div>`;
-  }
   const standings = computeStandings();
   const [seed1, seed2, seed3, seed4] = standings;
   const groupHoles = SCHEDULE.map(s=>s[0]).filter((v,i,a)=>a.indexOf(v)===i);
@@ -678,9 +733,6 @@ function renderSemis(){
 }
 
 function renderFinal(){
-  if(!settings.formats.football){
-    return `<div class="card"><div class="tbd">Football isn't switched on for this round — turn it on in the Competition card on the Format tab to see the final.</div></div>`;
-  }
   const standings = computeStandings();
   const [seed1, seed2, seed3, seed4] = standings;
   const w1 = stageWinner(seed1.idx, seed4.idx, [8,9,10], seed1.name, seed4.name);
@@ -1551,8 +1603,10 @@ function plusMinusLadderHtml(){
   if(idxs.length === 0) return `<div class="tbd">Add player names on the Format tab to see the ladder.</div>`;
 
   const totals = idxs.map(idx=>({ idx, name: players[idx].name, total: plusMinusTotalForPlayer(idx) }));
-  const minVal = Math.min(0, ...totals.map(t=>t.total)) - 1;
-  const maxVal = Math.max(0, ...totals.map(t=>t.total)) + 1;
+  const actualMax = Math.max(...totals.map(t=>t.total));
+  const actualMin = Math.min(...totals.map(t=>t.total));
+  const maxVal = actualMax > 10 ? actualMax + 1 : 10;
+  const minVal = actualMin < -10 ? actualMin - 1 : -10;
 
   const rungs = [];
   for(let v = maxVal; v >= minVal; v--) rungs.push(v);
@@ -1978,6 +2032,16 @@ function attachHandlers(){
       }
     });
 
+    ['fairway','gir','onePutt','lostBalls','bi','ba','bo'].forEach(key=>{
+      const cb = document.getElementById(`col-${key}`);
+      if(cb){
+        cb.onchange = async ()=>{
+          settings.scorecardColumns[key] = cb.checked;
+          await postJson('/api/golf/settings', { field:'scorecardColumns', value: settings.scorecardColumns });
+        };
+      }
+    });
+
     const formatLoadBtn = document.getElementById('format-load-course-btn');
     if(formatLoadBtn){
       formatLoadBtn.onclick = async ()=>{
@@ -2080,6 +2144,15 @@ function attachHandlers(){
         if(!confirm(`Delete the saved course "${name}"? This can't be undone.`)) return;
         await fetch(`/api/golf/courses/${id}`, { method:'DELETE' });
         await loadSavedCourses();
+      };
+    });
+  }
+
+  if(currentTab==='football'){
+    document.querySelectorAll('[data-football-sub]').forEach(btn=>{
+      btn.onclick = ()=>{
+        footballSubPage = btn.dataset.footballSub;
+        render();
       };
     });
   }
