@@ -66,12 +66,19 @@
   /* ── Tabs ────────────────────────────────────────────────────────────── */
   .tab-bar{ display:flex; gap:0.45rem; margin-bottom:1.2rem; flex-wrap:wrap; }
   .tab-btn{
+    position:relative;
     padding:0.45rem 1rem; border-radius:2px; border:1px solid var(--border);
     background:transparent; color:var(--muted); font-size:0.76rem; font-weight:800;
     text-transform:uppercase; letter-spacing:0.05em; cursor:pointer; font-family:inherit;
   }
   .tab-btn.active{ color:#05051C; border-color:#FFE600; background:#FFE600; box-shadow:0 0 0 2px rgba(255,230,0,0.35), 0 2px 8px rgba(255,230,0,0.5); font-weight:900; }
   .tab-btn:hover:not(.active){ border-color:var(--gold-dim); color:var(--white); }
+  .tab-btn.format-on{ border-color:var(--success); }
+  .tab-btn.format-on::after{
+    content:''; position:absolute; top:-4px; right:-4px; width:9px; height:9px;
+    border-radius:50%; background:var(--success); box-shadow:0 0 5px rgba(53,214,134,0.7), 0 0 0 2px var(--bg);
+  }
+  .tab-btn.format-on.active::after{ box-shadow:0 0 5px rgba(53,214,134,0.7), 0 0 0 2px #FFE600; }
 
   h2{ font-size:1rem; font-weight:900; text-transform:uppercase; letter-spacing:0.05em; color:var(--gold); margin:0 0 0.6rem; }
 

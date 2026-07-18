@@ -298,9 +298,18 @@ function openStickerLightbox(imgSrc, label){
   overlay.classList.add('show');
 }
 
+const TAB_FORMAT_CHECK = {
+  football: () => settings.formats.football,
+  sidebets: () => settings.formats.six66 || settings.formats.pp,
+  ryder: () => settings.formats.ryderCup,
+  plusminus: () => settings.formats.plusMinus,
+};
+
 function render(){
   document.querySelectorAll('.tab-btn').forEach(b=>{
     b.classList.toggle('active', b.dataset.tab === currentTab);
+    const check = TAB_FORMAT_CHECK[b.dataset.tab];
+    b.classList.toggle('format-on', !!(check && check()));
   });
   const el = document.getElementById('golf-content');
   if(currentTab==='scorecard') el.innerHTML = renderScorecard();
@@ -1618,14 +1627,14 @@ function plusMinusLadderHtml(){
       return `<span class="ladder-player" style="background:${color};">&#128694; ${escapeHtml(t.name)}</span>`;
     }).join('');
     return `
-      <div class="ladder-rung ${v===0?'ladder-zero':''}">
+      <div class="ladder-rung ${v===0?'ladder-zero':''}" data-value="${v}">
         <span class="ladder-value">${v>0?'+':''}${v}</span>
         <span class="ladder-track">${chips}</span>
       </div>
     `;
   }).join('');
 
-  return `<div class="ladder">${rungsHtml}</div>`;
+  return `<div class="ladder" id="plusminus-ladder">${rungsHtml}</div>`;
 }
 
 function plusMinusMoneyTable(){
@@ -1633,11 +1642,16 @@ function plusMinusMoneyTable(){
   const idxs = namedPlayerIdxs();
   if(idxs.length < 2 || stakeAmount <= 0) return null;
   const N = idxs.length;
+  const ppOn = settings.formats.pp;
 
-  const categories = [
-    { name:'Ladder', weight:0.75, rows: rankPlayers(i=>plusMinusTotalForPlayer(i), idxs) },
-    { name:'Putting Points', weight:0.25, rows: rankPlayers(i=>personalPuttingPointsForHoles(i, ALL_18), idxs) },
-  ];
+  const categories = ppOn
+    ? [
+        { name:'Ladder', weight:0.75, rows: rankPlayers(i=>plusMinusTotalForPlayer(i), idxs) },
+        { name:'Putting Points', weight:0.25, rows: rankPlayers(i=>personalPuttingPointsForHoles(i, ALL_18), idxs) },
+      ]
+    : [
+        { name:'Ladder', weight:1, rows: rankPlayers(i=>plusMinusTotalForPlayer(i), idxs) },
+      ];
 
   const net = {};
   idxs.forEach(idx=>{ net[idx] = { total:0, byCategory:{} }; });
@@ -1657,7 +1671,7 @@ function plusMinusMoneyTable(){
   });
 
   const settlements = computeSettlements(net, idxs);
-  return { categories, net, stakeAmount, N, idxs, settlements };
+  return { categories, net, stakeAmount, N, idxs, settlements, ppOn };
 }
 
 function plusMinusMoneyHtml(){
@@ -1706,7 +1720,7 @@ function plusMinusMoneyHtml(){
   return `
     <div class="card">
       <h2>+- Stakes</h2>
-      <div class="rules-note">£${data.stakeAmount.toFixed(2)} per player &times; ${data.N} named players = £${(data.stakeAmount*data.N).toFixed(2)} total &mdash; 75% (£${(data.stakeAmount*data.N*0.75).toFixed(2)}) to the Ladder, 25% (£${(data.stakeAmount*data.N*0.25).toFixed(2)}) to Putting Points.</div>
+      <div class="rules-note">£${data.stakeAmount.toFixed(2)} per player &times; ${data.N} named players = £${(data.stakeAmount*data.N).toFixed(2)} total &mdash; ${data.ppOn ? `75% (£${(data.stakeAmount*data.N*0.75).toFixed(2)}) to the Ladder, 25% (£${(data.stakeAmount*data.N*0.25).toFixed(2)}) to Putting Points` : `100% to the Ladder (switch on PP on the Format tab to add Putting Points into the split)`}.</div>
       <div style="overflow-x:auto;">
         <table class="standings stake-table"><thead><tr>${header}</tr></thead><tbody>${rows}</tbody></table>
       </div>
@@ -1725,7 +1739,17 @@ function renderPlusMinus(){
   }
 
   const ladderStandings = plusMinusStandings();
-  const putting = puttingStandings();
+  const ppOn = settings.formats.pp;
+  const puttingSection = !ppOn ? '' : (()=>{
+    const putting = puttingStandings();
+    return `
+      <div class="card">
+        <h2>Putting Points</h2>
+        <div class="rules-note">Each player's own putting score, added up across all 18 holes &mdash; entered on the My Scorecard tab. Switched on because PP is ticked on the Format tab.</div>
+        ${putting.length ? miniLeaderboardHtml(putting) : `<div class="tbd">Add player names on the Format tab to see this.</div>`}
+      </div>
+    `;
+  })();
 
   return `
     <div class="card">
@@ -1737,11 +1761,7 @@ function renderPlusMinus(){
       <h2>+- Standings</h2>
       ${ladderStandings.length ? miniLeaderboardHtml(ladderStandings) : `<div class="tbd">Add player names on the Format tab to see this.</div>`}
     </div>
-    <div class="card">
-      <h2>Putting Points</h2>
-      <div class="rules-note">Each player's own putting score, added up across all 18 holes &mdash; entered on the My Scorecard tab.</div>
-      ${putting.length ? miniLeaderboardHtml(putting) : `<div class="tbd">Add player names on the Format tab to see this.</div>`}
-    </div>
+    ${puttingSection}
     ${plusMinusMoneyHtml()}
   `;
 }
@@ -2311,6 +2331,27 @@ function attachHandlers(){
         };
       }
     });
+  }
+
+  if(currentTab==='plusminus'){
+    const ladderEl = document.getElementById('plusminus-ladder');
+    if(ladderEl){
+      const idxs = namedPlayerIdxs();
+      if(idxs.length){
+        const totals = idxs.map(idx=>plusMinusTotalForPlayer(idx));
+        const mid = (Math.max(...totals) + Math.min(...totals)) / 2;
+        const rungs = Array.from(ladderEl.querySelectorAll('.ladder-rung'));
+        let closest = null, closestDist = Infinity;
+        rungs.forEach(r=>{
+          const v = parseFloat(r.dataset.value);
+          const d = Math.abs(v - mid);
+          if(d < closestDist){ closestDist = d; closest = r; }
+        });
+        if(closest){
+          ladderEl.scrollTop = Math.max(0, closest.offsetTop - (ladderEl.clientHeight/2) + (closest.clientHeight/2));
+        }
+      }
+    }
   }
 }
 
