@@ -142,7 +142,8 @@ CREATE TABLE IF NOT EXISTS golf_settings (
   stake   REAL NOT NULL DEFAULT 0,
   formats TEXT NOT NULL DEFAULT '{"football":false,"six66":false,"pp":false}',
   course_name TEXT NOT NULL DEFAULT 'Custom Course',
-  plus_minus_stake REAL NOT NULL DEFAULT 0
+  plus_minus_stake REAL NOT NULL DEFAULT 0,
+  scorecard_columns TEXT NOT NULL DEFAULT '{"fairway":false,"gir":false,"onePutt":false,"lostBalls":false,"bi":false,"ba":false,"bo":false}'
 );
 
 -- Trophy Cabinet: a running honours list per named competition. One row per
