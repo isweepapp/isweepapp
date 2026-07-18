@@ -1766,9 +1766,10 @@ function computeTeamStats(stageFilter) {
   // Fetch all finished matches then filter in JS — avoids LIKE in prepared statement
   const allMatches = db.prepare('SELECT * FROM matches WHERE score_a IS NOT NULL AND score_b IS NOT NULL').all();
   const isGroup    = s => typeof s === 'string' && s.startsWith('Group ');
+  const isThird    = s => typeof s === 'string' && s === 'Third Place';
   const matches    = stageFilter === 'group'    ? allMatches.filter(m =>  isGroup(m.stage))
-                   : stageFilter === 'knockout' ? allMatches.filter(m => !isGroup(m.stage))
-                   : allMatches;
+                   : stageFilter === 'knockout' ? allMatches.filter(m => !isGroup(m.stage) && !isThird(m.stage))
+                   : allMatches.filter(m => !isThird(m.stage));
 
   for (const m of matches) {
     ensure(m.team_a); ensure(m.team_b);
