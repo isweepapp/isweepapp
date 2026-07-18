@@ -119,6 +119,9 @@ CREATE TABLE IF NOT EXISTS golf_scores (
   one_putt        INTEGER NOT NULL DEFAULT 0,
   putting_points  INTEGER NOT NULL DEFAULT 0,
   lost_balls      INTEGER NOT NULL DEFAULT 0,
+  bi              INTEGER NOT NULL DEFAULT 0,
+  ba              INTEGER NOT NULL DEFAULT 0,
+  bo              INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (player_idx, hole_number)
 );
 
@@ -137,7 +140,9 @@ CREATE TABLE IF NOT EXISTS golf_side_draw (
 CREATE TABLE IF NOT EXISTS golf_settings (
   id      INTEGER PRIMARY KEY CHECK (id = 1),
   stake   REAL NOT NULL DEFAULT 0,
-  formats TEXT NOT NULL DEFAULT '{"football":false,"six66":false,"pp":false}'
+  formats TEXT NOT NULL DEFAULT '{"football":false,"six66":false,"pp":false}',
+  course_name TEXT NOT NULL DEFAULT 'Custom Course',
+  plus_minus_stake REAL NOT NULL DEFAULT 0
 );
 
 -- Trophy Cabinet: a running honours list per named competition. One row per
@@ -148,4 +153,42 @@ CREATE TABLE IF NOT EXISTS golf_trophies (
   year        TEXT NOT NULL,
   winner      TEXT NOT NULL,
   created_at  TEXT NOT NULL
+);
+
+-- Known regular players (Gavin, Scum, Kemble, Swanko): their own saved
+-- handicap, which auto-applies whenever their name is entered on the Format
+-- tab. This survives "Delete all golf data" — it's a personal setting, not
+-- round data.
+CREATE TABLE IF NOT EXISTS golf_known_players (
+  name     TEXT PRIMARY KEY,
+  handicap INTEGER NOT NULL DEFAULT 18
+);
+
+-- Round history: a snapshot of a known player's round, archived automatically
+-- just before "Delete all golf data" wipes the live scorecards. Never cleared
+-- by the reset itself — this is the permanent record rounds build up into.
+CREATE TABLE IF NOT EXISTS golf_round_history (
+  id                    TEXT PRIMARY KEY,
+  player_name           TEXT NOT NULL,
+  played_on             TEXT NOT NULL,
+  course_name           TEXT,
+  total_shots           INTEGER,
+  total_stableford      INTEGER,
+  total_putting_points  INTEGER,
+  total_lost_balls      INTEGER,
+  holes_json            TEXT,
+  created_at            TEXT NOT NULL
+);
+
+-- Ryder Cup 4 Ball SF: 4 named players, split into rotating 2-player teams
+-- every 6 holes. player_idxs is the 4 chosen player slots (0-7). Each
+-- set*_team_a stores the 2 player idxs forming "Team A" for that 6-hole set
+-- (the other 2 of the 4 are automatically "Team B"). Set 3 is always
+-- whichever pairing wasn't used in sets 1 or 2.
+CREATE TABLE IF NOT EXISTS golf_ryder_cup (
+  id           INTEGER PRIMARY KEY CHECK (id = 1),
+  player_idxs  TEXT,
+  set1_team_a  TEXT,
+  set2_team_a  TEXT,
+  set3_team_a  TEXT
 );
