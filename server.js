@@ -59,6 +59,19 @@ try { db.exec('ALTER TABLE golf_knockout ADD COLUMN ashots INTEGER'); } catch (_
 try { db.exec('ALTER TABLE golf_knockout ADD COLUMN bshots INTEGER'); } catch (_) {}
 try { db.exec('ALTER TABLE golf_scores ADD COLUMN putting_points INTEGER NOT NULL DEFAULT 0'); } catch (_) {}
 try { db.exec('ALTER TABLE golf_scores ADD COLUMN lost_balls INTEGER NOT NULL DEFAULT 0'); } catch (_) {}
+try { db.exec('ALTER TABLE golf_scores ADD COLUMN bi INTEGER NOT NULL DEFAULT 0'); } catch (_) {}
+try { db.exec('ALTER TABLE golf_scores ADD COLUMN ba INTEGER NOT NULL DEFAULT 0'); } catch (_) {}
+try { db.exec('ALTER TABLE golf_scores ADD COLUMN bo INTEGER NOT NULL DEFAULT 0'); } catch (_) {}
+try { db.exec("ALTER TABLE golf_settings ADD COLUMN course_name TEXT NOT NULL DEFAULT 'Custom Course'"); } catch (_) {}
+try { db.exec('ALTER TABLE golf_settings ADD COLUMN plus_minus_stake REAL NOT NULL DEFAULT 0'); } catch (_) {}
+
+const GOLF_KNOWN_PLAYERS = ['Gavin', 'Scum', 'Kemble', 'Swanko'];
+const insKnownPlayer = db.prepare('INSERT OR IGNORE INTO golf_known_players (name, handicap) VALUES (?, 18)');
+GOLF_KNOWN_PLAYERS.forEach(n => insKnownPlayer.run(n));
+
+if (db.prepare('SELECT COUNT(*) AS cnt FROM golf_ryder_cup').get().cnt === 0) {
+  db.prepare('INSERT INTO golf_ryder_cup (id, player_idxs, set1_team_a, set2_team_a, set3_team_a) VALUES (1, NULL, NULL, NULL, NULL)').run();
+}
 
 if (db.prepare('SELECT COUNT(*) AS cnt FROM golf_side_draw').get().cnt === 0) {
   db.prepare('INSERT INTO golf_side_draw (id, front_six, middlesex_six) VALUES (1, NULL, NULL)').run();
@@ -66,7 +79,7 @@ if (db.prepare('SELECT COUNT(*) AS cnt FROM golf_side_draw').get().cnt === 0) {
 
 if (db.prepare('SELECT COUNT(*) AS cnt FROM golf_settings').get().cnt === 0) {
   db.prepare("INSERT INTO golf_settings (id, stake, formats) VALUES (1, 0, ?)")
-    .run(JSON.stringify({ football: false, six66: false, pp: false }));
+    .run(JSON.stringify({ football: false, six66: false, pp: false, ryderCup: false, plusMinus: false }));
 }
 
 if (db.prepare("SELECT COUNT(*) AS cnt FROM golf_trophies WHERE competition = 'Covid Cup'").get().cnt === 0) {
@@ -2038,9 +2051,10 @@ app.get('/api/golf/schedule', (_req, res) => res.json(GOLF_SCHEDULE));
 app.get('/api/golf/state', (_req, res) => {
   const players = db.prepare('SELECT idx, name, handicap FROM golf_players ORDER BY idx').all();
   const course  = db.prepare('SELECT hole_number, par, stroke_index FROM golf_course ORDER BY hole_number').all();
-  const scores  = db.prepare('SELECT player_idx, hole_number, shots, fairway, gir, one_putt, putting_points, lost_balls FROM golf_scores').all();
+  const scores  = db.prepare('SELECT player_idx, hole_number, shots, fairway, gir, one_putt, putting_points, lost_balls, bi, ba, bo FROM golf_scores').all();
   const draw    = db.prepare('SELECT front_six, middlesex_six FROM golf_side_draw WHERE id = 1').get();
-  const settingsRow = db.prepare('SELECT stake, formats FROM golf_settings WHERE id = 1').get();
+  const settingsRow = db.prepare('SELECT stake, formats, course_name, plus_minus_stake FROM golf_settings WHERE id = 1').get();
+  const ryderRow = db.prepare('SELECT player_idxs, set1_team_a, set2_team_a, set3_team_a FROM golf_ryder_cup WHERE id = 1').get();
   res.json({
     players, course, scores,
     sideDraw: {
@@ -2049,7 +2063,15 @@ app.get('/api/golf/state', (_req, res) => {
     },
     settings: {
       stake: settingsRow ? settingsRow.stake : 0,
-      formats: settingsRow ? JSON.parse(settingsRow.formats) : { football:false, six66:false, pp:false },
+      formats: settingsRow ? JSON.parse(settingsRow.formats) : { football:false, six66:false, pp:false, ryderCup:false, plusMinus:false },
+      courseName: settingsRow ? settingsRow.course_name : 'Custom Course',
+      plusMinusStake: settingsRow ? settingsRow.plus_minus_stake : 0,
+    },
+    ryderCup: {
+      playerIdxs: ryderRow && ryderRow.player_idxs ? JSON.parse(ryderRow.player_idxs) : null,
+      set1TeamA: ryderRow && ryderRow.set1_team_a ? JSON.parse(ryderRow.set1_team_a) : null,
+      set2TeamA: ryderRow && ryderRow.set2_team_a ? JSON.parse(ryderRow.set2_team_a) : null,
+      set3TeamA: ryderRow && ryderRow.set3_team_a ? JSON.parse(ryderRow.set3_team_a) : null,
     },
   });
 });
@@ -2060,12 +2082,18 @@ app.post('/api/golf/settings', (req, res) => {
     const stake = parseFloat(value);
     if (isNaN(stake) || stake < 0 || stake > 100000) return res.status(400).json({ error: 'Stake must be a positive number.' });
     db.prepare('UPDATE golf_settings SET stake=? WHERE id = 1').run(stake);
+  } else if (field === 'plusMinusStake') {
+    const stake = parseFloat(value);
+    if (isNaN(stake) || stake < 0 || stake > 100000) return res.status(400).json({ error: 'Stake must be a positive number.' });
+    db.prepare('UPDATE golf_settings SET plus_minus_stake=? WHERE id = 1').run(stake);
   } else if (field === 'formats') {
     if (typeof value !== 'object' || value === null) return res.status(400).json({ error: 'Invalid formats value.' });
     const formats = {
       football: !!value.football,
       six66: !!value.six66,
       pp: !!value.pp,
+      ryderCup: !!value.ryderCup,
+      plusMinus: !!value.plusMinus,
     };
     db.prepare('UPDATE golf_settings SET formats=? WHERE id = 1').run(JSON.stringify(formats));
   } else {
@@ -2077,17 +2105,44 @@ app.post('/api/golf/settings', (req, res) => {
 app.post('/api/golf/players', (req, res) => {
   const i = parseInt(req.body.idx, 10);
   if (isNaN(i) || i < 0 || i > 7) return res.status(400).json({ error: 'Invalid player index.' });
+  let appliedHandicap = null;
   if (req.body.name !== undefined) {
     const name = String(req.body.name || '').slice(0, 40).trim();
     if (!name) return res.status(400).json({ error: 'Name cannot be empty.' });
     db.prepare('UPDATE golf_players SET name=? WHERE idx=?').run(name, i);
+    const known = db.prepare('SELECT handicap FROM golf_known_players WHERE lower(name) = lower(?)').get(name);
+    if (known) {
+      db.prepare('UPDATE golf_players SET handicap=? WHERE idx=?').run(known.handicap, i);
+      appliedHandicap = known.handicap;
+    }
   }
   if (req.body.handicap !== undefined) {
     const h = parseInt(req.body.handicap, 10);
     if (isNaN(h) || h < 1 || h > 36) return res.status(400).json({ error: 'Handicap must be between 1 and 36.' });
     db.prepare('UPDATE golf_players SET handicap=? WHERE idx=?').run(h, i);
   }
+  res.json({ ok: true, appliedHandicap });
+});
+
+app.get('/api/golf/known-players', (_req, res) => {
+  const rows = db.prepare('SELECT name, handicap FROM golf_known_players ORDER BY name').all();
+  res.json(rows);
+});
+
+app.post('/api/golf/known-players', (req, res) => {
+  const name = String(req.body.name || '').trim();
+  const h = parseInt(req.body.handicap, 10);
+  if (!GOLF_KNOWN_PLAYERS.includes(name)) return res.status(400).json({ error: 'Unknown player.' });
+  if (isNaN(h) || h < 1 || h > 36) return res.status(400).json({ error: 'Handicap must be between 1 and 36.' });
+  db.prepare('UPDATE golf_known_players SET handicap=? WHERE name=?').run(h, name);
   res.json({ ok: true });
+});
+
+app.get('/api/golf/round-history', (req, res) => {
+  const player = String(req.query.player || '').trim();
+  if (!GOLF_KNOWN_PLAYERS.includes(player)) return res.status(400).json({ error: 'Unknown player.' });
+  const rows = db.prepare('SELECT id, player_name, played_on, course_name, total_shots, total_stableford, total_putting_points, total_lost_balls, created_at FROM golf_round_history WHERE player_name = ? ORDER BY played_on DESC, created_at DESC').all(player);
+  res.json(rows);
 });
 
 app.post('/api/golf/course', (req, res) => {
@@ -2096,6 +2151,7 @@ app.post('/api/golf/course', (req, res) => {
   if (isNaN(hole) || hole < 1 || hole > 18 || !['par', 'strokeIndex'].includes(field)) {
     return res.status(400).json({ error: 'Invalid hole number or field.' });
   }
+  db.prepare("UPDATE golf_settings SET course_name = 'Custom Course' WHERE id = 1").run();
   if (field === 'par') {
     const p = parseInt(value, 10);
     if (isNaN(p) || p < 3 || p > 6) return res.status(400).json({ error: 'Par must be between 3 and 6.' });
@@ -2126,12 +2182,13 @@ app.post('/api/golf/courses', (req, res) => {
 
 app.post('/api/golf/courses/load', (req, res) => {
   const id = String(req.body.id || '');
-  const row = db.prepare('SELECT holes_json FROM golf_saved_courses WHERE id = ?').get(id);
+  const row = db.prepare('SELECT name, holes_json FROM golf_saved_courses WHERE id = ?').get(id);
   if (!row) return res.status(404).json({ error: 'Saved course not found.' });
   let holes;
   try { holes = JSON.parse(row.holes_json); } catch (_) { return res.status(500).json({ error: 'Saved course data is corrupt.' }); }
   const upd = db.prepare('UPDATE golf_course SET par=?, stroke_index=? WHERE hole_number=?');
   holes.forEach(h => upd.run(h.par, h.stroke_index, h.hole_number));
+  db.prepare('UPDATE golf_settings SET course_name = ? WHERE id = 1').run(row.name);
   res.json({ ok: true });
 });
 
@@ -2140,7 +2197,7 @@ app.delete('/api/golf/courses/:id', (req, res) => {
   res.json({ ok: true });
 });
 
-const GOLF_SCORE_FIELDS = ['shots', 'fairway', 'gir', 'one_putt', 'putting_points', 'lost_balls'];
+const GOLF_SCORE_FIELDS = ['shots', 'fairway', 'gir', 'one_putt', 'putting_points', 'lost_balls', 'bi', 'ba', 'bo'];
 
 app.post('/api/golf/score', (req, res) => {
   const playerIdx = parseInt(req.body.playerIdx, 10);
@@ -2160,8 +2217,8 @@ app.post('/api/golf/score', (req, res) => {
     db.prepare('UPDATE golf_scores SET shots=? WHERE player_idx=? AND hole_number=?').run(shots, playerIdx, holeNumber);
   } else if (field === 'putting_points') {
     const pp = (value === '' || value == null) ? 0 : parseInt(value, 10);
-    if (isNaN(pp) || pp < 0 || pp > 6) {
-      return res.status(400).json({ error: 'Putting points must be between 0 and 6.' });
+    if (isNaN(pp) || pp < 0 || pp > 10) {
+      return res.status(400).json({ error: 'Putting points must be between 0 and 10.' });
     }
     db.prepare('UPDATE golf_scores SET putting_points=? WHERE player_idx=? AND hole_number=?').run(pp, playerIdx, holeNumber);
   } else if (field === 'lost_balls') {
@@ -2170,6 +2227,12 @@ app.post('/api/golf/score', (req, res) => {
       return res.status(400).json({ error: 'Lost balls must be between 0 and 20.' });
     }
     db.prepare('UPDATE golf_scores SET lost_balls=? WHERE player_idx=? AND hole_number=?').run(lb, playerIdx, holeNumber);
+  } else if (['bi', 'ba', 'bo'].includes(field)) {
+    const v = (value === '' || value == null) ? 0 : parseInt(value, 10);
+    if (isNaN(v) || v < 0 || v > 10) {
+      return res.status(400).json({ error: `${field.toUpperCase()} must be between 0 and 10.` });
+    }
+    db.prepare(`UPDATE golf_scores SET ${field}=? WHERE player_idx=? AND hole_number=?`).run(v, playerIdx, holeNumber);
   } else {
     db.prepare(`UPDATE golf_scores SET ${field}=? WHERE player_idx=? AND hole_number=?`).run(value ? 1 : 0, playerIdx, holeNumber);
   }
@@ -2240,15 +2303,102 @@ app.delete('/api/golf/trophies/:id', (req, res) => {
   res.json({ ok: true });
 });
 
+function ryderCupPairings(idxs){
+  const [a,b,c,d] = idxs;
+  return [ [a,b], [a,c], [a,d] ]; // each entry is a possible "Team A"; the other 2 players are automatically Team B
+}
+
+app.post('/api/golf/ryder/players', (req, res) => {
+  const idxs = req.body.playerIdxs;
+  if (Array.isArray(idxs) && idxs.length === 0) {
+    db.prepare('UPDATE golf_ryder_cup SET player_idxs=NULL, set1_team_a=NULL, set2_team_a=NULL, set3_team_a=NULL WHERE id=1').run();
+    return res.json({ ok: true, cleared: true });
+  }
+  if (!Array.isArray(idxs) || idxs.length !== 4 ||
+      new Set(idxs).size !== 4 ||
+      idxs.some(i => !Number.isInteger(i) || i < 0 || i > 7)) {
+    return res.status(400).json({ error: 'Pick exactly 4 different players.' });
+  }
+  db.prepare('UPDATE golf_ryder_cup SET player_idxs=?, set1_team_a=NULL, set2_team_a=NULL, set3_team_a=NULL WHERE id=1')
+    .run(JSON.stringify(idxs));
+  res.json({ ok: true });
+});
+
+app.post('/api/golf/ryder/draw', (req, res) => {
+  const setNum = parseInt(req.body.set, 10);
+  if (![1, 2].includes(setNum)) return res.status(400).json({ error: 'Can only draw for Set 1 or Set 2.' });
+
+  const row = db.prepare('SELECT player_idxs, set1_team_a, set2_team_a FROM golf_ryder_cup WHERE id=1').get();
+  if (!row || !row.player_idxs) return res.status(400).json({ error: 'Pick 4 players first.' });
+  const idxs = JSON.parse(row.player_idxs);
+  const pairings = ryderCupPairings(idxs);
+
+  if (setNum === 1) {
+    if (row.set1_team_a) return res.status(400).json({ error: 'Set 1 teams are already drawn.' });
+    const pick = Math.floor(Math.random() * 3);
+    db.prepare('UPDATE golf_ryder_cup SET set1_team_a=? WHERE id=1').run(JSON.stringify(pairings[pick]));
+    return res.json({ ok: true, teamA: pairings[pick] });
+  }
+
+  if (!row.set1_team_a) return res.status(400).json({ error: 'Draw Set 1 teams first.' });
+  if (row.set2_team_a) return res.status(400).json({ error: 'Set 2 teams are already drawn.' });
+  const set1Key = JSON.stringify(JSON.parse(row.set1_team_a).slice().sort((x, y) => x - y));
+  const remaining = [0, 1, 2].filter(i => JSON.stringify(pairings[i].slice().sort((x, y) => x - y)) !== set1Key);
+  const pick = remaining[Math.floor(Math.random() * remaining.length)];
+  const set3Idx = remaining.find(i => i !== pick);
+  db.prepare('UPDATE golf_ryder_cup SET set2_team_a=?, set3_team_a=? WHERE id=1')
+    .run(JSON.stringify(pairings[pick]), JSON.stringify(pairings[set3Idx]));
+  res.json({ ok: true, teamA: pairings[pick], set3TeamA: pairings[set3Idx] });
+});
+
 app.post('/api/golf/reset', (_req, res) => {
+  try {
+    const knownPlayers = db.prepare('SELECT name FROM golf_known_players').all();
+    const currentPlayers = db.prepare('SELECT idx, name, handicap FROM golf_players').all();
+    const courseRows = db.prepare('SELECT hole_number, par, stroke_index FROM golf_course ORDER BY hole_number').all();
+    const courseMap = {};
+    courseRows.forEach(c => { courseMap[c.hole_number] = c; });
+    const settingsRow = db.prepare('SELECT course_name FROM golf_settings WHERE id = 1').get();
+    const courseName = settingsRow ? settingsRow.course_name : 'Custom Course';
+    const today = new Date().toISOString().slice(0, 10);
+
+    knownPlayers.forEach(kp => {
+      const slot = currentPlayers.find(p => p.name.trim().toLowerCase() === kp.name.toLowerCase());
+      if (!slot) return;
+      const scores = db.prepare('SELECT hole_number, shots, fairway, gir, one_putt, putting_points, lost_balls FROM golf_scores WHERE player_idx = ? ORDER BY hole_number').all(slot.idx);
+      const anyShots = scores.some(s => s.shots != null);
+      if (!anyShots) return;
+
+      let totalShots = 0, totalStableford = 0, totalPutting = 0, totalLost = 0;
+      scores.forEach(s => {
+        totalPutting += s.putting_points || 0;
+        totalLost += s.lost_balls || 0;
+        if (s.shots != null) {
+          totalShots += s.shots;
+          const info = courseMap[s.hole_number] || { par: 4, stroke_index: s.hole_number };
+          const h = slot.handicap || 18;
+          const strokesReceived = Math.floor(h / 18) + (info.stroke_index <= (h % 18) ? 1 : 0);
+          const net = s.shots - strokesReceived;
+          totalStableford += Math.max(0, 2 - (net - info.par));
+        }
+      });
+
+      db.prepare('INSERT INTO golf_round_history (id, player_name, played_on, course_name, total_shots, total_stableford, total_putting_points, total_lost_balls, holes_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+        .run(uuidv4(), kp.name, today, courseName, totalShots, totalStableford, totalPutting, totalLost, JSON.stringify(scores), new Date().toISOString());
+    });
+  } catch (e) {
+    console.error('[Round archive] Failed to archive round history before reset:', e);
+  }
+
   db.exec('DELETE FROM golf_scores');
   db.prepare('UPDATE golf_side_draw SET front_six=NULL, middlesex_six=NULL WHERE id = 1').run();
   const updGolfPlayer = db.prepare('UPDATE golf_players SET name=?, handicap=18 WHERE idx=?');
   for (let idx = 0; idx < 8; idx++) updGolfPlayer.run('', idx);
   const updHole = db.prepare('UPDATE golf_course SET par=4, stroke_index=? WHERE hole_number=?');
   for (let hn = 1; hn <= 18; hn++) updHole.run(hn, hn);
-  db.prepare('UPDATE golf_settings SET stake=0, formats=? WHERE id = 1')
-    .run(JSON.stringify({ football: false, six66: false, pp: false }));
+  db.prepare("UPDATE golf_settings SET stake=0, formats=?, course_name='Custom Course', plus_minus_stake=0 WHERE id = 1")
+    .run(JSON.stringify({ football: false, six66: false, pp: false, ryderCup: false, plusMinus: false }));
+  db.prepare('UPDATE golf_ryder_cup SET player_idxs=NULL, set1_team_a=NULL, set2_team_a=NULL, set3_team_a=NULL WHERE id = 1').run();
   res.json({ ok: true, message: 'Golf sweepstake reset.' });
 });
 
