@@ -30,6 +30,10 @@ let players = [
 let course = {};    // holeNumber (1-18) -> {par, stroke_index}
 let savedCourses = []; // [{id, name, created_at}]
 let trophies = []; // [{id, competition, year, winner, created_at}]
+let knownPlayers = []; // [{name, handicap}] -- Gavin/Scum/Kemble/Swanko's saved profiles
+let selectedPlayerPage = 'Gavin';
+let roundHistory = []; // round history for the currently selected player page
+let roundHistoryLoadedFor = null; // which player the current roundHistory array belongs to
 let trophySubPage = 'boards'; // 'boards' | 'shelf'
 const SHELF_PLAYERS = ['Kemble', 'Swanko', 'Gavin', 'Scum'];
 const TROPHY_COMPETITIONS = [
@@ -39,7 +43,8 @@ const TROPHY_COMPETITIONS = [
 ];
 let scores = {};    // playerIdx -> { holeNumber -> {shots, fairway, gir, one_putt, putting_points} }
 let sideDraw = { frontSix: null, middlesexSix: null };
-let settings = { stake: 0, formats: { football: false, six66: false, pp: false } };
+let settings = { stake: 0, formats: { football: false, six66: false, pp: false, ryderCup: false, plusMinus: false }, courseName: 'Custom Course', plusMinusStake: 0 };
+let ryderCup = { playerIdxs: null, set1TeamA: null, set2TeamA: null, set3TeamA: null };
 
 let currentTab = "scorecard";
 let selectedPlayerIdx = parseInt(localStorage.getItem(MY_PLAYER_KEY), 10);
@@ -68,26 +73,55 @@ async function loadState(){
         shots: row.shots, fairway: !!row.fairway, gir: !!row.gir, one_putt: !!row.one_putt,
         putting_points: row.putting_points || 0,
         lost_balls: row.lost_balls || 0,
+        bi: row.bi || 0,
+        ba: row.ba || 0,
+        bo: row.bo || 0,
       };
     });
     sideDraw = data.sideDraw || { frontSix: null, middlesexSix: null };
     if(data.settings){
       settings = {
         stake: data.settings.stake || 0,
-        formats: data.settings.formats || { football:false, six66:false, pp:false },
+        formats: data.settings.formats || { football:false, six66:false, pp:false, ryderCup:false, plusMinus:false },
+        courseName: data.settings.courseName || 'Custom Course',
+        plusMinusStake: data.settings.plusMinusStake || 0,
       };
     }
+    ryderCup = data.ryderCup || { playerIdxs: null, set1TeamA: null, set2TeamA: null, set3TeamA: null };
     render();
   }catch(e){
     console.error('Failed to load golf state', e);
   }
 }
 
+async function loadKnownPlayers(){
+  try{
+    const res = await fetch('/api/golf/known-players');
+    knownPlayers = await res.json();
+    if(currentTab==='playerpages') render();
+  }catch(e){
+    console.error('Failed to load known players', e);
+  }
+}
+
+async function loadRoundHistory(playerName){
+  try{
+    const res = await fetch(`/api/golf/round-history?player=${encodeURIComponent(playerName)}`);
+    roundHistory = await res.json();
+    roundHistoryLoadedFor = playerName;
+    if(currentTab==='playerpages' && selectedPlayerPage===playerName) render();
+  }catch(e){
+    console.error('Failed to load round history', e);
+  }
+}
+
 async function postJson(url, body){
   try{
-    await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const res = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    try{ return await res.json(); }catch(_){ return null; }
   }catch(e){
     console.error('Failed to save', url, body, e);
+    return null;
   }
 }
 
@@ -270,35 +304,54 @@ function render(){
   else if(currentTab==='sidebets') el.innerHTML = renderSideBets();
   else if(currentTab==='stats') el.innerHTML = renderStats();
   else if(currentTab==='trophies') el.innerHTML = renderTrophyCabinet();
+  else if(currentTab==='playerpages') el.innerHTML = renderPlayerPages();
+  else if(currentTab==='ryder') el.innerHTML = renderRyderCup();
+  else if(currentTab==='plusminus') el.innerHTML = renderPlusMinus();
   attachHandlers();
 }
 
 /* ---------------------------------------------------------
    MY SCORECARD TAB — each player enters their own round, 18 holes
 --------------------------------------------------------- */
+function numberOptionsHtml(selectedValue, min, max){
+  let html = `<option value="" ${selectedValue==null?'selected':''}></option>`;
+  for(let n=min; n<=max; n++){
+    html += `<option value="${n}" ${selectedValue===n?'selected':''}>${n}</option>`;
+  }
+  return html;
+}
+
 function scRowHtml(playerIdx, holeNumber){
   const info = courseInfo(holeNumber);
   const s = scoreFor(playerIdx, holeNumber);
   const pts = stablefordPoints(s.shots, players[playerIdx].handicap, info.par, info.stroke_index);
+  const puttVal = s.putting_points || null;
+  const lbVal = s.lost_balls || null;
+  const biVal = s.bi || null;
+  const baVal = s.ba || null;
+  const boVal = s.bo || null;
   return `
     <div class="sc-row" data-hole="${holeNumber}">
       <div class="sc-holecell">
         <div class="sc-hole">${holeNumber}</div>
         <div class="sc-muted">Par ${info.par}<br>SI ${info.stroke_index}</div>
       </div>
-      <div class="sc-shots"><input type="number" min="1" max="20" inputmode="numeric" data-field="shots" value="${s.shots ?? ''}"></div>
+      <div class="sc-shots"><select data-field="shots">${numberOptionsHtml(s.shots ?? null, 1, 10)}</select></div>
       <div class="sc-pts" id="sc-pts-${holeNumber}">${pts===null?'–':pts}</div>
       <div class="sc-tick"><input type="checkbox" data-field="fairway" ${s.fairway?'checked':''}></div>
       <div class="sc-tick"><input type="checkbox" data-field="gir" ${s.gir?'checked':''}></div>
       <div class="sc-tick"><input type="checkbox" data-field="one_putt" ${s.one_putt?'checked':''}></div>
-      <div class="sc-puttcell"><input type="number" min="0" max="6" inputmode="numeric" data-field="putting_points" value="${s.putting_points || 0}"></div>
-      <div class="sc-lbcell"><input type="number" min="0" max="20" inputmode="numeric" data-field="lost_balls" value="${s.lost_balls || 0}"></div>
+      <div class="sc-puttcell"><select data-field="putting_points">${numberOptionsHtml(puttVal, 0, 10)}</select></div>
+      <div class="sc-lbcell"><select data-field="lost_balls">${numberOptionsHtml(lbVal, 0, 10)}</select></div>
+      <div class="sc-bicell"><select data-field="bi">${numberOptionsHtml(biVal, 0, 10)}</select></div>
+      <div class="sc-bacell"><select data-field="ba">${numberOptionsHtml(baVal, 0, 10)}</select></div>
+      <div class="sc-bocell"><select data-field="bo">${numberOptionsHtml(boVal, 0, 10)}</select></div>
     </div>
   `;
 }
 
 function scSubtotalHtml(label, playerIdx, holeNumbers, cls){
-  let shotsSum = 0, ptsSum = 0, puttSum = 0, lbSum = 0, anyShots = false;
+  let shotsSum = 0, ptsSum = 0, puttSum = 0, lbSum = 0, biSum = 0, baSum = 0, boSum = 0, anyShots = false;
   let fairwayCount = 0, girCount = 0, onePuttCount = 0;
   holeNumbers.forEach(hn=>{
     const s = scoreFor(playerIdx, hn);
@@ -308,6 +361,9 @@ function scSubtotalHtml(label, playerIdx, holeNumbers, cls){
     if(p!==null) ptsSum += p;
     puttSum += s.putting_points || 0;
     lbSum += s.lost_balls || 0;
+    biSum += s.bi || 0;
+    baSum += s.ba || 0;
+    boSum += s.bo || 0;
     if(s.fairway) fairwayCount++;
     if(s.gir) girCount++;
     if(s.one_putt) onePuttCount++;
@@ -322,6 +378,9 @@ function scSubtotalHtml(label, playerIdx, holeNumbers, cls){
       <div class="sc-tick">${onePuttCount}</div>
       <div class="sc-puttcell" style="text-align:center;">${puttSum}</div>
       <div class="sc-lbcell" style="text-align:center;">${lbSum}</div>
+      <div class="sc-bicell" style="text-align:center;">${biSum}</div>
+      <div class="sc-bacell" style="text-align:center;">${baSum}</div>
+      <div class="sc-bocell" style="text-align:center;">${boSum}</div>
     </div>
   `;
 }
@@ -337,6 +396,9 @@ function scHeaderRowHtml(){
       <div class="sc-tick">1P</div>
       <div class="sc-puttcell">Putt</div>
       <div class="sc-lbcell">LB</div>
+      <div class="sc-bicell">Bi</div>
+      <div class="sc-bacell">Ba</div>
+      <div class="sc-bocell">Bo</div>
     </div>
   `;
 }
@@ -350,16 +412,18 @@ function renderScorecard(){
   return `
     <div class="player-picker">${chips}</div>
     <div class="rules-note">
-      <b>${escapeHtml(p.name)}</b> · handicap ${p.handicap} — enter your gross shots for each hole and the Stableford points work themselves out. Keep going through all 18 even after your bracket matches are decided. "Putt" is your score for the Putting Points competition (0–6, your call). "LB" is how many balls you lost on that hole.
+      <b>${escapeHtml(p.name)}</b> · handicap ${p.handicap} — enter your gross shots for each hole and the Stableford points work themselves out. Keep going through all 18 even after your bracket matches are decided. "Putt" is your score for the Putting Points competition (0–6, your call). "LB" is how many balls you lost on that hole. Scroll the scorecard sideways to see the Bi/Ba/Bo columns.
     </div>
-    <div class="scorecard" id="scorecard-body">
-      ${scHeaderRowHtml()}
-      ${out.map(h=>scRowHtml(selectedPlayerIdx,h)).join('')}
-      ${scSubtotalHtml('OUT', selectedPlayerIdx, out, 'subtotal')}
-      ${scHeaderRowHtml()}
-      ${inn.map(h=>scRowHtml(selectedPlayerIdx,h)).join('')}
-      ${scSubtotalHtml('IN', selectedPlayerIdx, inn, 'subtotal')}
-      ${scSubtotalHtml('TOTAL', selectedPlayerIdx, out.concat(inn), 'total')}
+    <div class="scorecard-scroll">
+      <div class="scorecard" id="scorecard-body">
+        ${scHeaderRowHtml()}
+        ${out.map(h=>scRowHtml(selectedPlayerIdx,h)).join('')}
+        ${scSubtotalHtml('OUT', selectedPlayerIdx, out, 'subtotal')}
+        ${scHeaderRowHtml()}
+        ${inn.map(h=>scRowHtml(selectedPlayerIdx,h)).join('')}
+        ${scSubtotalHtml('IN', selectedPlayerIdx, inn, 'subtotal')}
+        ${scSubtotalHtml('TOTAL', selectedPlayerIdx, out.concat(inn), 'total')}
+      </div>
     </div>
   `;
 }
@@ -400,6 +464,14 @@ function renderSetup(){
           <input type="checkbox" id="fmt-pp" ${settings.formats.pp?'checked':''}>
           <span><b>PP</b> — Putting Points</span>
         </label>
+        <label class="format-check">
+          <input type="checkbox" id="fmt-ryderCup" ${settings.formats.ryderCup?'checked':''}>
+          <span><b>Ryder Cup 4 Ball SF</b> — 4 players, rotating 2-ball teams every 6 holes</span>
+        </label>
+        <label class="format-check">
+          <input type="checkbox" id="fmt-plusMinus" ${settings.formats.plusMinus?'checked':''}>
+          <span><b>+-</b> — net-par ladder, plus Putting Points</span>
+        </label>
       </div>
     </div>
     <div class="card">
@@ -411,6 +483,16 @@ function renderSetup(){
         <span style="font-size:0.8rem; color:var(--muted);">per player</span>
       </div>
       <div id="stake-msg"></div>
+    </div>
+    <div class="card">
+      <h2>+- Stake</h2>
+      <div style="font-size:0.85rem; color:var(--muted); margin-bottom:0.9rem;">A separate pot just for the +- page — split 75% to the Ladder, 25% to Putting Points.</div>
+      <div style="display:flex; align-items:center; gap:0.6rem;">
+        <label for="plusminus-stake-input" style="font-weight:800; color:var(--gold);">£</label>
+        <input type="number" id="plusminus-stake-input" min="0" step="0.5" value="${settings.plusMinusStake || ''}" placeholder="0" style="width:100px;">
+        <span style="font-size:0.8rem; color:var(--muted);">per player</span>
+      </div>
+      <div id="plusminus-stake-msg"></div>
     </div>
     <div class="card">
       <h2>Course</h2>
@@ -1166,6 +1248,450 @@ function renderTrophyCabinet(){
   `;
 }
 
+/* ---------------------------------------------------------
+   PLAYER PAGES — saved handicap per known player, auto-applied
+   on the Format tab, plus an archive of past rounds.
+--------------------------------------------------------- */
+function renderPlayerPages(){
+  const chips = SHELF_PLAYERS.map(n=>`<button class="player-chip ${n===selectedPlayerPage?'selected':''}" data-select-playerpage="${escapeHtml(n)}">${escapeHtml(n)}</button>`).join('');
+  const kp = knownPlayers.find(p=>p.name===selectedPlayerPage) || { name: selectedPlayerPage, handicap: 18 };
+  const historyRows = (roundHistoryLoadedFor === selectedPlayerPage) ? roundHistory : [];
+
+  const historyHtml = historyRows.length === 0
+    ? `<div class="tbd">No rounds archived yet for ${escapeHtml(selectedPlayerPage)}. A round gets saved here automatically the moment "Delete all golf data" is used, as long as they had scores entered.</div>`
+    : `
+      <div style="overflow-x:auto;">
+        <table class="standings">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Course</th>
+              <th style="text-align:center">Shots</th>
+              <th style="text-align:center">Stableford</th>
+              <th style="text-align:center">Putt</th>
+              <th style="text-align:center">LB</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${historyRows.map(r=>`
+              <tr>
+                <td>${escapeHtml(r.played_on)}</td>
+                <td>${escapeHtml(r.course_name || 'Custom Course')}</td>
+                <td style="text-align:center">${r.total_shots ?? '–'}</td>
+                <td style="text-align:center"><b>${r.total_stableford ?? '–'}</b></td>
+                <td style="text-align:center">${r.total_putting_points ?? 0}</td>
+                <td style="text-align:center">${r.total_lost_balls ?? 0}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+  return `
+    <div class="player-picker">${chips}</div>
+
+    <div class="card">
+      <h2>${escapeHtml(selectedPlayerPage)}'s Handicap</h2>
+      <div class="rules-note">This is ${escapeHtml(selectedPlayerPage)}'s own saved handicap. The moment their name is typed into one of the 8 slots on the Format tab, this fills in automatically &mdash; no need to re-enter it each round.</div>
+      <div style="display:flex; align-items:center; gap:0.6rem; margin-top:0.8rem;">
+        <input type="number" min="1" max="36" id="known-handicap-input" data-known-player="${escapeHtml(selectedPlayerPage)}" value="${kp.handicap}" style="width:80px;">
+        <button class="btn btn-primary btn-sm" id="known-handicap-save" data-known-player="${escapeHtml(selectedPlayerPage)}">Save</button>
+        <span class="save-tick" data-tick="known-handicap">Saved &#10003;</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Round History</h2>
+      <div class="rules-note">Every round ${escapeHtml(selectedPlayerPage)} plays gets archived here automatically, right before "Delete all golf data" wipes the live scorecards &mdash; the permanent record to build stats from over time.</div>
+      ${historyHtml}
+    </div>
+  `;
+}
+
+/* ---------------------------------------------------------
+   RYDER CUP 4 BALL SF — 4 players, rotating 2-ball teams
+   every 6 holes, using everyone's own personal scorecard.
+--------------------------------------------------------- */
+const RYDER_SET_HOLES = { 1: [1,2,3,4,5,6], 2: [7,8,9,10,11,12], 3: [13,14,15,16,17,18] };
+
+function ryderTeamBFor(teamA, allFour){
+  return allFour.filter(idx => !teamA.includes(idx));
+}
+
+function personalStablefordForHole(playerIdx, holeNumber){
+  const s = scoreFor(playerIdx, holeNumber);
+  const info = courseInfo(holeNumber);
+  return stablefordPoints(s.shots, players[playerIdx].handicap, info.par, info.stroke_index);
+}
+
+function ryderAllHolesComplete(playerIdxs, holeNumbers){
+  return playerIdxs.every(idx => holeNumbers.every(hn => scoreFor(idx, hn).shots != null));
+}
+
+// Splits or awards a point between two sides based on which stableford score is higher (a tie halves it).
+function ryderAwardPoint(scoreA, scoreB){
+  if(scoreA > scoreB) return [1, 0];
+  if(scoreB > scoreA) return [0, 1];
+  return [0.5, 0.5];
+}
+
+function ryderSetResult(setNum){
+  const teamA = ryderCup[`set${setNum}TeamA`];
+  if(!teamA || !ryderCup.playerIdxs) return null;
+  const teamB = ryderTeamBFor(teamA, ryderCup.playerIdxs);
+  const holes = RYDER_SET_HOLES[setNum];
+
+  let pointsA = 0, pointsB = 0;
+  const gameResults = [];
+
+  [holes[0], holes[1]].forEach(hn=>{
+    const a1 = personalStablefordForHole(teamA[0], hn), a2 = personalStablefordForHole(teamA[1], hn);
+    const b1 = personalStablefordForHole(teamB[0], hn), b2 = personalStablefordForHole(teamB[1], hn);
+    if(a1===null || a2===null || b1===null || b2===null){
+      gameResults.push({ hole:hn, type:'bestball', pending:true });
+      return;
+    }
+    const aScore = Math.max(a1,a2), bScore = Math.max(b1,b2);
+    const [pA,pB] = ryderAwardPoint(aScore, bScore);
+    pointsA += pA; pointsB += pB;
+    gameResults.push({ hole:hn, type:'bestball', teamAScore:aScore, teamBScore:bScore, pointsA:pA, pointsB:pB });
+  });
+
+  [holes[2], holes[3]].forEach(hn=>{
+    const a1 = personalStablefordForHole(teamA[0], hn), a2 = personalStablefordForHole(teamA[1], hn);
+    const b1 = personalStablefordForHole(teamB[0], hn), b2 = personalStablefordForHole(teamB[1], hn);
+    if(a1===null || a2===null || b1===null || b2===null){
+      gameResults.push({ hole:hn, type:'combined', pending:true });
+      return;
+    }
+    const aScore = a1+a2, bScore = b1+b2;
+    const [pA,pB] = ryderAwardPoint(aScore, bScore);
+    pointsA += pA; pointsB += pB;
+    gameResults.push({ hole:hn, type:'combined', teamAScore:aScore, teamBScore:bScore, pointsA:pA, pointsB:pB });
+  });
+
+  function headToHeadMatch(hn, pAIdx, pBIdx){
+    const sA = personalStablefordForHole(pAIdx, hn), sB = personalStablefordForHole(pBIdx, hn);
+    if(sA===null || sB===null) return { hole:hn, type:'h2h', pending:true, playerA:pAIdx, playerB:pBIdx };
+    const [pA,pB] = ryderAwardPoint(sA, sB);
+    pointsA += pA; pointsB += pB;
+    return { hole:hn, type:'h2h', playerA:pAIdx, playerB:pBIdx, scoreA:sA, scoreB:sB, pointsA:pA, pointsB:pB };
+  }
+  const [hn5, hn6] = [holes[4], holes[5]];
+  gameResults.push(headToHeadMatch(hn5, teamA[0], teamB[0]));
+  gameResults.push(headToHeadMatch(hn5, teamA[1], teamB[1]));
+  gameResults.push(headToHeadMatch(hn6, teamA[0], teamB[1]));
+  gameResults.push(headToHeadMatch(hn6, teamA[1], teamB[0]));
+
+  return { setNum, teamA, teamB, holes, pointsA, pointsB, gameResults };
+}
+
+function ryderOverallStandings(){
+  const allFour = ryderCup.playerIdxs;
+  if(!allFour) return [];
+  const totals = {};
+  allFour.forEach(idx=>{ totals[idx] = 0; });
+  [1,2,3].forEach(setNum=>{
+    const result = ryderSetResult(setNum);
+    if(!result) return;
+    result.teamA.forEach(idx=>{ totals[idx] += result.pointsA; });
+    result.teamB.forEach(idx=>{ totals[idx] += result.pointsB; });
+  });
+  const rows = allFour.map(idx=>({ idx, name: players[idx].name, pts: totals[idx] }));
+  rows.sort((a,b)=> b.pts - a.pts);
+  let rank=0, prevPts=null, seen=0;
+  rows.forEach(r=>{
+    seen++;
+    if(r.pts !== prevPts){ rank = seen; prevPts = r.pts; }
+    r.rank = rank;
+  });
+  return rows;
+}
+
+function ryderTeamLabel(teamIdxs){
+  return teamIdxs.map(i=>escapeHtml(players[i].name)).join(' & ');
+}
+
+function ryderGameRowHtml(g){
+  if(g.type==='h2h'){
+    const label = `${escapeHtml(players[g.playerA].name)} v ${escapeHtml(players[g.playerB].name)}`;
+    if(g.pending) return `<tr><td>Hole ${g.hole}</td><td>${label}</td><td colspan="2" style="text-align:center;color:var(--muted);">Pending</td></tr>`;
+    return `<tr><td>Hole ${g.hole}</td><td>${label}<br><span class="sc-muted">${g.scoreA} v ${g.scoreB}</span></td><td style="text-align:center">${g.pointsA}</td><td style="text-align:center">${g.pointsB}</td></tr>`;
+  }
+  const label = g.type==='bestball' ? 'Best Ball' : 'Combined';
+  if(g.pending) return `<tr><td>Hole ${g.hole}</td><td>${label}</td><td colspan="2" style="text-align:center;color:var(--muted);">Pending</td></tr>`;
+  return `<tr><td>Hole ${g.hole}</td><td>${label}<br><span class="sc-muted">${g.teamAScore} v ${g.teamBScore}</span></td><td style="text-align:center">${g.pointsA}</td><td style="text-align:center">${g.pointsB}</td></tr>`;
+}
+
+function ryderSetHtml(setNum){
+  const holes = RYDER_SET_HOLES[setNum];
+  const holeRangeLabel = `Holes ${holes[0]}-${holes[holes.length-1]}`;
+  const result = ryderSetResult(setNum);
+
+  if(!result){
+    if(setNum===1){
+      return `
+        <div class="card">
+          <h2>Set 1 &middot; ${holeRangeLabel}</h2>
+          <div class="rules-note">Draw random teams to get started.</div>
+          <button class="btn btn-primary" id="ryder-draw-1">Draw Set 1 Teams</button>
+        </div>
+      `;
+    }
+    if(setNum===2){
+      if(!ryderCup.set1TeamA){
+        return `<div class="card"><h2>Set 2 &middot; ${holeRangeLabel}</h2><div class="tbd">Draw Set 1 teams first.</div></div>`;
+      }
+      if(!ryderAllHolesComplete(ryderCup.playerIdxs, RYDER_SET_HOLES[1])){
+        return `<div class="card"><h2>Set 2 &middot; ${holeRangeLabel}</h2><div class="tbd">Finish holes 1-6 for all 4 players before drawing Set 2 teams.</div></div>`;
+      }
+      return `
+        <div class="card">
+          <h2>Set 2 &middot; ${holeRangeLabel}</h2>
+          <div class="rules-note">Holes 1-6 are complete &mdash; draw teams for the next 6.</div>
+          <button class="btn btn-primary" id="ryder-draw-2">Draw Set 2 Teams</button>
+        </div>
+      `;
+    }
+    return `<div class="card"><h2>Set 3 &middot; ${holeRangeLabel}</h2><div class="tbd">Automatically decided the moment Set 2 teams are drawn &mdash; it's always whichever pairing hasn't been used yet.</div></div>`;
+  }
+
+  const rows = result.gameResults.map(ryderGameRowHtml).join('');
+  return `
+    <div class="card">
+      <h2>Set ${setNum} &middot; ${holeRangeLabel}</h2>
+      <div class="rules-note"><b>${ryderTeamLabel(result.teamA)}</b> vs <b>${ryderTeamLabel(result.teamB)}</b></div>
+      <div style="overflow-x:auto;">
+        <table class="standings">
+          <thead><tr><th>Hole</th><th>Game</th><th style="text-align:center">${escapeHtml(players[result.teamA[0]].name)}/${escapeHtml(players[result.teamA[1]].name)}</th><th style="text-align:center">${escapeHtml(players[result.teamB[0]].name)}/${escapeHtml(players[result.teamB[1]].name)}</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div class="winner-banner" style="margin-top:0.9rem;">
+        <span class="label">Set ${setNum} points</span>
+        <span class="name">${ryderTeamLabel(result.teamA)} ${result.pointsA} &ndash; ${result.pointsB} ${ryderTeamLabel(result.teamB)}</span>
+      </div>
+    </div>
+  `;
+}
+
+function renderRyderCup(){
+  if(!settings.formats.ryderCup){
+    return `<div class="card"><div class="tbd">Ryder Cup 4 Ball SF is switched off for this round &mdash; turn it on in the Competition card on the Format tab.</div></div>`;
+  }
+
+  if(!ryderCup.playerIdxs){
+    const namedIdxs = namedPlayerIdxs();
+    if(namedIdxs.length < 4){
+      return `<div class="card"><div class="tbd">Add at least 4 named players on the Format tab first.</div></div>`;
+    }
+    const checks = namedIdxs.map(idx=>`
+      <label class="format-check">
+        <input type="checkbox" class="ryder-player-check" value="${idx}">
+        <span>${escapeHtml(players[idx].name)}</span>
+      </label>
+    `).join('');
+    return `
+      <div class="card">
+        <h2>Ryder Cup 4 Ball SF</h2>
+        <div class="rules-note">Pick exactly 4 named players to take part. They'll be split into rotating 2-ball teams every 6 holes, using everyone's own scores from the My Scorecard tab.</div>
+        <div class="format-row">${checks}</div>
+        <button class="btn btn-primary" id="ryder-confirm-players" style="margin-top:0.9rem;">Confirm Players</button>
+        <div id="ryder-players-msg"></div>
+      </div>
+    `;
+  }
+
+  const overall = ryderOverallStandings();
+  return `
+    <div class="card">
+      <h2>Ryder Cup 4 Ball SF</h2>
+      <div class="rules-note">Teams rotate every 6 holes &mdash; everyone plays every hole with their own ball, but which 2-ball team they're on for scoring changes across the 3 sets.</div>
+      ${miniLeaderboardHtml(overall)}
+      <button class="btn btn-sm" id="ryder-change-players" style="margin-top:0.9rem;">Change Players</button>
+    </div>
+    ${ryderSetHtml(1)}
+    ${ryderSetHtml(2)}
+    ${ryderSetHtml(3)}
+  `;
+}
+
+/* ---------------------------------------------------------
+   +- LADDER — net-par ladder scoring, plus Putting Points,
+   with its own dedicated 75/25 stake split.
+--------------------------------------------------------- */
+function plusMinusPointsForHole(playerIdx, holeNumber){
+  const s = scoreFor(playerIdx, holeNumber);
+  if(s.shots == null) return null;
+  const info = courseInfo(holeNumber);
+  const rec = strokesReceived(players[playerIdx].handicap, info.stroke_index);
+  const net = s.shots - rec;
+  const diff = net - info.par;
+  if(diff === 0) return 0;
+  if(diff < 0) return -diff * 2; // under net par: +2 per shot under
+  return -diff; // over net par: -1 per shot over
+}
+
+function plusMinusTotalForPlayer(playerIdx){
+  let total = 0;
+  ALL_18.forEach(hn=>{
+    const p = plusMinusPointsForHole(playerIdx, hn);
+    if(p !== null) total += p;
+  });
+  return total;
+}
+
+function plusMinusStandings(){
+  return rankPlayers(i => plusMinusTotalForPlayer(i), namedPlayerIdxs());
+}
+
+function plusMinusLadderHtml(){
+  const idxs = namedPlayerIdxs();
+  if(idxs.length === 0) return `<div class="tbd">Add player names on the Format tab to see the ladder.</div>`;
+
+  const totals = idxs.map(idx=>({ idx, name: players[idx].name, total: plusMinusTotalForPlayer(idx) }));
+  const minVal = Math.min(0, ...totals.map(t=>t.total)) - 1;
+  const maxVal = Math.max(0, ...totals.map(t=>t.total)) + 1;
+
+  const rungs = [];
+  for(let v = maxVal; v >= minVal; v--) rungs.push(v);
+
+  const rungsHtml = rungs.map(v=>{
+    const here = totals.filter(t=>t.total === v);
+    const chips = here.map(t=>{
+      const color = CRUMBLE_COLORS[idxs.indexOf(t.idx) % CRUMBLE_COLORS.length];
+      return `<span class="ladder-player" style="background:${color};">&#128694; ${escapeHtml(t.name)}</span>`;
+    }).join('');
+    return `
+      <div class="ladder-rung ${v===0?'ladder-zero':''}">
+        <span class="ladder-value">${v>0?'+':''}${v}</span>
+        <span class="ladder-track">${chips}</span>
+      </div>
+    `;
+  }).join('');
+
+  return `<div class="ladder">${rungsHtml}</div>`;
+}
+
+function plusMinusMoneyTable(){
+  const stakeAmount = settings.plusMinusStake || 0;
+  const idxs = namedPlayerIdxs();
+  if(idxs.length < 2 || stakeAmount <= 0) return null;
+  const N = idxs.length;
+
+  const categories = [
+    { name:'Ladder', weight:0.75, rows: rankPlayers(i=>plusMinusTotalForPlayer(i), idxs) },
+    { name:'Putting Points', weight:0.25, rows: rankPlayers(i=>personalPuttingPointsForHoles(i, ALL_18), idxs) },
+  ];
+
+  const net = {};
+  idxs.forEach(idx=>{ net[idx] = { total:0, byCategory:{} }; });
+
+  categories.forEach(cat=>{
+    const potForCat = stakeAmount * N * cat.weight;
+    const contributionPerPerson = stakeAmount * cat.weight;
+    const topScore = cat.rows[0].pts;
+    const winners = cat.rows.filter(r=>r.pts===topScore);
+    const winShare = potForCat / winners.length;
+    idxs.forEach(idx=>{
+      const isWinner = winners.some(w=>w.idx===idx);
+      const amount = isWinner ? (winShare - contributionPerPerson) : -contributionPerPerson;
+      net[idx].byCategory[cat.name] = amount;
+      net[idx].total += amount;
+    });
+  });
+
+  const settlements = computeSettlements(net, idxs);
+  return { categories, net, stakeAmount, N, idxs, settlements };
+}
+
+function plusMinusMoneyHtml(){
+  const data = plusMinusMoneyTable();
+  if(!data){
+    const named = namedPlayerIdxs().length;
+    const note = named < 2
+      ? 'Need at least 2 named players (on the Format tab) before the +- stakes can be calculated.'
+      : `Set a stake on the Format tab's "+- Stake" card to see the payout table.`;
+    return `
+      <div class="card">
+        <h2>+- Stakes</h2>
+        <div class="tbd">${note}</div>
+      </div>
+    `;
+  }
+
+  const header = `<th>Player</th>` + data.categories.map(c=>`<th style="text-align:right">${escapeHtml(c.name)}</th>`).join('') + `<th style="text-align:right">Total</th>`;
+  const rows = data.idxs.map(idx=>{
+    const p = players[idx];
+    const cells = data.categories.map(c=>{
+      const amt = data.net[idx].byCategory[c.name];
+      const cls = amt > 0.001 ? 'stake-pos' : amt < -0.001 ? 'stake-neg' : '';
+      return `<td style="text-align:right" class="${cls}">${moneyLabel(amt)}</td>`;
+    }).join('');
+    const totalAmt = data.net[idx].total;
+    const totalCls = totalAmt > 0.001 ? 'stake-pos' : totalAmt < -0.001 ? 'stake-neg' : '';
+    return `<tr><td>${escapeHtml(p.name)}</td>${cells}<td style="text-align:right" class="${totalCls}"><b>${moneyLabel(totalAmt)}</b></td></tr>`;
+  }).join('');
+
+  const settlementHtml = data.settlements.length === 0
+    ? `<div class="tbd" style="padding:0.75rem 0 0;">Everyone's currently level &mdash; nothing to transfer.</div>`
+    : `
+      <div class="settle-list">
+        ${data.settlements.map(t=>`
+          <div class="settle-row">
+            <span class="settle-from">${escapeHtml(players[t.from].name)}</span>
+            <span class="settle-arrow">pays &rarr;</span>
+            <span class="settle-to">${escapeHtml(players[t.to].name)}</span>
+            <span class="settle-amount">£${t.amount.toFixed(2)}</span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+
+  return `
+    <div class="card">
+      <h2>+- Stakes</h2>
+      <div class="rules-note">£${data.stakeAmount.toFixed(2)} per player &times; ${data.N} named players = £${(data.stakeAmount*data.N).toFixed(2)} total &mdash; 75% (£${(data.stakeAmount*data.N*0.75).toFixed(2)}) to the Ladder, 25% (£${(data.stakeAmount*data.N*0.25).toFixed(2)}) to Putting Points.</div>
+      <div style="overflow-x:auto;">
+        <table class="standings stake-table"><thead><tr>${header}</tr></thead><tbody>${rows}</tbody></table>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Who Owes Who</h2>
+      <div class="rules-note">The fewest payments needed to settle everything up.</div>
+      ${settlementHtml}
+    </div>
+  `;
+}
+
+function renderPlusMinus(){
+  if(!settings.formats.plusMinus){
+    return `<div class="card"><div class="tbd">The +- format is switched off for this round &mdash; turn it on in the Competition card on the Format tab.</div></div>`;
+  }
+
+  const ladderStandings = plusMinusStandings();
+  const putting = puttingStandings();
+
+  return `
+    <div class="card">
+      <h2>+- Ladder</h2>
+      <div class="rules-note">Net par = 0. Every shot under net par = +2. Every shot over net par = &minus;1. Watch everyone climb or slide as the round goes on.</div>
+      ${plusMinusLadderHtml()}
+    </div>
+    <div class="card">
+      <h2>+- Standings</h2>
+      ${ladderStandings.length ? miniLeaderboardHtml(ladderStandings) : `<div class="tbd">Add player names on the Format tab to see this.</div>`}
+    </div>
+    <div class="card">
+      <h2>Putting Points</h2>
+      <div class="rules-note">Each player's own putting score, added up across all 18 holes &mdash; entered on the My Scorecard tab.</div>
+      ${putting.length ? miniLeaderboardHtml(putting) : `<div class="tbd">Add player names on the Format tab to see this.</div>`}
+    </div>
+    ${plusMinusMoneyHtml()}
+  `;
+}
+
 
 function attachHandlers(){
   document.querySelectorAll('.tab-btn').forEach(b=>{
@@ -1174,6 +1700,7 @@ function attachHandlers(){
       render();
       if(currentTab==='course' || currentTab==='setup') loadSavedCourses();
       if(currentTab==='trophies') loadTrophies();
+      if(currentTab==='playerpages'){ loadKnownPlayers(); loadRoundHistory(selectedPlayerPage); }
     };
   });
 
@@ -1208,43 +1735,32 @@ function attachHandlers(){
         }
       };
 
-      const input = row.querySelector('input[data-field="shots"]');
-      if(input){
-        let debounce;
-        input.onfocus = ()=>{
-          if(input.dataset.originalValue === undefined){
-            const existing = scoreFor(selectedPlayerIdx, holeNumber).shots;
-            input.dataset.originalValue = existing===null||existing===undefined ? '' : String(existing);
-          }
-        };
-        input.oninput = ()=>{
+      const shotsSelect = row.querySelector('select[data-field="shots"]');
+      if(shotsSelect){
+        shotsSelect.onchange = ()=>{
           if(!scores[selectedPlayerIdx]) scores[selectedPlayerIdx] = {};
           if(!scores[selectedPlayerIdx][holeNumber]) scores[selectedPlayerIdx][holeNumber] = {};
-          scores[selectedPlayerIdx][holeNumber].shots = input.value === '' ? null : parseInt(input.value,10);
-          refreshRow();
-          clearTimeout(debounce);
-          debounce = setTimeout(()=>{
-            const original = input.dataset.originalValue ?? '';
-            const changingExisting = original !== '' && original !== input.value;
-            const proceed = ()=>{
-              input.dataset.originalValue = input.value;
-              inFlight = true;
-              postJson('/api/golf/score', { playerIdx: selectedPlayerIdx, holeNumber, field:'shots', value: input.value })
-                .finally(()=>{ inFlight = false; });
-            };
-            if(changingExisting){
-              const label = input.value === '' ? `clear hole ${holeNumber}'s score of ${original}` : `change hole ${holeNumber} from ${original} to ${input.value}`;
-              if(confirm(`Are you sure you want to ${label}?`)){
-                proceed();
-              } else {
-                input.value = original;
-                scores[selectedPlayerIdx][holeNumber].shots = original === '' ? null : parseInt(original,10);
-                refreshRow();
-              }
-            } else {
+          const original = scores[selectedPlayerIdx][holeNumber].shots;
+          const originalStr = (original===null||original===undefined) ? '' : String(original);
+          const newVal = shotsSelect.value;
+          const changingExisting = originalStr !== '' && originalStr !== newVal;
+          const proceed = ()=>{
+            scores[selectedPlayerIdx][holeNumber].shots = newVal === '' ? null : parseInt(newVal,10);
+            refreshRow();
+            inFlight = true;
+            postJson('/api/golf/score', { playerIdx: selectedPlayerIdx, holeNumber, field:'shots', value: newVal })
+              .finally(()=>{ inFlight = false; });
+          };
+          if(changingExisting){
+            const label = newVal === '' ? `clear hole ${holeNumber}'s score of ${originalStr}` : `change hole ${holeNumber} from ${originalStr} to ${newVal}`;
+            if(confirm(`Are you sure you want to ${label}?`)){
               proceed();
+            } else {
+              shotsSelect.value = originalStr;
             }
-          }, 500);
+          } else {
+            proceed();
+          }
         };
       }
       row.querySelectorAll('.sc-tick input[type=checkbox]').forEach(cb=>{
@@ -1268,85 +1784,84 @@ function attachHandlers(){
         };
       });
 
-      const puttInput = row.querySelector('input[data-field="putting_points"]');
-      if(puttInput){
-        let debounce;
-        puttInput.onfocus = ()=>{
-          if(puttInput.dataset.originalValue === undefined){
-            const existing = scoreFor(selectedPlayerIdx, holeNumber).putting_points || 0;
-            puttInput.dataset.originalValue = String(existing);
-          }
-        };
-        puttInput.oninput = ()=>{
+      const puttSelect = row.querySelector('select[data-field="putting_points"]');
+      if(puttSelect){
+        puttSelect.onchange = ()=>{
           if(!scores[selectedPlayerIdx]) scores[selectedPlayerIdx] = {};
           if(!scores[selectedPlayerIdx][holeNumber]) scores[selectedPlayerIdx][holeNumber] = {};
-          let v = puttInput.value === '' ? 0 : parseInt(puttInput.value,10);
-          if(isNaN(v)) v = 0;
-          if(v < 0) v = 0; if(v > 6) v = 6;
-          scores[selectedPlayerIdx][holeNumber].putting_points = v;
-          clearTimeout(debounce);
-          debounce = setTimeout(()=>{
-            const original = puttInput.dataset.originalValue ?? '0';
-            const changingExisting = original !== '0' && original !== String(v);
-            const proceed = ()=>{
-              puttInput.dataset.originalValue = String(v);
-              inFlight = true;
-              postJson('/api/golf/score', { playerIdx: selectedPlayerIdx, holeNumber, field:'putting_points', value: v })
-                .finally(()=>{ inFlight = false; });
-            };
-            if(changingExisting){
-              if(confirm(`Are you sure you want to change hole ${holeNumber}'s putting points from ${original} to ${v}?`)){
-                proceed();
-              } else {
-                puttInput.value = original;
-                scores[selectedPlayerIdx][holeNumber].putting_points = parseInt(original,10);
-              }
-            } else {
+          const original = scores[selectedPlayerIdx][holeNumber].putting_points || 0;
+          const newVal = puttSelect.value === '' ? 0 : parseInt(puttSelect.value, 10);
+          const changingExisting = original > 0 && original !== newVal;
+          const proceed = ()=>{
+            scores[selectedPlayerIdx][holeNumber].putting_points = newVal;
+            inFlight = true;
+            postJson('/api/golf/score', { playerIdx: selectedPlayerIdx, holeNumber, field:'putting_points', value: newVal })
+              .finally(()=>{ inFlight = false; });
+          };
+          if(changingExisting){
+            if(confirm(`Are you sure you want to change hole ${holeNumber}'s putting points from ${original} to ${newVal}?`)){
               proceed();
+            } else {
+              puttSelect.value = String(original);
             }
-          }, 500);
+          } else {
+            proceed();
+          }
         };
       }
 
-      const lbInput = row.querySelector('input[data-field="lost_balls"]');
-      if(lbInput){
-        let lbDebounce;
-        lbInput.onfocus = ()=>{
-          if(lbInput.dataset.originalValue === undefined){
-            const existing = scoreFor(selectedPlayerIdx, holeNumber).lost_balls || 0;
-            lbInput.dataset.originalValue = String(existing);
-          }
-        };
-        lbInput.oninput = ()=>{
+      const lbSelect = row.querySelector('select[data-field="lost_balls"]');
+      if(lbSelect){
+        lbSelect.onchange = ()=>{
           if(!scores[selectedPlayerIdx]) scores[selectedPlayerIdx] = {};
           if(!scores[selectedPlayerIdx][holeNumber]) scores[selectedPlayerIdx][holeNumber] = {};
-          let v = lbInput.value === '' ? 0 : parseInt(lbInput.value,10);
-          if(isNaN(v)) v = 0;
-          if(v < 0) v = 0; if(v > 20) v = 20;
-          scores[selectedPlayerIdx][holeNumber].lost_balls = v;
-          clearTimeout(lbDebounce);
-          lbDebounce = setTimeout(()=>{
-            const original = lbInput.dataset.originalValue ?? '0';
-            const changingExisting = original !== '0' && original !== String(v);
-            const proceed = ()=>{
-              lbInput.dataset.originalValue = String(v);
-              inFlight = true;
-              postJson('/api/golf/score', { playerIdx: selectedPlayerIdx, holeNumber, field:'lost_balls', value: v })
-                .finally(()=>{ inFlight = false; });
-            };
-            if(changingExisting){
-              if(confirm(`Are you sure you want to change hole ${holeNumber}'s lost balls from ${original} to ${v}?`)){
-                proceed();
-              } else {
-                lbInput.value = original;
-                scores[selectedPlayerIdx][holeNumber].lost_balls = parseInt(original,10);
-              }
-            } else {
+          const original = scores[selectedPlayerIdx][holeNumber].lost_balls || 0;
+          const newVal = lbSelect.value === '' ? 0 : parseInt(lbSelect.value, 10);
+          const changingExisting = original > 0 && original !== newVal;
+          const proceed = ()=>{
+            scores[selectedPlayerIdx][holeNumber].lost_balls = newVal;
+            inFlight = true;
+            postJson('/api/golf/score', { playerIdx: selectedPlayerIdx, holeNumber, field:'lost_balls', value: newVal })
+              .finally(()=>{ inFlight = false; });
+          };
+          if(changingExisting){
+            if(confirm(`Are you sure you want to change hole ${holeNumber}'s lost balls from ${original} to ${newVal}?`)){
               proceed();
+            } else {
+              lbSelect.value = String(original);
             }
-          }, 500);
+          } else {
+            proceed();
+          }
         };
       }
+
+      [['bi','Bi'], ['ba','Ba'], ['bo','Bo']].forEach(([field, label])=>{
+        const sel = row.querySelector(`select[data-field="${field}"]`);
+        if(!sel) return;
+        sel.onchange = ()=>{
+          if(!scores[selectedPlayerIdx]) scores[selectedPlayerIdx] = {};
+          if(!scores[selectedPlayerIdx][holeNumber]) scores[selectedPlayerIdx][holeNumber] = {};
+          const original = scores[selectedPlayerIdx][holeNumber][field] || 0;
+          const newVal = sel.value === '' ? 0 : parseInt(sel.value, 10);
+          const changingExisting = original > 0 && original !== newVal;
+          const proceed = ()=>{
+            scores[selectedPlayerIdx][holeNumber][field] = newVal;
+            inFlight = true;
+            postJson('/api/golf/score', { playerIdx: selectedPlayerIdx, holeNumber, field, value: newVal })
+              .finally(()=>{ inFlight = false; });
+          };
+          if(changingExisting){
+            if(confirm(`Are you sure you want to change hole ${holeNumber}'s ${label} from ${original} to ${newVal}?`)){
+              proceed();
+            } else {
+              sel.value = String(original);
+            }
+          } else {
+            proceed();
+          }
+        };
+      });
     });
   }
 
@@ -1402,8 +1917,15 @@ function attachHandlers(){
           inFlight = true;
           const body = { idx:i };
           if(field==='name') body.name = inp.value; else body.handicap = inp.value;
-          await postJson('/api/golf/players', body);
+          const result = await postJson('/api/golf/players', body);
           inFlight = false;
+          if(field==='name' && result && result.appliedHandicap != null){
+            players[i].handicap = result.appliedHandicap;
+            render();
+            const freshTick = document.querySelector(`.save-tick[data-tick="${i}"]`);
+            if(freshTick){ freshTick.classList.add('show'); setTimeout(()=>freshTick.classList.remove('show'), 1200); }
+            return;
+          }
           const tick = document.querySelector(`.save-tick[data-tick="${i}"]`);
           if(tick){ tick.classList.add('show'); setTimeout(()=>tick.classList.remove('show'), 1200); }
         }, 500);
@@ -1428,7 +1950,25 @@ function attachHandlers(){
       };
     }
 
-    ['football','six66','pp'].forEach(key=>{
+    const plusMinusStakeInput = document.getElementById('plusminus-stake-input');
+    if(plusMinusStakeInput){
+      let pmStakeDebounce;
+      plusMinusStakeInput.oninput = ()=>{
+        clearTimeout(pmStakeDebounce);
+        pmStakeDebounce = setTimeout(async ()=>{
+          const v = plusMinusStakeInput.value === '' ? 0 : parseFloat(plusMinusStakeInput.value);
+          settings.plusMinusStake = isNaN(v) ? 0 : v;
+          await postJson('/api/golf/settings', { field:'plusMinusStake', value: settings.plusMinusStake });
+          const msgEl = document.getElementById('plusminus-stake-msg');
+          if(msgEl){
+            msgEl.innerHTML = `<div class="alert alert-success" style="margin-top:0.6rem;">Saved.</div>`;
+            setTimeout(()=>{ if(msgEl) msgEl.innerHTML=''; }, 1500);
+          }
+        }, 500);
+      };
+    }
+
+    ['football','six66','pp','ryderCup','plusMinus'].forEach(key=>{
       const cb = document.getElementById(`fmt-${key}`);
       if(cb){
         cb.onchange = async ()=>{
@@ -1598,6 +2138,105 @@ function attachHandlers(){
         await fetch(`/api/golf/trophies/${id}`, { method:'DELETE' });
         await loadTrophies();
       };
+    });
+  }
+
+  if(currentTab==='playerpages'){
+    document.querySelectorAll('[data-select-playerpage]').forEach(chip=>{
+      chip.onclick = ()=>{
+        selectedPlayerPage = chip.dataset.selectPlayerpage;
+        render();
+        loadRoundHistory(selectedPlayerPage);
+      };
+    });
+
+    const saveBtn = document.getElementById('known-handicap-save');
+    if(saveBtn){
+      saveBtn.onclick = async ()=>{
+        const playerName = saveBtn.dataset.knownPlayer;
+        const input = document.getElementById('known-handicap-input');
+        const h = parseInt(input.value, 10);
+        if(isNaN(h) || h < 1 || h > 36){
+          alert('Handicap must be between 1 and 36.');
+          return;
+        }
+        saveBtn.disabled = true;
+        try{
+          const res = await fetch('/api/golf/known-players', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name: playerName, handicap: h }) });
+          if(res.ok){
+            const existing = knownPlayers.find(p=>p.name===playerName);
+            if(existing) existing.handicap = h; else knownPlayers.push({ name: playerName, handicap: h });
+            const tick = document.querySelector('.save-tick[data-tick="known-handicap"]');
+            if(tick){ tick.classList.add('show'); setTimeout(()=>tick.classList.remove('show'), 1200); }
+          }
+        } finally {
+          const freshBtn = document.getElementById('known-handicap-save');
+          if(freshBtn) freshBtn.disabled = false;
+        }
+      };
+    }
+  }
+
+  if(currentTab==='ryder'){
+    const confirmBtn = document.getElementById('ryder-confirm-players');
+    if(confirmBtn){
+      confirmBtn.onclick = async ()=>{
+        const checked = Array.from(document.querySelectorAll('.ryder-player-check:checked')).map(cb=>parseInt(cb.value,10));
+        const msgEl = document.getElementById('ryder-players-msg');
+        if(checked.length !== 4){
+          if(msgEl) msgEl.innerHTML = `<div class="alert alert-error" style="margin-top:0.6rem;">Pick exactly 4 players (you picked ${checked.length}).</div>`;
+          return;
+        }
+        confirmBtn.disabled = true;
+        try{
+          const res = await fetch('/api/golf/ryder/players', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ playerIdxs: checked }) });
+          if(res.ok){
+            await loadState();
+          } else {
+            const data = await res.json().catch(()=>({}));
+            if(msgEl) msgEl.innerHTML = `<div class="alert alert-error" style="margin-top:0.6rem;">${escapeHtml(data.error || 'Could not save players.')}</div>`;
+          }
+        } finally {
+          const freshBtn = document.getElementById('ryder-confirm-players');
+          if(freshBtn) freshBtn.disabled = false;
+        }
+      };
+    }
+
+    const changeBtn = document.getElementById('ryder-change-players');
+    if(changeBtn){
+      changeBtn.onclick = async ()=>{
+        if(!confirm('Change the 4 players? This clears any teams already drawn for this Ryder Cup.')) return;
+        changeBtn.disabled = true;
+        try{
+          await fetch('/api/golf/ryder/players', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ playerIdxs: [] }) });
+          await loadState();
+        } finally {
+          const freshBtn = document.getElementById('ryder-change-players');
+          if(freshBtn) freshBtn.disabled = false;
+        }
+      };
+    }
+
+    ['1','2'].forEach(setNum=>{
+      const btn = document.getElementById(`ryder-draw-${setNum}`);
+      if(btn){
+        btn.onclick = async ()=>{
+          btn.disabled = true;
+          try{
+            const res = await fetch('/api/golf/ryder/draw', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ set: parseInt(setNum,10) }) });
+            if(res.ok){
+              await loadState();
+            } else {
+              const data = await res.json().catch(()=>({}));
+              alert(data.error || 'Could not draw teams.');
+            }
+          } finally {
+            const freshBtn = document.getElementById(`ryder-draw-${setNum}`);
+            if(freshBtn) freshBtn.disabled = false;
+          }
+        };
+      }
     });
   }
 }

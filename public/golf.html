@@ -123,12 +123,13 @@
   .player-chip.selected{ background:var(--gold); border-color:var(--gold); color:#05051C; }
 
   /* ── Scorecard (light paper look, scoped just to this area) ────────────── */
+  .scorecard-scroll{ overflow-x:auto; -webkit-overflow-scrolling:touch; border-radius:var(--radius); }
   .scorecard{
     border:1px solid #C9BD98; border-radius:var(--radius); overflow:hidden;
     background:#F6F1DE; color:#26231A;
   }
   .sc-row{
-    display:grid; grid-template-columns: 46px 42px 30px 26px 26px 26px 36px 32px;
+    display:grid; grid-template-columns: 46px 42px 30px 26px 26px 26px 36px 32px 32px 32px 32px;
     align-items:center; gap:0.3rem;
     padding:0.5rem 0.5rem;
     border-bottom:1px solid #DED2A8;
@@ -146,11 +147,13 @@
   .sc-hole{ font-weight:900; font-size:1.05rem; color:#1A1710; }
   .sc-row.total .sc-hole{ color:#05051C; }
   .sc-muted{ font-size:0.62rem; color:#7A7150; }
-  .sc-shots, .sc-puttcell, .sc-lbcell{ text-align:center; }
-  .sc-shots input, .sc-puttcell input, .sc-lbcell input{
-    width:100%; max-width:40px; text-align:center; font-size:0.95rem; font-weight:800;
-    padding:0.35rem 0.1rem; background:#FFFDF6; border:1px solid #C9BD98; color:#1A1710;
-    border-radius:6px;
+  .sc-shots, .sc-puttcell, .sc-lbcell, .sc-bicell, .sc-bacell, .sc-bocell{ text-align:center; }
+  .sc-shots select, .sc-puttcell select, .sc-lbcell select, .sc-bicell select, .sc-bacell select, .sc-bocell select{
+    width:100%; max-width:46px; text-align:center; text-align-last:center; font-size:0.95rem; font-weight:800;
+    padding:0.4rem 0.1rem; background:#FFFDF6; border:1px solid #C9BD98; color:#1A1710;
+    border-radius:6px; appearance:none; -webkit-appearance:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'><path d='M0 0 L5 6 L10 0 Z' fill='%23A8987A'/></svg>");
+    background-repeat:no-repeat; background-position:right 3px center; background-size:8px 5px;
   }
   .sc-tick{ display:flex; justify-content:center; align-items:center; }
   .sc-tick input[type=checkbox]{
@@ -412,6 +415,33 @@
     max-width:88vw; max-height:82vh; border-radius:12px;
     box-shadow:0 24px 60px rgba(0,0,0,0.65);
   }
+
+  /* ── +- Ladder ───────────────────────────────────────────────────────── */
+  .ladder{
+    max-height:520px; overflow-y:auto;
+    border:1px solid var(--border); border-radius:var(--radius);
+    background:var(--bg-card-2);
+  }
+  .ladder-rung{
+    display:flex; align-items:center; gap:0.7rem;
+    padding:0.5rem 0.8rem;
+    border-bottom:1px solid rgba(255,255,255,0.06);
+    min-height:2.4rem;
+  }
+  .ladder-rung:last-child{ border-bottom:none; }
+  .ladder-rung.ladder-zero{ background:rgba(255,186,0,0.10); border-top:1px solid var(--gold); border-bottom:1px solid var(--gold); }
+  .ladder-value{
+    width:34px; flex-shrink:0; text-align:right; font-weight:900; font-family:ui-monospace,monospace;
+    font-size:0.85rem; color:var(--muted);
+  }
+  .ladder-zero .ladder-value{ color:var(--gold); }
+  .ladder-track{ display:flex; gap:0.4rem; flex-wrap:wrap; flex:1; }
+  .ladder-player{
+    display:inline-flex; align-items:center; gap:0.3rem;
+    padding:0.25rem 0.6rem; border-radius:14px;
+    font-size:0.78rem; font-weight:800; color:#05051C;
+    white-space:nowrap;
+  }
 </style>
 </head>
 <body>
@@ -436,6 +466,9 @@
       <button class="tab-btn" data-tab="sidebets">666 and PP</button>
       <button class="tab-btn" data-tab="stats">Stats</button>
       <button class="tab-btn" data-tab="trophies">Trophy Cabinet</button>
+      <button class="tab-btn" data-tab="playerpages">Players</button>
+      <button class="tab-btn" data-tab="ryder">Ryder Cup 4 Ball SF</button>
+      <button class="tab-btn" data-tab="plusminus">+-</button>
     </div>
     <div id="golf-content"><p style="color:var(--muted)">Loading&hellip;</p></div>
   </main>
