@@ -194,9 +194,42 @@
 <header>
 <div class="header-content">
 <img src="/assets/logo.png" alt="iSweep World Cup Sweepstake" class="sweepstake-logo">
-<div class="isweep-celeb-wrap">
-<video class="isweep-celeb-clip" src="/assets/isweep_celebration_30s_widescreen.mp4" autoplay muted playsinline></video>
+<div class="isweep-celeb-wrap euro-next-wrap">
+  <img src="/assets/euro2028.png" alt="UEFA Euro 2028 UK &amp; Ireland" class="euro2028-img">
+  <div class="euro-countdown-block">
+    <div class="euro-countdown-label">Next Up &mdash; UEFA Euro 2028</div>
+    <div class="euro-countdown-sub">UK &amp; Ireland &bull; Opens 9 June 2028</div>
+    <div class="euro-countdown-units" id="euro-cd-units">
+      <div class="euro-cd-unit"><span class="euro-cd-val" id="euro-cd-d">—</span><span class="euro-cd-lbl">Days</span></div>
+      <div class="euro-cd-sep">:</div>
+      <div class="euro-cd-unit"><span class="euro-cd-val" id="euro-cd-h">—</span><span class="euro-cd-lbl">Hrs</span></div>
+      <div class="euro-cd-sep">:</div>
+      <div class="euro-cd-unit"><span class="euro-cd-val" id="euro-cd-m">—</span><span class="euro-cd-lbl">Mins</span></div>
+      <div class="euro-cd-sep">:</div>
+      <div class="euro-cd-unit"><span class="euro-cd-val" id="euro-cd-s">—</span><span class="euro-cd-lbl">Secs</span></div>
+    </div>
+  </div>
 </div>
+<script>
+(function() {
+  var target = new Date('2028-06-09T00:00:00');
+  function tick() {
+    var now  = new Date();
+    var diff = Math.max(0, target - now);
+    var d = Math.floor(diff / 86400000);
+    var h = Math.floor((diff % 86400000) / 3600000);
+    var m = Math.floor((diff % 3600000)  / 60000);
+    var s = Math.floor((diff % 60000)    / 1000);
+    var pad = function(n){ return String(n).padStart(2,'0'); };
+    document.getElementById('euro-cd-d').textContent = d;
+    document.getElementById('euro-cd-h').textContent = pad(h);
+    document.getElementById('euro-cd-m').textContent = pad(m);
+    document.getElementById('euro-cd-s').textContent = pad(s);
+  }
+  tick();
+  setInterval(tick, 1000);
+})();
+</script>
 <nav>
 <a href="/">Home</a>
 <a href="/prizes.html">Prizes</a>
@@ -335,6 +368,78 @@
 .pos-pill-bottom-2 { border-color:rgba(34,197,94,0.5); color:#22c55e; background:rgba(34,197,94,0.07); }
 .pos-pill-bottom-3 { border-color:rgba(245,158,11,0.5); color:#f59e0b; background:rgba(245,158,11,0.07); }
 .pos-pill-active { border-color:#2dd4bf !important; color:#2dd4bf !important; background:rgba(45,212,191,0.12) !important; }
+
+  /* Euro 2028 countdown block */
+  .euro-next-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    padding: 1rem 0 0.5rem;
+    flex-wrap: wrap;
+  }
+  .euro2028-img {
+    height: 120px;
+    width: auto;
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+  .euro-countdown-block {
+    text-align: center;
+  }
+  .euro-countdown-label {
+    font-size: 0.75rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 0.2rem;
+  }
+  .euro-countdown-sub {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+  }
+  .euro-countdown-units {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    justify-content: center;
+  }
+  .euro-cd-unit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: rgba(255,255,255,0.06);
+    border-radius: 6px;
+    padding: 0.4rem 0.7rem;
+    min-width: 52px;
+  }
+  .euro-cd-val {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--gold);
+    line-height: 1;
+  }
+  .euro-cd-lbl {
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-top: 0.15rem;
+  }
+  .euro-cd-sep {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--gold);
+    opacity: 0.5;
+    margin-bottom: 0.8rem;
+  }
+  @media (max-width: 480px) {
+    .euro-next-wrap { gap: 1rem; }
+    .euro2028-img { height: 80px; }
+    .euro-cd-val { font-size: 1.2rem; }
+    .euro-cd-unit { min-width: 40px; padding: 0.3rem 0.5rem; }
+  }
 </style>
 <div style="margin-bottom:0.6rem;font-size:0.85rem;color:var(--text-muted)">
 Points accumulation per match — top 3 and bottom 3 always highlighted. Click a name to track them.
